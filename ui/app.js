@@ -111,7 +111,7 @@ function timeline(container, items, cardHtml) {
 function takeCard(t) {
   const cls = ['card', t.obie && 'obie', t.overdue && 'overdue', t.done && 'done'].filter(Boolean).join(' ');
   let meta = '';
-  if (t.checklist) meta += `<div class="meta">${t.checklist}</div>`;
+  if (t.checklist) meta += `<div class="meta">${esc(t.checklist)}</div>`;
   if (t.remind) meta += `<div class="meta">${ICON_CLOCK}${ICON_BELL}${esc(t.remind)}</div>`;
   return `<div class="${cls}" data-take="${t.id}"><span class="iris-wrap"><span class="iris-shadow"></span>${iris(t.types, t.obie)}</span><div class="body">${esc(plain(t.text))}</div>${meta}</div>`;
 }
