@@ -1,0 +1,14 @@
+{
+  "labels": ["greptile"],
+  "autoReview": ["open"],
+  "triggerOnDrafts": false,
+  "strictness": 2,
+  "commentTypes": ["logic", "syntax"],
+  "fileChangeLimit": 60,
+  "excludeAuthors": ["dependabot[bot]", "renovate[bot]"],
+  "ignorePatterns": "DerivedData/**\nbuild/**\n*.xcodeproj/**\n*.xcworkspace/**\n**/*.png\n**/*.jpg\n**/*.webp",
+  "statusCheck": true,
+  "fixWithAI": true,
+  "includeConfidenceScore": true,
+  "instructions": "The macOS version of Catchlight, a zero-knowledge notes app that holds the owner's real daily notes. It must read and write the same encrypted Takes and sync format as the iOS app (Considus/Catchlight-iOS), so treat any divergence from that shared crypto contract or file format as a breaking bug. Reviews cost a credit from a 30-a-month budget, so spend the comments on correctness, security and broken contracts rather than taste. Weight the review towards anything that can lose or expose a note: key derivation and the Keychain, sync round-trips where every field must survive, and destructive paths. AGENTS.md is the source of truth for the ground rules."
+}
