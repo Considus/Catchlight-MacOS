@@ -42,4 +42,4 @@ Tables, Take editing in the sidebar, the Focus-ring, undo across blocks, and car
 
 ## Fonts
 
-Cormorant Garamond and DM Sans, both under the SIL Open Font License 1.1, copied from `Catchlight-Site/fonts/`. The licence text still has to be added beside them before any release.
+Cormorant Garamond and DM Sans, both under the SIL Open Font License 1.1, copied from `Catchlight-Site/fonts/`. The licence text for each family is beside them (`fonts/OFL-*.txt`) and listed in the repo's `NOTICE`.
