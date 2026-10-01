@@ -1,0 +1,234 @@
+/* Catchlight desktop UI. Tokens mirror Catchlight-iOS Theme/CatchlightTheme.swift
+   (As-Built wins, D-274); sizes are iOS points taken 1:1 as CSS px. */
+
+@font-face { font-family: "Cormorant Garamond"; font-style: normal; font-weight: 300; src: url(fonts/cormorant-garamond-normal-300.woff2) format("woff2"); }
+@font-face { font-family: "Cormorant Garamond"; font-style: italic; font-weight: 300; src: url(fonts/cormorant-garamond-italic-300.woff2) format("woff2"); }
+@font-face { font-family: "DM Sans"; font-style: normal; font-weight: 300; src: url(fonts/dm-sans-normal-300.woff2) format("woff2"); }
+@font-face { font-family: "DM Sans"; font-style: normal; font-weight: 400; src: url(fonts/dm-sans-normal-400.woff2) format("woff2"); }
+
+/* Night is the design default. */
+:root, :root[data-scene="night"] {
+  --bg: #0F0E0C; --surface: #1C1A16; --text: #F5EDD8; --text-2: #B8B0A3;
+  --text-done: rgba(184,176,163,.58); --accent: #C9A96E; --accent-fill: #C9A96E;
+  --on-accent: #0F0E0C; --placeholder: #898378; --ruby: rgb(219,82,82);
+  --obie-surface: #2D2921; --obie-border: rgba(237,217,163,.65); --obie-text: #EDD9A3;
+  --card-border: rgba(245,237,216,.10); --card-shadow: none; --divider: #2D2A24;
+  --iris-important: #E0D9CE; --iris-task: #C9A96E; --iris-image: #9AA091;
+  --iris-note: rgba(245,237,216,.55); --iris-voice: #A99C8B; --iris-remind: rgba(237,217,163,.65);
+  --iris-off: #1B1916; --iris-ring: rgba(245,237,216,.45); --iris-obie: #EDD9A3;
+  --page: #1C1A16; --page-edge: rgba(245,237,216,.08); --desk: #0B0A09;
+  --code-bg: rgba(245,237,216,.06); --mark: rgba(184,176,163,.55);
+  color-scheme: dark;
+}
+:root[data-scene="daylight"] {
+  --bg: #F7F4EF; --surface: #FFFFFF; --text: #0F0E0C; --text-2: #5C5650;
+  --text-done: rgba(184,176,163,.82); --accent: #856539; --accent-fill: #C9A96E;
+  --on-accent: #0F0E0C; --placeholder: #7A746C; --ruby: rgb(184,46,46);
+  --obie-surface: #FBF8F3; --obie-border: rgba(201,169,110,.65); --obie-text: #856539;
+  --card-border: rgba(15,14,12,.09);
+  --card-shadow: 0 2px 4px rgba(15,14,12,.09), 0 1px 1px rgba(15,14,12,.05);
+  --divider: #E4DDD2;
+  --iris-important: #0A0908; --iris-task: #A8843E; --iris-image: #9AA091;
+  --iris-note: #8C8C8C; --iris-voice: #A99C8B; --iris-remind: #8A7A58;
+  --iris-off: #F1F1F0; --iris-ring: #8C8C8C; --iris-obie: #C9A96E;
+  --page: #FFFFFF; --page-edge: rgba(15,14,12,.10); --desk: #EDE8E0;
+  --code-bg: rgba(15,14,12,.05); --mark: rgba(92,86,80,.55);
+  color-scheme: light;
+}
+
+/* Touch-ready throughout (iPad, and any touchscreen Mac): every control has a hit area
+   of at least 44 x 44, Apple's minimum. Where the control should LOOK smaller, an
+   invisible ::after extends it rather than the control growing. */
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; }
+body { background: var(--bg); color: var(--text); font: 400 14px/1.45 "DM Sans", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ---------- window layout ---------- */
+/* Columns are set by layout() in app.js: each section sits left, middle or right, or is hidden. */
+.app { height: 100vh; display: grid; grid-template-rows: 44px 1fr; }
+.pane[hidden] { display: none; }
+
+.toolbar { grid-column: 1 / -1; position: relative; display: flex; align-items: center; gap: 4px; padding: 0 12px; -webkit-user-select: none; user-select: none; }
+.lights { display: flex; gap: 8px; margin-right: 14px; }
+.lights i { width: 12px; height: 12px; border-radius: 50%; background: #FF5F57; }
+.lights i:nth-child(2) { background: #FEBC2E; } .lights i:nth-child(3) { background: #28C840; }
+.tb { width: 44px; height: 44px; border-radius: 10px; display: grid; place-items: center; color: var(--text-2); }
+.tb:hover { background: var(--code-bg); color: var(--text); }
+.tb svg { width: 20px; height: 20px; }
+.tb-spacer { flex: 1; }
+
+.seg { display: inline-flex; border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent); border-radius: 999px; padding: 2px; }
+.seg button { position: relative; min-width: 44px; min-height: 30px; padding: 5px 13px; border-radius: 999px; font-size: 12px; color: var(--text-2); }
+.seg button::after { content: ""; position: absolute; inset: -7px 0; }
+.seg button[aria-checked="true"], .seg button.on { background: var(--accent-fill); color: var(--on-accent); }
+.seg.small button { min-height: 30px; padding: 5px 10px; font-size: 11.5px; }
+
+.pane { grid-row: 2; position: relative; min-width: 0; overflow: hidden; display: flex; flex-direction: column; }
+/* No dividing lines: a resizer is invisible until the pointer finds it. */
+.resizer { grid-row: 2; background: transparent; position: relative; z-index: 2; cursor: col-resize; }
+.resizer { touch-action: none; }
+.resizer::after { content: ""; position: absolute; inset: 0 -8px; }
+@media (pointer: coarse) { .resizer::after { inset: 0 -16px; } }
+.resizer:hover, .resizer.dragging { background: color-mix(in srgb, var(--accent) 60%, transparent); }
+
+/* ---------- Dailies-style timeline (sidebar and Script list) ---------- */
+.sidebar, .scriptlist { container-type: inline-size; }
+.page-heading { margin: 14px 0 0; padding: 0 24px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-height: 24px; font: 300 24px/1 "Cormorant Garamond", serif; letter-spacing: 1.6px; text-transform: uppercase; text-align: center; flex: none; }
+/* The pinned Obie zone takes the same spine and View settings as the list under it. */
+.timeline, .pinned { --spine: calc(12px + (100cqw - 24px) / 8); --gap: 44px; --lines: 3; }
+.timeline {
+  flex: 1; overflow-y: auto; position: relative; padding: 46px 0 120px;
+  scrollbar-width: thin;
+}
+:is(.timeline, .pinned)[data-spacing="compact"] { --gap: 26px; }
+:is(.timeline, .pinned)[data-spacing="comfort"] { --gap: 62px; }
+:is(.timeline, .pinned)[data-preview="single"] { --lines: 1; }
+:is(.timeline, .pinned)[data-preview="all"] { --lines: 999; }
+
+/* The beam: a light along the spine. Painted as the timeline's own background with
+   background-attachment: local, so it runs the full scroll height instead of one screenful.
+   Cards cover it; each card then draws the stretch from its Iris's rim down into the open centre, over the blades. */
+.timeline, .pinned, .card::after {
+  --beam:
+    linear-gradient(90deg, transparent 17.2px, rgba(255,255,255,.9) 17.2px, rgba(255,255,255,.9) 18.8px, transparent 18.8px),
+    linear-gradient(90deg, transparent 14.5px, rgba(233,203,140,.45) 14.5px, rgba(233,203,140,.45) 21.5px, transparent 21.5px),
+    linear-gradient(90deg, rgba(201,169,110,0), rgba(201,169,110,.08) 35%, rgba(201,169,110,.08) 65%, rgba(201,169,110,0));
+}
+:root[data-scene="daylight"] .timeline, :root[data-scene="daylight"] .pinned, :root[data-scene="daylight"] .card::after {
+  --beam: linear-gradient(90deg, rgba(255,255,255,0) 12.5px, rgba(255,255,255,.95) 18px, rgba(255,255,255,0) 23.5px);
+}
+.timeline {
+  background: var(--beam);
+  background-size: 36px 100%; background-repeat: no-repeat;
+  background-position: calc(var(--spine) - 18px) 0;
+  background-attachment: local;
+}
+/* Under the heading (DailiesView): with no Obie, Takes dissolve through a 12px fade.
+   With an Obie it is pinned and never scrolls, the zone is solid down to its card, and
+   Takes slide out of sight behind it with no fade, which would let one peek through. */
+.timeline { -webkit-mask-image: linear-gradient(to bottom, transparent, #000 12px); mask-image: linear-gradient(to bottom, transparent, #000 12px); }
+.timeline.under-obie { -webkit-mask-image: none; mask-image: none; padding-top: 0; }
+.pinned {
+  flex: none; position: relative; z-index: 4; padding-top: 46px;
+  background: var(--beam); background-color: var(--bg);
+  background-size: 36px 100%; background-repeat: no-repeat; background-position: calc(var(--spine) - 18px) 0;
+}
+.pinned[hidden] { display: none; }
+.pinned .card { margin-bottom: 0; }
+.timeline.under-obie > :first-child { margin-top: var(--gap); }
+.card::after {
+  content: ""; position: absolute; z-index: 3; pointer-events: none;
+  left: 20px; width: 36px; top: -20px; height: 20px;   /* from the top of the LEANED Iris to the card edge, where the card takes over (TimelineBeam.swift) */
+  background: var(--beam);
+}
+
+.month { margin: 0 0 calc(var(--gap) - 6px) calc(var(--spine) + 22px); font-size: 14px; letter-spacing: .5px; text-transform: uppercase; color: var(--text-2); position: relative; }
+
+.card {
+  position: relative; display: block; width: auto; text-align: left;
+  margin: 0 12px var(--gap) calc(var(--spine) - 38px);
+  padding: 24px 14px 14px 60px;
+  background: var(--surface); border: .75px solid var(--card-border); border-radius: 12px; box-shadow: var(--card-shadow);
+}
+.card .body { white-space: pre-wrap; overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: var(--lines); overflow: hidden; }
+.card .meta { margin-top: 4px; font-size: 11px; color: var(--text-2); display: flex; gap: 5px; align-items: center; }
+.card .meta svg { width: 11px; height: 11px; stroke-width: 1.8; }
+.card.obie { background: var(--obie-surface); border-color: var(--obie-border); }
+.card.obie .body { color: var(--obie-text); }
+.card.overdue { border-color: var(--ruby); }
+.card.overdue .meta { color: var(--ruby); font-style: italic; font-weight: 500; }
+.card.overdue::before { content: "OVERDUE"; position: absolute; left: 6px; top: 50%; transform: translateY(-50%) rotate(180deg); writing-mode: vertical-rl; font-size: 9px; letter-spacing: 1px; color: var(--ruby); }
+.card.done .body { color: var(--text-done); }
+.card.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), var(--card-shadow); }
+/* The Iris leans back 24° at 200px perspective and casts a soft elliptical shadow on the
+   card (IrisDepth in CatchlightTheme.swift: foreshorten cos 24°, standoff 22·sin 24°). */
+/* Centred on the card's OUTER top edge: -22px, less the .75px border, less the .7px the lean
+   moves the rim's centre down. Measured in the browser, not derived. */
+.iris-wrap { position: absolute; z-index: 2; left: 15.25px; top: -23.45px; width: 44px; height: 44px; }
+.iris-wrap .iris { display: block; width: 44px; height: 44px; transform: perspective(200px) rotateX(24deg); }
+.iris-shadow { position: absolute; left: 0; top: 1.9px; width: 44px; height: 40.2px; border-radius: 50%;
+  background: rgba(5,4,3,.62); filter: blur(10px); transform: translate(2.8px, 5.8px); }
+:root[data-scene="daylight"] .iris-shadow { background: rgba(15,14,12,.20); }
+.scriptlist .card { cursor: default; }
+.scriptlist .card .pages { margin-top: 4px; font-size: 11px; color: var(--text-2); }
+
+/* ---------- dock ---------- */
+.dock {
+  position: absolute; z-index: 3; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: repeat(4, 1fr); justify-items: center;
+  padding: 18px 12px 16px;
+  background: linear-gradient(to bottom, transparent, var(--bg) 22px);
+}
+/* The beam runs on, undimmed, through the dock's fade and ends at the + button's ring,
+   as on iOS: the + sits on the spine (slot one's centre is the spine). */
+.dock::before {
+  content: ""; position: absolute; top: 0; height: 18px; width: 36px; pointer-events: none;
+  left: calc(12px + (100cqw - 24px) / 8 - 18px);
+  background: var(--beam);
+}
+.dock { --beam:
+    linear-gradient(90deg, transparent 17.2px, rgba(255,255,255,.9) 17.2px, rgba(255,255,255,.9) 18.8px, transparent 18.8px),
+    linear-gradient(90deg, transparent 14.5px, rgba(233,203,140,.45) 14.5px, rgba(233,203,140,.45) 21.5px, transparent 21.5px),
+    linear-gradient(90deg, rgba(201,169,110,0), rgba(201,169,110,.08) 35%, rgba(201,169,110,.08) 65%, rgba(201,169,110,0)); }
+:root[data-scene="daylight"] .dock { --beam: linear-gradient(90deg, rgba(255,255,255,0) 12.5px, rgba(255,255,255,.95) 18px, rgba(255,255,255,0) 23.5px); }
+.dock-btn { width: 44px; height: 44px; border-radius: 50%; border: 1.5px solid color-mix(in srgb, var(--accent) 55%, transparent); color: var(--accent); display: grid; place-items: center; }
+.dock-btn svg { width: 24px; height: 24px; stroke-width: 1.4; }
+.dock-btn:hover, .dock-btn.on { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+
+.search-row { padding: 14px 12px 0; flex: none; }
+.search-row input { width: 100%; min-height: 44px; padding: 8px 16px; border-radius: 999px; border: 1.5px solid color-mix(in srgb, var(--accent) 55%, transparent); background: var(--surface); color: var(--text); font: inherit; outline: none; }
+.popover { position: absolute; left: 12px; right: 12px; bottom: 84px; z-index: 5; background: var(--surface); border: 1px solid var(--card-border); border-radius: 12px; padding: 10px 12px; box-shadow: 0 8px 24px rgba(0,0,0,.25); }
+.page-pop { left: auto; right: 56px; top: 44px; bottom: auto; width: 300px; }
+.layout-pop { left: 74px; right: auto; top: 44px; bottom: auto; width: 360px; }
+.pop-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 48px; padding: 2px 0; font-size: 12px; color: var(--text-2); }
+
+/* ---------- Script area ---------- */
+.editor-pane { background: var(--bg); }
+/* The Script's title is the Script area's heading, as DAILIES and SCRIPTS are theirs, and
+   the page scrolls under it through the same 12px fade. */
+.editor-scroll { flex: 1; overflow-y: auto; margin-top: 10px;
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 12px); mask-image: linear-gradient(to bottom, transparent, #000 12px); }
+.paper { position: relative; margin: 0 auto; }
+.paper.continuous { max-width: 760px; padding: 56px 64px 160px; }
+.paper.paged { padding: 40px 0 120px; }
+.editor-pane.paged { background: var(--desk); }
+.sheets { position: absolute; inset: 0; pointer-events: none; }
+.sheet { position: absolute; left: 0; right: 0; background: var(--page); border: 1px solid var(--page-edge); box-shadow: 0 2px 10px rgba(0,0,0,.18); }
+.sheet .num { position: absolute; bottom: 28px; left: 0; right: 0; text-align: center; font-size: 11px; color: var(--text-2); }
+.doc { position: relative; outline: none; font-size: 16px; line-height: 1.6; }
+
+.blk { position: relative; min-height: 1.6em; padding: 1px 0; white-space: pre-wrap; overflow-wrap: anywhere; outline: none; border-radius: 3px; }
+.blk.active { caret-color: var(--accent); }
+.blk + .blk { margin-top: .55em; }
+.blk.empty:not(.active)::before { content: "\200b"; }
+.doc .blk.placeholder::before { content: attr(data-ph); color: var(--placeholder); position: absolute; pointer-events: none; }
+.blk.h1 { font: 300 34px/1.2 "Cormorant Garamond", serif; margin-top: .7em; }
+.blk.h2 { font: 300 27px/1.25 "Cormorant Garamond", serif; margin-top: .6em; }
+.blk.h3 { font-size: 18px; font-weight: 500; margin-top: .5em; }
+.blk.quote { border-left: 2px solid var(--accent); padding-left: 14px; color: var(--text-2); font-style: italic; }
+.blk.li { padding-left: 22px; position: relative; }
+.blk.li + .blk.li { margin-top: .15em; }
+.blk.li:not(.active)::before { content: "•"; position: absolute; left: 6px; color: var(--accent); }
+.blk.li.ol:not(.active)::before { content: attr(data-n); left: 0; }
+.blk.check { padding-left: 30px; position: relative; }
+.blk.check + .blk.check { margin-top: .15em; }
+/* On touch a checklist row is a 44pt row, as on iOS; the whole left gutter toggles it. */
+@media (pointer: coarse) { .blk.check { min-height: 44px; padding-top: 9px; } .blk.check input { top: 13px; } }
+.blk.check input { position: absolute; left: 1px; top: .3em; width: 18px; height: 18px; margin: 0; accent-color: var(--accent-fill); }
+.blk.check.done:not(.active) .txt { color: var(--text-done); }
+.blk.code { font: 13px/1.55 ui-monospace, "SF Mono", Menlo, monospace; background: var(--code-bg); padding: 10px 14px; border-radius: 8px; }
+.blk.hr:not(.active) { height: 1.2em; background: linear-gradient(var(--divider), var(--divider)) center / 100% 1px no-repeat; color: transparent; }
+
+.blk strong, .blk .b { font-weight: 500; }
+.blk.h1 strong, .blk.h2 strong { font-weight: 400; }
+.blk em, .blk .i { font-style: italic; }
+.blk s, .blk .s { text-decoration: line-through; }
+.blk code, .blk .c { font: .88em ui-monospace, "SF Mono", Menlo, monospace; background: var(--code-bg); padding: 1px 4px; border-radius: 4px; }
+.blk a, .blk .a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.blk .mk { color: var(--mark); font-weight: 400; font-style: normal; text-decoration: none; }
+
+/* ---------- context menu ---------- */
+.ctx { position: fixed; z-index: 20; margin: 0; padding: 4px; list-style: none; background: var(--surface); border: 1px solid var(--card-border); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.3); }
+.ctx button { display: block; width: 100%; min-height: 44px; text-align: left; padding: 5px 14px; border-radius: 5px; font-size: 13px; }
+.ctx button:hover { background: var(--accent-fill); color: var(--on-accent); }

@@ -6,7 +6,7 @@ Every task moves through four beats: isolate on a branch, build, prove with evid
 
 ## State of the repo
 
-Scaffold only. There is no app target, no build chain and no CI yet, so `main` protection requires a PR but no status checks. When CI lands, add its job names as required checks on `main` in the same PR that adds the workflow, and fill in the Build and Prove sections below.
+No native app target, no build chain and no CI yet, so `main` protection requires a PR but no status checks. `ui/` holds the first-cut interface prototype (plain HTML/CSS/JS, placeholder data); read `ui/README.md` before touching it. The interface is shared with Windows, Linux and iPad (D-318), so keep it free of framework, build step and platform-only web features. When CI lands, add its job names as required checks on `main` in the same PR that adds the workflow, and fill in the Build and Prove sections below.
 
 The macOS app follows `Considus/Catchlight-iOS`, which holds `CatchlightCore` (data model, sync format, crypto). How this app consumes that core is an open decision; do not pick one without the owner.
 
@@ -40,7 +40,7 @@ No third-party dependencies without agreeing it first.
 
 ## Prove
 
-Nothing to build yet. Capture before/after evidence for every change once there is.
+For `ui/`, serve it (`python3 -m http.server 8851 -d ui`, or the `catchlight-macos-ui` preview config) and prove changes in the browser with a screenshot in Night and Daylight. Clear `cl.*` keys from `localStorage` afterwards so the placeholder data is back to its defaults.
 
 ## Ship
 
