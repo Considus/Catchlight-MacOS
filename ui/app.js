@@ -108,15 +108,21 @@ function timeline(container, items, cardHtml) {
   container.innerHTML = html;
 }
 
+function takeCard(t) {
+  const cls = ['card', t.obie && 'obie', t.overdue && 'overdue', t.done && 'done'].filter(Boolean).join(' ');
+  let meta = '';
+  if (t.checklist) meta += `<div class="meta">${t.checklist}</div>`;
+  if (t.remind) meta += `<div class="meta">${ICON_CLOCK}${ICON_BELL}${esc(t.remind)}</div>`;
+  return `<div class="${cls}" data-take="${t.id}"><span class="iris-wrap"><span class="iris-shadow"></span>${iris(t.types, t.obie)}</span><div class="body">${esc(plain(t.text))}</div>${meta}</div>`;
+}
 function renderTakes() {
-  const items = [...takes].sort((a, b) => (b.obie - a.obie) || a.at.localeCompare(b.at));
-  timeline($('#takes'), items, t => {
-    const cls = ['card', t.obie && 'obie', t.overdue && 'overdue', t.done && 'done'].filter(Boolean).join(' ');
-    let meta = '';
-    if (t.checklist) meta += `<div class="meta">${t.checklist}</div>`;
-    if (t.remind) meta += `<div class="meta">${ICON_CLOCK}${ICON_BELL}${esc(t.remind)}</div>`;
-    return `<div class="${cls}" data-take="${t.id}"><span class="iris-wrap"><span class="iris-shadow"></span>${iris(t.types, t.obie)}</span><div class="body">${esc(plain(t.text))}</div>${meta}</div>`;
-  });
+  // The Obie is pinned above the timeline and never scrolls, as on iOS.
+  const obie = takes.find(t => t.obie);
+  const pinned = $('#pinned');
+  pinned.hidden = !obie;
+  pinned.innerHTML = obie ? takeCard(obie) : '';
+  $('#takes').classList.toggle('under-obie', !!obie);
+  timeline($('#takes'), takes.filter(t => t !== obie).sort((a, b) => a.at.localeCompare(b.at)), takeCard);
 }
 
 const plain = s => s.replace(/^```.*$/gm, '').replace(/^(#{1,3}|>|[-*] \[[ x]\]|[-*]|\d+\.)\s+/gm, '')
@@ -126,7 +132,7 @@ const titleOf = s => (s && plain(s.blocks[0] || '')) || (s ? 'Untitled Script' :
 function renderScripts() {
   const tl = $('#scripts');
   tl.dataset.preview = view.preview; tl.dataset.spacing = view.spacing;
-  $('#takes').dataset.preview = view.preview; $('#takes').dataset.spacing = view.spacing;
+  for (const el of [$('#takes'), $('#pinned')]) { el.dataset.preview = view.preview; el.dataset.spacing = view.spacing; }
   let items = scripts.filter(s => !query || s.blocks.join('\n').toLowerCase().includes(query));
   items.sort((a, b) => view.sort === 'oldest' ? a.at.localeCompare(b.at) : b.at.localeCompare(a.at));
   timeline(tl, items, s => {

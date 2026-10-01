@@ -76,27 +76,27 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 /* ---------- Dailies-style timeline (sidebar and Script list) ---------- */
 .sidebar, .scriptlist { container-type: inline-size; }
 .page-heading { margin: 14px 0 0; font: 300 24px/1 "Cormorant Garamond", serif; letter-spacing: 1.6px; text-transform: uppercase; text-align: center; flex: none; }
+/* The pinned Obie zone takes the same spine and View settings as the list under it. */
+.timeline, .pinned { --spine: calc(12px + (100cqw - 24px) / 8); --gap: 44px; --lines: 3; }
 .timeline {
-  --spine: calc(12px + (100cqw - 24px) / 8);
-  --gap: 44px; --lines: 3;
   flex: 1; overflow-y: auto; position: relative; padding: 46px 0 120px;
   scrollbar-width: thin;
 }
-.timeline[data-spacing="compact"] { --gap: 26px; }
-.timeline[data-spacing="comfort"] { --gap: 62px; }
-.timeline[data-preview="single"] { --lines: 1; }
-.timeline[data-preview="all"] { --lines: 999; }
+:is(.timeline, .pinned)[data-spacing="compact"] { --gap: 26px; }
+:is(.timeline, .pinned)[data-spacing="comfort"] { --gap: 62px; }
+:is(.timeline, .pinned)[data-preview="single"] { --lines: 1; }
+:is(.timeline, .pinned)[data-preview="all"] { --lines: 999; }
 
 /* The beam: a light along the spine. Painted as the timeline's own background with
    background-attachment: local, so it runs the full scroll height instead of one screenful.
    Cards cover it; each card then draws the stretch from its Iris's rim down into the open centre, over the blades. */
-.timeline, .card::after {
+.timeline, .pinned, .card::after {
   --beam:
     linear-gradient(90deg, transparent 17.2px, rgba(255,255,255,.9) 17.2px, rgba(255,255,255,.9) 18.8px, transparent 18.8px),
     linear-gradient(90deg, transparent 14.5px, rgba(233,203,140,.45) 14.5px, rgba(233,203,140,.45) 21.5px, transparent 21.5px),
     linear-gradient(90deg, rgba(201,169,110,0), rgba(201,169,110,.08) 35%, rgba(201,169,110,.08) 65%, rgba(201,169,110,0));
 }
-:root[data-scene="daylight"] .timeline, :root[data-scene="daylight"] .card::after {
+:root[data-scene="daylight"] .timeline, :root[data-scene="daylight"] .pinned, :root[data-scene="daylight"] .card::after {
   --beam: linear-gradient(90deg, rgba(255,255,255,0) 12.5px, rgba(255,255,255,.95) 18px, rgba(255,255,255,0) 23.5px);
 }
 .timeline {
@@ -105,6 +105,19 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
   background-position: calc(var(--spine) - 18px) 0;
   background-attachment: local;
 }
+/* Under the heading (DailiesView): with no Obie, Takes dissolve through a 12px fade.
+   With an Obie it is pinned and never scrolls, the zone is solid down to its card, and
+   Takes slide out of sight behind it with no fade, which would let one peek through. */
+.timeline { -webkit-mask-image: linear-gradient(to bottom, transparent, #000 12px); mask-image: linear-gradient(to bottom, transparent, #000 12px); }
+.timeline.under-obie { -webkit-mask-image: none; mask-image: none; padding-top: 0; }
+.pinned {
+  flex: none; position: relative; z-index: 4; padding-top: 46px;
+  background: var(--beam); background-color: var(--bg);
+  background-size: 36px 100%; background-repeat: no-repeat; background-position: calc(var(--spine) - 18px) 0;
+}
+.pinned[hidden] { display: none; }
+.pinned .card { margin-bottom: 0; }
+.timeline.under-obie > :first-child { margin-top: var(--gap); }
 .card::after {
   content: ""; position: absolute; z-index: 3; pointer-events: none;
   left: 20px; width: 36px; top: -20px; height: 20px;   /* from the top of the LEANED Iris to the card edge, where the card takes over (TimelineBeam.swift) */

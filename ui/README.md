@@ -29,6 +29,7 @@ In the Claude desktop app the preview config is `catchlight-macos-ui`.
 - Both docks carry the Angle button; on the Scripts dock it is a placeholder.
 - The Iris leans back 24° with its cast shadow, and the beam crosses only its top half, hidden by the card below and its centre on the card's top edge, and a rim catchlight that turns with the Iris's height on screen, west at the top to north at the bottom, parked under Reduce Motion (IrisDepth, TimelineBeam.swift and TakeCircleView.swift on iOS).
 - Script list mirrors Dailies, with Preview, Spacing and Sort as on iOS.
+- Under each heading, as in DailiesView: a 12px fade the list dissolves into; in Dailies a pinned Obie that never scrolls, with a solid zone down to its card instead of the fade.
 - Script editor: one view, markdown formatted inline as you type. The block being edited shows its markers dimmed, every other block shows the result. `- [ ]` is a real checkbox.
 - Page mode per Script: Continuous, A4 or US Letter (D-314), new Scripts defaulting by region.
 - Right-click a Take: Expand into a Script. Right-click a Script: Make this a Take (D-313).
