@@ -23,7 +23,7 @@
     <button class="tb" id="tb-layout" title="Layout: where each section sits (⌃⌘S hides Dailies, ⌃⌘L Scripts)" aria-label="Layout" aria-expanded="false">
       <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M8.5 5v14M15.5 5v14"/></svg>
     </button>
-    <div class="tb-title" id="tb-title"></div>
+    <div class="tb-spacer"></div>
     <div class="seg" id="page-mode" role="radiogroup" aria-label="Page mode">
       <button data-mode="continuous" role="radio">Continuous</button>
       <button data-mode="a4" role="radio">A4</button>
@@ -77,9 +77,12 @@
 
   <!-- Script area. -->
   <main class="pane editor-pane" id="editor-pane">
-    <div class="paper" id="paper">
-      <div class="sheets" id="sheets" aria-hidden="true"></div>
-      <div class="doc" id="doc" aria-label="Script"></div>
+    <h1 class="page-heading" id="script-heading"></h1>
+    <div class="editor-scroll" id="editor-scroll">
+      <div class="paper" id="paper">
+        <div class="sheets" id="sheets" aria-hidden="true"></div>
+        <div class="doc" id="doc" aria-label="Script"></div>
+      </div>
     </div>
   </main>
 </div>

@@ -34,10 +34,11 @@ In the Claude desktop app the preview config is `catchlight-macos-ui`.
 - Page mode per Script: Continuous, A4 or US Letter (D-314), new Scripts defaulting by region.
 - Right-click a Take: Expand into a Script. Right-click a Script: Make this a Take (D-313).
 - Scene follows the system, or Night or Daylight from the toolbar.
+- The open Script's title is the Script area's heading, in the same place, size and face as DAILIES and SCRIPTS; the toolbar carries no title.
 
 ## Known gaps
 
-Tables, Take editing in the sidebar, the Focus-ring, undo across blocks, and caret placement on click is approximate (the edited face is wider by its markers).
+Tables, Take editing in the sidebar, the Focus-ring, undo across blocks, and caret placement on click is approximate (the edited face is wider by its markers). Turning a Script into a Take and back keeps fenced code blocks whole, but a Shift+Enter line break inside an ordinary block comes back as two blocks.
 
 ## Fonts
 

@@ -36,7 +36,7 @@ const store = {
   get(k, d) { try { const v = localStorage.getItem('cl.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
   set(k, v) { try { localStorage.setItem('cl.' + k, JSON.stringify(v)); } catch { /* storage unavailable: session only */ } },
 };
-const monthLabel = iso => new Date(iso).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }).toUpperCase();
+const monthLabel = iso => new Date(iso.length === 10 ? iso + 'T00:00' : iso).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }).toUpperCase();
 const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
 const ICON_CLOCK = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
 const ICON_BELL = '<svg viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20.5h4"/></svg>';
@@ -125,7 +125,7 @@ function renderTakes() {
   timeline($('#takes'), takes.filter(t => t !== obie).sort((a, b) => a.at.localeCompare(b.at)), takeCard);
 }
 
-const plain = s => s.replace(/^```.*$/gm, '').replace(/^(#{1,3}|>|[-*] \[[ x]\]|[-*]|\d+\.)\s+/gm, '')
+const plain = s => s.replace(/^```.*$/gm, '').replace(/^(#{1,3}|>|[-*] \[[ xX]\]|[-*]|\d+\.)\s+/gm, '')
   .replace(/\*\*|~~|`|\*/g, '').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/^-{3,}$/gm, '').replace(/\n{2,}/g, '\n').trim();
 const titleOf = s => (s && plain(s.blocks[0] || '')) || (s ? 'Untitled Script' : '');
 
@@ -252,7 +252,7 @@ function deactivate() {
 }
 function rebuild(focusI, off) { renderDoc(); activate(focusI, off); changed(); }
 
-const changed = debounce(() => { save(); renderScripts(); $('#tb-title').textContent = titleOf(script()); paginate(); }, 250);
+const changed = debounce(() => { save(); renderScripts(); $('#script-heading').textContent = titleOf(script()); paginate(); }, 250);
 
 doc.addEventListener('input', e => {
   if (active < 0 || e.isComposing) return;
@@ -318,7 +318,7 @@ doc.addEventListener('mousedown', e => {
   if (pos && el.contains(pos.startContainer)) { const sel = getSelection(); sel.removeAllRanges(); sel.addRange(pos); }
 });
 doc.addEventListener('click', e => { if (e.target.closest('a') && !(e.metaKey || e.ctrlKey)) e.preventDefault(); });
-$('#editor-pane').addEventListener('mousedown', e => {
+$('#editor-scroll').addEventListener('mousedown', e => {
   if (e.target.closest('.blk')) return;
   const s = script();
   if (!s) return;
@@ -378,9 +378,21 @@ document.querySelectorAll('#page-mode button').forEach(b => b.addEventListener('
 // ---------- selecting, creating and changing kind (D-313) ----------
 function open(id) {
   current = id; save(); renderScripts(); renderDoc();
-  $('#tb-title').textContent = titleOf(script());
+  $('#script-heading').textContent = titleOf(script());
 }
 $('#scripts').addEventListener('click', e => { const c = e.target.closest('[data-script]'); if (c) open(c.dataset.script); });
+// A Take's lines become blocks, except that a fenced code block stays one block.
+function linesToBlocks(text) {
+  const out = [];
+  let fence = null;
+  for (const line of text.split('\n')) {
+    if (fence !== null) { fence += '\n' + line; if (/^```\s*$/.test(line)) { out.push(fence); fence = null; } }
+    else if (/^```/.test(line)) fence = line;
+    else out.push(line);
+  }
+  if (fence !== null) out.push(fence);
+  return out;
+}
 function newScript(blocks = ['']) {
   const s = { id: 's' + Date.now(), at: new Date().toISOString().slice(0, 10), mode: regionPaper(), blocks };
   scripts.push(s); open(s.id); activate(0);
@@ -414,7 +426,7 @@ $('#ctx-expand').addEventListener('click', () => {
   if (ctxTarget.take) {
     const t = takes.find(x => x.id === ctxTarget.take);
     takes = takes.filter(x => x !== t);
-    renderTakes(); newScript(t.text.split('\n'));
+    renderTakes(); newScript(linesToBlocks(t.text));
   } else {
     const s = scripts.find(x => x.id === ctxTarget.script);
     scripts = scripts.filter(x => x !== s);
@@ -422,7 +434,7 @@ $('#ctx-expand').addEventListener('click', () => {
     takes.push({ id: 't' + Date.now(), at: s.at, text: s.blocks.join('\n'), types: ['note'] });
     if (current === s.id) current = scripts[0] ? scripts[0].id : null;
     save(); renderTakes(); renderScripts(); renderDoc();
-    $('#tb-title').textContent = titleOf(script());
+    $('#script-heading').textContent = titleOf(script());
   }
 });
 
@@ -567,5 +579,5 @@ new MutationObserver(queueGlints).observe(document.querySelector('#app'), { chil
 applyScene(); applyLayout();
 if (!script() && scripts[0]) current = scripts[0].id;
 renderTakes(); renderScripts(); renderDoc();
-$('#tb-title').textContent = script() ? titleOf(script()) : '';
+$('#script-heading').textContent = script() ? titleOf(script()) : '';
 document.fonts.ready.then(paginate);

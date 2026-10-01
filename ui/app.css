@@ -57,7 +57,7 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 .tb { width: 44px; height: 44px; border-radius: 10px; display: grid; place-items: center; color: var(--text-2); }
 .tb:hover { background: var(--code-bg); color: var(--text); }
 .tb svg { width: 20px; height: 20px; }
-.tb-title { flex: 1; text-align: center; font-size: 13px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tb-spacer { flex: 1; }
 
 .seg { display: inline-flex; border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent); border-radius: 999px; padding: 2px; }
 .seg button { position: relative; min-width: 44px; min-height: 30px; padding: 5px 13px; border-radius: 999px; font-size: 12px; color: var(--text-2); }
@@ -75,7 +75,7 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 
 /* ---------- Dailies-style timeline (sidebar and Script list) ---------- */
 .sidebar, .scriptlist { container-type: inline-size; }
-.page-heading { margin: 14px 0 0; font: 300 24px/1 "Cormorant Garamond", serif; letter-spacing: 1.6px; text-transform: uppercase; text-align: center; flex: none; }
+.page-heading { margin: 14px 0 0; padding: 0 24px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-height: 24px; font: 300 24px/1 "Cormorant Garamond", serif; letter-spacing: 1.6px; text-transform: uppercase; text-align: center; flex: none; }
 /* The pinned Obie zone takes the same spine and View settings as the list under it. */
 .timeline, .pinned { --spine: calc(12px + (100cqw - 24px) / 8); --gap: 44px; --lines: 3; }
 .timeline {
@@ -171,7 +171,11 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 .pop-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 48px; padding: 2px 0; font-size: 12px; color: var(--text-2); }
 
 /* ---------- Script area ---------- */
-.editor-pane { background: var(--bg); overflow-y: auto; display: block; }
+.editor-pane { background: var(--bg); }
+/* The Script's title is the Script area's heading, as DAILIES and SCRIPTS are theirs, and
+   the page scrolls under it through the same 12px fade. */
+.editor-scroll { flex: 1; overflow-y: auto; margin-top: 10px;
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 12px); mask-image: linear-gradient(to bottom, transparent, #000 12px); }
 .paper { position: relative; margin: 0 auto; }
 .paper.continuous { max-width: 760px; padding: 56px 64px 160px; }
 .paper.paged { padding: 40px 0 120px; }
