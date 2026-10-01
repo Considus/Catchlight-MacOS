@@ -3,3 +3,23 @@ Copyright 2026 Mark Stradling (trading as Considus)
 
 This product is licensed under the Apache License, Version 2.0.
 See the LICENSE file for the full terms.
+
+Third-party fonts
+-----------------
+
+The app bundles the following fonts. They are licensed under the SIL Open
+Font License, Version 1.1, not the Apache License. The files are subsets
+of the upstream fonts. Each licence, with its copyright notice, is in a
+text file beside the font files.
+
+Cormorant Garamond
+Copyright 2015 the Cormorant Project Authors (github.com/CatharsisFonts/Cormorant)
+Files:   ui/fonts/cormorant-garamond-normal-300.woff2
+         ui/fonts/cormorant-garamond-italic-300.woff2
+Licence: ui/fonts/OFL-CormorantGaramond.txt
+
+DM Sans
+Copyright 2014 The DM Sans Project Authors (https://github.com/googlefonts/dm-fonts)
+Files:   ui/fonts/dm-sans-normal-300.woff2
+         ui/fonts/dm-sans-normal-400.woff2
+Licence: ui/fonts/OFL-DMSans.txt
