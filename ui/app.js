@@ -104,13 +104,13 @@ function renderTakes() {
     let meta = '';
     if (t.checklist) meta += `<div class="meta">${t.checklist}</div>`;
     if (t.remind) meta += `<div class="meta">${ICON_CLOCK}${ICON_BELL}${esc(t.remind)}</div>`;
-    return `<div class="${cls}" data-take="${t.id}">${iris(t.types, t.obie)}<div class="body">${esc(t.text)}</div>${meta}</div>`;
+    return `<div class="${cls}" data-take="${t.id}">${iris(t.types, t.obie)}<div class="body">${esc(plain(t.text))}</div>${meta}</div>`;
   });
 }
 
 const plain = s => s.replace(/^```.*$/gm, '').replace(/^(#{1,3}|>|[-*] \[[ x]\]|[-*]|\d+\.)\s+/gm, '')
   .replace(/\*\*|~~|`|\*/g, '').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/^-{3,}$/gm, '').replace(/\n{2,}/g, '\n').trim();
-const titleOf = s => plain(s.blocks[0] || '') || 'Untitled Script';
+const titleOf = s => (s && plain(s.blocks[0] || '')) || (s ? 'Untitled Script' : '');
 
 function renderScripts() {
   const tl = $('#scripts');
@@ -389,9 +389,11 @@ $('#ctx-expand').addEventListener('click', () => {
   } else {
     const s = scripts.find(x => x.id === ctxTarget.script);
     scripts = scripts.filter(x => x !== s);
-    takes.push({ id: 't' + Date.now(), at: s.at, text: plain(s.blocks.join('\n')), types: ['note'] });
+    // The text moves as it is, markdown included: changing kind changes nothing else (D-313).
+    takes.push({ id: 't' + Date.now(), at: s.at, text: s.blocks.join('\n'), types: ['note'] });
     if (current === s.id) current = scripts[0] ? scripts[0].id : null;
     save(); renderTakes(); renderScripts(); renderDoc();
+    $('#tb-title').textContent = titleOf(script());
   }
 });
 
