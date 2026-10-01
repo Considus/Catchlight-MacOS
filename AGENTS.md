@@ -44,4 +44,4 @@ Nothing to build yet. Capture before/after evidence for every change once there 
 
 ## Ship
 
-Run `/code-review` locally before opening the PR. Label `greptile` only on a PR that changes behaviour (budgeted, 30 a month across the org). Every PR also gets one automatic Claude review (`.github/workflows/claude-review.yml`).
+Run `/code-review` locally before opening the PR. Label `greptile` (filter in `.greptile/config.json`) only on a PR that changes behaviour (budgeted, 30 a month across the org). Every PR also gets one automatic Claude review (`.github/workflows/claude-review.yml`).
