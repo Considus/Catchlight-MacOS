@@ -1,0 +1,14 @@
+version: 2
+updates:
+  # There is no app code yet, so the only pinned versions in the repo are the
+  # workflow actions, which are pinned to commit SHAs. This keeps those SHAs
+  # current.
+  #
+  # Add a "swift" ecosystem block here the day a third-party dependency lands
+  # and Package.resolved gets committed.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "ci"
