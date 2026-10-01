@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Catchlight</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="app" id="app">
+
+  <!-- Window toolbar. In the native shell the traffic lights belong to the OS;
+       here they are drawn so the prototype reads as a Mac window. -->
+  <header class="toolbar">
+    <div class="lights" aria-hidden="true"><i></i><i></i><i></i></div>
+    <button class="tb" id="tb-sidebar" title="Show or hide the sidebar (⌃⌘S)" aria-label="Toggle sidebar">
+      <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M9 5v14"/></svg>
+    </button>
+    <button class="tb" id="tb-list" title="Show or hide the Script list (⌃⌘L)" aria-label="Toggle Script list">
+      <svg viewBox="0 0 24 24"><path d="M5 7h14M5 12h14M5 17h9"/></svg>
+    </button>
+    <div class="tb-title" id="tb-title"></div>
+    <div class="seg" id="page-mode" role="radiogroup" aria-label="Page mode">
+      <button data-mode="continuous" role="radio">Continuous</button>
+      <button data-mode="a4" role="radio">A4</button>
+      <button data-mode="letter" role="radio">US Letter</button>
+    </div>
+    <button class="tb" id="tb-scene" title="Scene: follows the system, Night or Daylight" aria-label="Change Scene">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/></svg>
+    </button>
+  </header>
+
+  <!-- Sidebar: the iOS app, as if on a taller device. -->
+  <aside class="pane sidebar" id="sidebar" aria-label="Takes">
+    <h1 class="page-heading">Dailies</h1>
+    <div class="timeline" id="takes"></div>
+    <nav class="dock" aria-label="Takes dock">
+      <button class="dock-btn" aria-label="Add a Take"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+      <button class="dock-btn" aria-label="Angle"><svg viewBox="0 0 24 24"><path d="M5 18h14M5 18l9-11M10.5 18a6 6 0 0 0-1.9-4.4"/></svg></button>
+      <button class="dock-btn" aria-label="Sequence"><svg viewBox="0 0 24 24"><circle cx="6.5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="17.5" cy="12" r="2"/></svg></button>
+      <button class="dock-btn" aria-label="Search"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="5.5"/><path d="M15 15l4.5 4.5"/></svg></button>
+    </nav>
+  </aside>
+  <div class="resizer" id="rz-sidebar" role="separator" aria-orientation="vertical" aria-label="Resize sidebar"></div>
+
+  <!-- Script list: mirrors Dailies. -->
+  <section class="pane scriptlist" id="scriptlist" aria-label="Scripts">
+    <h1 class="page-heading">Scripts</h1>
+    <div class="search-row" id="search-row" hidden>
+      <input type="search" id="search" placeholder="Search Scripts" aria-label="Search Scripts">
+    </div>
+    <div class="timeline" id="scripts"></div>
+    <div class="popover" id="view-pop" hidden>
+      <div class="pop-row"><span>Preview</span><div class="seg small" data-setting="preview">
+        <button data-v="single">Single</button><button data-v="some">Some</button><button data-v="all">All</button></div></div>
+      <div class="pop-row"><span>Spacing</span><div class="seg small" data-setting="spacing">
+        <button data-v="compact">Compact</button><button data-v="standard">Standard</button><button data-v="comfort">Comfort</button></div></div>
+      <div class="pop-row"><span>Sort</span><div class="seg small" data-setting="sort">
+        <button data-v="oldest">Oldest first</button><button data-v="newest">Newest first</button></div></div>
+    </div>
+    <nav class="dock" aria-label="Scripts dock">
+      <button class="dock-btn" id="new-script" aria-label="New Script"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+      <button class="dock-btn" id="view-opts" aria-label="View options"><svg viewBox="0 0 24 24"><path d="M4 8h10M18 8h2M4 16h2M10 16h10"/><circle cx="16" cy="8" r="2"/><circle cx="8" cy="16" r="2"/></svg></button>
+      <button class="dock-btn" id="search-btn" aria-label="Search Scripts"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="5.5"/><path d="M15 15l4.5 4.5"/></svg></button>
+    </nav>
+  </section>
+  <div class="resizer" id="rz-list" role="separator" aria-orientation="vertical" aria-label="Resize Script list"></div>
+
+  <!-- Script area. -->
+  <main class="pane editor-pane" id="editor-pane">
+    <div class="paper" id="paper">
+      <div class="sheets" id="sheets" aria-hidden="true"></div>
+      <div class="doc" id="doc" aria-label="Script"></div>
+    </div>
+  </main>
+</div>
+
+<menu class="ctx" id="ctx" hidden>
+  <li><button id="ctx-expand">Expand into a Script</button></li>
+</menu>
+
+<script src="app.js"></script>
+</body>
+</html>
