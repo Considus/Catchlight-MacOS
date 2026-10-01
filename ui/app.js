@@ -227,7 +227,7 @@ function renderDoc() {
   const s = script();
   active = -1;
   doc.innerHTML = '';
-  if (!s) return;
+  if (!s) { applyMode(); return; } // clears page sheets left by the last Script
   if (!s.blocks.length) s.blocks.push('');
   s.blocks.forEach((t, i) => { const el = document.createElement('div'); el.dataset.i = i; doc.append(el); paint(el, t, false); });
   applyMode();
@@ -532,8 +532,12 @@ $('#tb-layout').addEventListener('click', () => {
   const p = $('#layout-pop'); p.hidden = !p.hidden; $('#tb-layout').setAttribute('aria-expanded', String(!p.hidden));
 });
 $('#layout-pop').addEventListener('click', e => { const b = e.target.closest('button[data-p]'); if (b) place(b.closest('.seg').dataset.pane, b.dataset.p); });
+$('#tb-page').addEventListener('click', () => {
+  const p = $('#page-pop'); p.hidden = !p.hidden; $('#tb-page').setAttribute('aria-expanded', String(!p.hidden));
+});
 document.addEventListener('mousedown', e => {
   if (!e.target.closest('#layout-pop, #tb-layout')) { $('#layout-pop').hidden = true; $('#tb-layout').setAttribute('aria-expanded', 'false'); }
+  if (!e.target.closest('#page-pop, #tb-page')) { $('#page-pop').hidden = true; $('#tb-page').setAttribute('aria-expanded', 'false'); }
 });
 document.addEventListener('keydown', e => {
   if (!(e.metaKey && e.ctrlKey)) return;

@@ -31,7 +31,7 @@ In the Claude desktop app the preview config is `catchlight-macos-ui`.
 - Script list mirrors Dailies, with Preview, Spacing and Sort as on iOS.
 - Under each heading, as in DailiesView: a 12px fade the list dissolves into; in Dailies a pinned Obie that never scrolls, with a solid zone down to its card instead of the fade.
 - Script editor: one view, markdown formatted inline as you type. The block being edited shows its markers dimmed, every other block shows the result. `- [ ]` is a real checkbox.
-- Page mode per Script: Continuous, A4 or US Letter (D-314), new Scripts defaulting by region.
+- Page mode per Script: Continuous, A4 or US Letter (D-314), new Scripts defaulting by region, chosen from the page button at the right of the toolbar.
 - Right-click a Take: Expand into a Script. Right-click a Script: Make this a Take (D-313).
 - Scene follows the system, or Night or Daylight from the toolbar.
 - The open Script's title is the Script area's heading, in the same place, size and face as DAILIES and SCRIPTS; the toolbar carries no title.
