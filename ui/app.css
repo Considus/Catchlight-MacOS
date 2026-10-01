@@ -36,6 +36,9 @@
   color-scheme: light;
 }
 
+/* Touch-ready throughout (iPad, and any touchscreen Mac): every control has a hit area
+   of at least 44 x 44, Apple's minimum. Where the control should LOOK smaller, an
+   invisible ::after extends it rather than the control growing. */
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; overflow: hidden; }
 body { background: var(--bg); color: var(--text); font: 400 14px/1.45 "DM Sans", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
@@ -51,20 +54,23 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 .lights { display: flex; gap: 8px; margin-right: 14px; }
 .lights i { width: 12px; height: 12px; border-radius: 50%; background: #FF5F57; }
 .lights i:nth-child(2) { background: #FEBC2E; } .lights i:nth-child(3) { background: #28C840; }
-.tb { width: 32px; height: 28px; border-radius: 7px; display: grid; place-items: center; color: var(--text-2); }
+.tb { width: 44px; height: 44px; border-radius: 10px; display: grid; place-items: center; color: var(--text-2); }
 .tb:hover { background: var(--code-bg); color: var(--text); }
 .tb svg { width: 20px; height: 20px; }
 .tb-title { flex: 1; text-align: center; font-size: 13px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .seg { display: inline-flex; border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent); border-radius: 999px; padding: 2px; }
-.seg button { padding: 3px 11px; border-radius: 999px; font-size: 12px; color: var(--text-2); }
+.seg button { position: relative; min-width: 44px; min-height: 30px; padding: 5px 13px; border-radius: 999px; font-size: 12px; color: var(--text-2); }
+.seg button::after { content: ""; position: absolute; inset: -7px 0; }
 .seg button[aria-checked="true"], .seg button.on { background: var(--accent-fill); color: var(--on-accent); }
-.seg.small button { padding: 2px 8px; font-size: 11.5px; }
+.seg.small button { min-height: 30px; padding: 5px 10px; font-size: 11.5px; }
 
 .pane { grid-row: 2; position: relative; min-width: 0; overflow: hidden; display: flex; flex-direction: column; }
 /* No dividing lines: a resizer is invisible until the pointer finds it. */
 .resizer { grid-row: 2; background: transparent; position: relative; z-index: 2; cursor: col-resize; }
-.resizer::after { content: ""; position: absolute; inset: 0 -4px; }
+.resizer { touch-action: none; }
+.resizer::after { content: ""; position: absolute; inset: 0 -8px; }
+@media (pointer: coarse) { .resizer::after { inset: 0 -16px; } }
 .resizer:hover, .resizer.dragging { background: color-mix(in srgb, var(--accent) 60%, transparent); }
 
 /* ---------- Dailies-style timeline (sidebar and Script list) ---------- */
@@ -125,7 +131,9 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 .card.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), var(--card-shadow); }
 /* The Iris leans back 24° at 200px perspective and casts a soft elliptical shadow on the
    card (IrisDepth in CatchlightTheme.swift: foreshorten cos 24°, standoff 22·sin 24°). */
-.iris-wrap { position: absolute; z-index: 2; left: 16px; top: -22px; width: 44px; height: 44px; }
+/* Centred on the card's OUTER top edge: -22px, less the .75px border, less the .7px the lean
+   moves the rim's centre down. Measured in the browser, not derived. */
+.iris-wrap { position: absolute; z-index: 2; left: 15.25px; top: -23.45px; width: 44px; height: 44px; }
 .iris-wrap .iris { display: block; width: 44px; height: 44px; transform: perspective(200px) rotateX(24deg); }
 .iris-shadow { position: absolute; left: 0; top: 1.9px; width: 44px; height: 40.2px; border-radius: 50%;
   background: rgba(5,4,3,.62); filter: blur(10px); transform: translate(2.8px, 5.8px); }
@@ -144,10 +152,10 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 .dock-btn:hover, .dock-btn.on { background: color-mix(in srgb, var(--accent) 14%, transparent); }
 
 .search-row { padding: 14px 12px 0; flex: none; }
-.search-row input { width: 100%; padding: 8px 14px; border-radius: 999px; border: 1.5px solid color-mix(in srgb, var(--accent) 55%, transparent); background: var(--surface); color: var(--text); font: inherit; outline: none; }
+.search-row input { width: 100%; min-height: 44px; padding: 8px 16px; border-radius: 999px; border: 1.5px solid color-mix(in srgb, var(--accent) 55%, transparent); background: var(--surface); color: var(--text); font: inherit; outline: none; }
 .popover { position: absolute; left: 12px; right: 12px; bottom: 84px; z-index: 5; background: var(--surface); border: 1px solid var(--card-border); border-radius: 12px; padding: 10px 12px; box-shadow: 0 8px 24px rgba(0,0,0,.25); }
-.layout-pop { left: 74px; right: auto; top: 40px; bottom: auto; width: 330px; }
-.pop-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 5px 0; font-size: 12px; color: var(--text-2); }
+.layout-pop { left: 74px; right: auto; top: 44px; bottom: auto; width: 360px; }
+.pop-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 48px; padding: 2px 0; font-size: 12px; color: var(--text-2); }
 
 /* ---------- Script area ---------- */
 .editor-pane { background: var(--bg); overflow-y: auto; display: block; }
@@ -173,9 +181,11 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 .blk.li + .blk.li { margin-top: .15em; }
 .blk.li:not(.active)::before { content: "•"; position: absolute; left: 6px; color: var(--accent); }
 .blk.li.ol:not(.active)::before { content: attr(data-n); left: 0; }
-.blk.check { padding-left: 26px; position: relative; }
+.blk.check { padding-left: 30px; position: relative; }
 .blk.check + .blk.check { margin-top: .15em; }
-.blk.check input { position: absolute; left: 2px; top: .38em; width: 14px; height: 14px; margin: 0; accent-color: var(--accent-fill); }
+/* On touch a checklist row is a 44pt row, as on iOS; the whole left gutter toggles it. */
+@media (pointer: coarse) { .blk.check { min-height: 44px; padding-top: 9px; } .blk.check input { top: 13px; } }
+.blk.check input { position: absolute; left: 1px; top: .3em; width: 18px; height: 18px; margin: 0; accent-color: var(--accent-fill); }
 .blk.check.done:not(.active) .txt { color: var(--text-done); }
 .blk.code { font: 13px/1.55 ui-monospace, "SF Mono", Menlo, monospace; background: var(--code-bg); padding: 10px 14px; border-radius: 8px; }
 .blk.hr:not(.active) { height: 1.2em; background: linear-gradient(var(--divider), var(--divider)) center / 100% 1px no-repeat; color: transparent; }
@@ -190,5 +200,5 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 
 /* ---------- context menu ---------- */
 .ctx { position: fixed; z-index: 20; margin: 0; padding: 4px; list-style: none; background: var(--surface); border: 1px solid var(--card-border); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.3); }
-.ctx button { display: block; width: 100%; text-align: left; padding: 5px 12px; border-radius: 5px; font-size: 13px; }
+.ctx button { display: block; width: 100%; min-height: 44px; text-align: left; padding: 5px 14px; border-radius: 5px; font-size: 13px; }
 .ctx button:hover { background: var(--accent-fill); color: var(--on-accent); }

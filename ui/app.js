@@ -10,22 +10,23 @@ const SEG = ['important', 'task', 'image', 'note', 'voice', 'remind'];
 function iris(active = [], obie = false) {
   const on = new Set(obie ? [...active, 'important'] : active);
   const edge = obie ? 'var(--iris-obie)' : 'var(--iris-ring)';
-  let s = '<svg class="iris" viewBox="-1 -1 42 42" aria-hidden="true" style="stroke:none;overflow:visible">';
+  let s = '<svg class="iris" viewBox="0.85 0.85 38.3 38.3" aria-hidden="true" style="stroke:none;overflow:visible">';
   BLADES.forEach((d, i) => { s += `<path d="${d}" fill="${on.has(SEG[i]) ? `var(--iris-${SEG[i]})` : 'var(--iris-off)'}"/>`; });
   BLADES.forEach(d => { s += `<path d="${d}" fill="url(#iris-sheen)"/>`; }); // metal sheen, lit from the top-left
   BLADES.forEach(d => { s += `<path d="${d}" fill="none" stroke="${edge}" stroke-width="0.7"/>`; });
   s += `<circle cx="20" cy="20" r="18.7" fill="none" stroke="${edge}" stroke-width="0.9"/>`;
-  if (obie) s += '<circle cx="20" cy="20" r="22.7" fill="none" stroke="var(--iris-obie)" stroke-width="1.8"/>';
+  if (obie) s += '<circle cx="20" cy="20" r="21.76" fill="none" stroke="var(--iris-obie)" stroke-width="1.74"/>';
   // The rim catchlight: hot core and bloom at ten o'clock, dim bounce opposite
   // (TakeCircleView.glint). An Obie catches it on both rings. turnGlints() swings it.
   s += '<g class="glints">' + glint(0.976, 0.052, 0.235, 0.150) + (obie ? glint(1.109, 0.040, 0.180, 0.115) : '') + '</g>';
   return s + '</svg>';
 }
 function glint(unit, core, bloom, bounce) {
-  const d = unit * 20 * Math.SQRT1_2, near = 20 - d, far = 20 + d; // 225°: up and left of centre
-  return `<circle cx="${far}" cy="${far}" r="${bounce * 20}" fill="url(#glint-bounce)"/>`
-    + `<circle cx="${near}" cy="${near}" r="${bloom * 20}" fill="url(#glint-bloom)"/>`
-    + `<circle cx="${near}" cy="${near}" r="${core * 20}" fill="#FFFEF8"/>`;
+  const R = 19.15; // the shutter's outer radius in blade units: iOS's diameter / 2
+  const d = unit * R * Math.SQRT1_2, near = 20 - d, far = 20 + d; // 225°: up and left of centre
+  return `<circle cx="${far}" cy="${far}" r="${bounce * R}" fill="url(#glint-bounce)"/>`
+    + `<circle cx="${near}" cy="${near}" r="${bloom * R}" fill="url(#glint-bloom)"/>`
+    + `<circle cx="${near}" cy="${near}" r="${core * R}" fill="#FFFEF8"/>`;
 }
 
 // ---------- small helpers ----------
@@ -297,7 +298,8 @@ doc.addEventListener('mousedown', e => {
   const el = e.target.closest('.blk');
   if (!el || el.classList.contains('active')) return;
   const i = +el.dataset.i, s = script();
-  if (e.target.matches('input[type=checkbox]')) {
+  const gutter = el.classList.contains('check') && e.clientX - el.getBoundingClientRect().left < 34;
+  if (e.target.matches('input[type=checkbox]') || gutter) {
     e.preventDefault();
     s.blocks[i] = s.blocks[i].replace(/^([-*] \[)( |x|X)\]/, (_, a, b) => `${a}${b === ' ' ? 'x' : ' '}]`);
     paint(el, s.blocks[i], false); changed(); return;
@@ -381,14 +383,25 @@ $('#new-script').addEventListener('click', () => newScript());
 
 const ctx = $('#ctx');
 let ctxTarget = null;
-document.addEventListener('contextmenu', e => {
-  const take = e.target.closest('[data-take]'), scr = e.target.closest('[data-script]');
-  if (!take && !scr) return;
-  e.preventDefault();
+function openCtx(target, x, y) {
+  const take = target.closest('[data-take]'), scr = target.closest('[data-script]');
+  if (!take && !scr) return false;
   ctxTarget = take ? { take: take.dataset.take } : { script: scr.dataset.script };
   $('#ctx-expand').textContent = take ? 'Expand into a Script' : 'Make this a Take';
-  ctx.hidden = false; ctx.style.left = e.clientX + 'px'; ctx.style.top = e.clientY + 'px';
+  ctx.hidden = false;
+  ctx.style.left = Math.min(x, innerWidth - 220) + 'px'; ctx.style.top = Math.min(y, innerHeight - 60) + 'px';
+  return true;
+}
+document.addEventListener('contextmenu', e => { if (openCtx(e.target, e.clientX, e.clientY)) e.preventDefault(); });
+// Touch has no right-click: a long press (500ms, under 10px of movement) opens the same menu.
+let press = null;
+document.addEventListener('pointerdown', e => {
+  if (e.pointerType === 'mouse') return;
+  const { target, clientX: x, clientY: y } = e;
+  press = { x, y, t: setTimeout(() => { press = null; openCtx(target, x, y); }, 500) };
 });
+document.addEventListener('pointermove', e => { if (press && Math.hypot(e.clientX - press.x, e.clientY - press.y) > 10) { clearTimeout(press.t); press = null; } });
+document.addEventListener('pointerup', () => { if (press) { clearTimeout(press.t); press = null; } });
 document.addEventListener('mousedown', e => { if (!ctx.contains(e.target)) ctx.hidden = true; });
 $('#ctx-expand').addEventListener('click', () => {
   ctx.hidden = true;
