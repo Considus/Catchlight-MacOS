@@ -91,7 +91,7 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
     linear-gradient(90deg, rgba(201,169,110,0), rgba(201,169,110,.08) 35%, rgba(201,169,110,.08) 65%, rgba(201,169,110,0));
 }
 :root[data-scene="daylight"] .timeline, :root[data-scene="daylight"] .card::after {
-  --beam: linear-gradient(90deg, transparent 12.5px, rgba(255,255,255,.6) 12.5px, #fff 18px, rgba(255,255,255,.6) 23.5px, transparent 23.5px);
+  --beam: linear-gradient(90deg, rgba(255,255,255,0) 12.5px, rgba(255,255,255,.95) 18px, rgba(255,255,255,0) 23.5px);
 }
 .timeline {
   background: var(--beam);
@@ -101,7 +101,7 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 }
 .card::after {
   content: ""; position: absolute; z-index: 3; pointer-events: none;
-  left: 20px; width: 36px; top: -22px; height: 31px;   /* over the Iris, from its rim down into the hex, as on iOS */
+  left: 20px; width: 36px; top: -20px; height: 20px;   /* from the top of the LEANED Iris to the card edge, where the card takes over (TimelineBeam.swift) */
   background: var(--beam);
 }
 
@@ -123,7 +123,13 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 .card.overdue::before { content: "OVERDUE"; position: absolute; left: 6px; top: 50%; transform: translateY(-50%) rotate(180deg); writing-mode: vertical-rl; font-size: 9px; letter-spacing: 1px; color: var(--ruby); }
 .card.done .body { color: var(--text-done); }
 .card.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), var(--card-shadow); }
-.card .iris { position: absolute; z-index: 2; left: 16px; top: -22px; width: 44px; height: 44px; filter: drop-shadow(0 2px 4px rgba(0,0,0,.45)); }
+/* The Iris leans back 24° at 200px perspective and casts a soft elliptical shadow on the
+   card (IrisDepth in CatchlightTheme.swift: foreshorten cos 24°, standoff 22·sin 24°). */
+.iris-wrap { position: absolute; z-index: 2; left: 16px; top: -22px; width: 44px; height: 44px; }
+.iris-wrap .iris { display: block; width: 44px; height: 44px; transform: perspective(200px) rotateX(24deg); }
+.iris-shadow { position: absolute; left: 0; top: 1.9px; width: 44px; height: 40.2px; border-radius: 50%;
+  background: rgba(5,4,3,.62); filter: blur(10px); transform: translate(2.8px, 5.8px); }
+:root[data-scene="daylight"] .iris-shadow { background: rgba(15,14,12,.20); }
 .scriptlist .card { cursor: default; }
 .scriptlist .card .pages { margin-top: 4px; font-size: 11px; color: var(--text-2); }
 
@@ -140,7 +146,7 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 .search-row { padding: 14px 12px 0; flex: none; }
 .search-row input { width: 100%; padding: 8px 14px; border-radius: 999px; border: 1.5px solid color-mix(in srgb, var(--accent) 55%, transparent); background: var(--surface); color: var(--text); font: inherit; outline: none; }
 .popover { position: absolute; left: 12px; right: 12px; bottom: 84px; z-index: 5; background: var(--surface); border: 1px solid var(--card-border); border-radius: 12px; padding: 10px 12px; box-shadow: 0 8px 24px rgba(0,0,0,.25); }
-.layout-pop { left: auto; right: 12px; top: 40px; bottom: auto; width: 330px; }
+.layout-pop { left: 74px; right: auto; top: 40px; bottom: auto; width: 330px; }
 .pop-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 5px 0; font-size: 12px; color: var(--text-2); }
 
 /* ---------- Script area ---------- */

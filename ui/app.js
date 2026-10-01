@@ -105,7 +105,7 @@ function renderTakes() {
     let meta = '';
     if (t.checklist) meta += `<div class="meta">${t.checklist}</div>`;
     if (t.remind) meta += `<div class="meta">${ICON_CLOCK}${ICON_BELL}${esc(t.remind)}</div>`;
-    return `<div class="${cls}" data-take="${t.id}">${iris(t.types, t.obie)}<div class="body">${esc(plain(t.text))}</div>${meta}</div>`;
+    return `<div class="${cls}" data-take="${t.id}"><span class="iris-wrap"><span class="iris-shadow"></span>${iris(t.types, t.obie)}</span><div class="body">${esc(plain(t.text))}</div>${meta}</div>`;
   });
 }
 
@@ -122,7 +122,7 @@ function renderScripts() {
   timeline(tl, items, s => {
     const body = plain(s.blocks.join('\n')) || 'Untitled Script';
     const pages = s.mode === 'continuous' ? 'Continuous' : `${s.mode === 'a4' ? 'A4' : 'US Letter'}${s.pageCount ? ` · ${s.pageCount} page${s.pageCount > 1 ? 's' : ''}` : ''}`;
-    return `<div class="card${s.id === current ? ' selected' : ''}" data-script="${s.id}">${iris(['note'])}<div class="body">${esc(body)}</div><div class="pages">${pages}</div></div>`;
+    return `<div class="card${s.id === current ? ' selected' : ''}" data-script="${s.id}"><span class="iris-wrap"><span class="iris-shadow"></span>${iris(['note'])}</span><div class="body">${esc(body)}</div><div class="pages">${pages}</div></div>`;
   });
   document.querySelectorAll('#view-pop .seg').forEach(seg => seg.querySelectorAll('button').forEach(b => b.classList.toggle('on', view[seg.dataset.setting] === b.dataset.v)));
 }
@@ -488,8 +488,6 @@ function dragger(handle, k, sign) {
   });
 }
 
-$('#tb-sidebar').addEventListener('click', () => toggleHide('dailies'));
-$('#tb-list').addEventListener('click', () => toggleHide('scripts'));
 $('#tb-layout').addEventListener('click', () => {
   const p = $('#layout-pop'); p.hidden = !p.hidden; $('#tb-layout').setAttribute('aria-expanded', String(!p.hidden));
 });
