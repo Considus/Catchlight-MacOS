@@ -43,19 +43,11 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 
 /* ---------- window layout ---------- */
-.app {
-  --sb-w: 393px; --list-w: 340px;
-  height: 100vh; display: grid;
-  grid-template-rows: 44px 1fr;
-  grid-template-columns: var(--sb-w) 1px var(--list-w) 1px 1fr;
-}
-.app.no-sidebar { grid-template-columns: 0 0 var(--list-w) 1px 1fr; }
-.app.no-list { grid-template-columns: var(--sb-w) 1px 0 0 1fr; }
-.app.no-sidebar.no-list { grid-template-columns: 0 0 0 0 1fr; }
-.app.no-sidebar #sidebar, .app.no-sidebar #rz-sidebar,
-.app.no-list #scriptlist, .app.no-list #rz-list { visibility: hidden; }
+/* Columns are set by layout() in app.js: each section sits left, middle or right, or is hidden. */
+.app { height: 100vh; display: grid; grid-template-rows: 44px 1fr; }
+.pane[hidden] { display: none; }
 
-.toolbar { grid-column: 1 / -1; display: flex; align-items: center; gap: 4px; padding: 0 12px; border-bottom: 1px solid var(--divider); -webkit-user-select: none; user-select: none; }
+.toolbar { grid-column: 1 / -1; position: relative; display: flex; align-items: center; gap: 4px; padding: 0 12px; -webkit-user-select: none; user-select: none; }
 .lights { display: flex; gap: 8px; margin-right: 14px; }
 .lights i { width: 12px; height: 12px; border-radius: 50%; background: #FF5F57; }
 .lights i:nth-child(2) { background: #FEBC2E; } .lights i:nth-child(3) { background: #28C840; }
@@ -70,7 +62,8 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 .seg.small button { padding: 2px 8px; font-size: 11.5px; }
 
 .pane { grid-row: 2; position: relative; min-width: 0; overflow: hidden; display: flex; flex-direction: column; }
-.resizer { grid-row: 2; background: var(--divider); position: relative; cursor: col-resize; }
+/* No dividing lines: a resizer is invisible until the pointer finds it. */
+.resizer { grid-row: 2; background: transparent; position: relative; z-index: 2; cursor: col-resize; }
 .resizer::after { content: ""; position: absolute; inset: 0 -4px; }
 .resizer:hover, .resizer.dragging { background: color-mix(in srgb, var(--accent) 60%, transparent); }
 
@@ -88,18 +81,28 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 .timeline[data-preview="single"] { --lines: 1; }
 .timeline[data-preview="all"] { --lines: 999; }
 
-/* The beam: a light along the spine. Night is layered glow, Daylight a soft white band. */
-.timeline::before {
-  content: ""; position: absolute; top: 0; bottom: 0; left: calc(var(--spine) - 18px); width: 36px; pointer-events: none;
-  background:
-    linear-gradient(90deg, transparent 17.3px, rgba(255,255,255,.85) 17.3px, rgba(255,255,255,.85) 18.7px, transparent 18.7px),
-    linear-gradient(90deg, transparent 15px, rgba(233,203,140,.38) 15px, rgba(233,203,140,.38) 21px, transparent 21px),
-    linear-gradient(90deg, rgba(201,169,110,0), rgba(201,169,110,.07) 35%, rgba(201,169,110,.07) 65%, rgba(201,169,110,0));
-  filter: blur(.8px);
+/* The beam: a light along the spine. Painted as the timeline's own background with
+   background-attachment: local, so it runs the full scroll height instead of one screenful.
+   Cards cover it; each card then draws the stretch from its Iris's rim down into the open centre, over the blades. */
+.timeline, .card::after {
+  --beam:
+    linear-gradient(90deg, transparent 17.2px, rgba(255,255,255,.9) 17.2px, rgba(255,255,255,.9) 18.8px, transparent 18.8px),
+    linear-gradient(90deg, transparent 14.5px, rgba(233,203,140,.45) 14.5px, rgba(233,203,140,.45) 21.5px, transparent 21.5px),
+    linear-gradient(90deg, rgba(201,169,110,0), rgba(201,169,110,.08) 35%, rgba(201,169,110,.08) 65%, rgba(201,169,110,0));
 }
-:root[data-scene="daylight"] .timeline::before {
-  left: calc(var(--spine) - 5.5px); width: 11px; filter: none;
-  background: linear-gradient(90deg, rgba(255,255,255,0), #fff 50%, rgba(255,255,255,0));
+:root[data-scene="daylight"] .timeline, :root[data-scene="daylight"] .card::after {
+  --beam: linear-gradient(90deg, transparent 12.5px, rgba(255,255,255,.6) 12.5px, #fff 18px, rgba(255,255,255,.6) 23.5px, transparent 23.5px);
+}
+.timeline {
+  background: var(--beam);
+  background-size: 36px 100%; background-repeat: no-repeat;
+  background-position: calc(var(--spine) - 18px) 0;
+  background-attachment: local;
+}
+.card::after {
+  content: ""; position: absolute; z-index: 3; pointer-events: none;
+  left: 20px; width: 36px; top: -22px; height: 31px;   /* over the Iris, from its rim down into the hex, as on iOS */
+  background: var(--beam);
 }
 
 .month { margin: 0 0 calc(var(--gap) - 6px) calc(var(--spine) + 22px); font-size: 14px; letter-spacing: .5px; text-transform: uppercase; color: var(--text-2); position: relative; }
@@ -120,13 +123,13 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 .card.overdue::before { content: "OVERDUE"; position: absolute; left: 6px; top: 50%; transform: translateY(-50%) rotate(180deg); writing-mode: vertical-rl; font-size: 9px; letter-spacing: 1px; color: var(--ruby); }
 .card.done .body { color: var(--text-done); }
 .card.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), var(--card-shadow); }
-.card .iris { position: absolute; left: 16px; top: -22px; width: 44px; height: 44px; filter: drop-shadow(0 2px 3px rgba(0,0,0,.35)); }
+.card .iris { position: absolute; z-index: 2; left: 16px; top: -22px; width: 44px; height: 44px; filter: drop-shadow(0 2px 4px rgba(0,0,0,.45)); }
 .scriptlist .card { cursor: default; }
 .scriptlist .card .pages { margin-top: 4px; font-size: 11px; color: var(--text-2); }
 
 /* ---------- dock ---------- */
 .dock {
-  position: absolute; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: repeat(4, 1fr); justify-items: center;
+  position: absolute; z-index: 3; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: repeat(4, 1fr); justify-items: center;
   padding: 18px 12px 16px;
   background: linear-gradient(to bottom, transparent, var(--bg) 22px);
 }
@@ -137,6 +140,7 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 .search-row { padding: 14px 12px 0; flex: none; }
 .search-row input { width: 100%; padding: 8px 14px; border-radius: 999px; border: 1.5px solid color-mix(in srgb, var(--accent) 55%, transparent); background: var(--surface); color: var(--text); font: inherit; outline: none; }
 .popover { position: absolute; left: 12px; right: 12px; bottom: 84px; z-index: 5; background: var(--surface); border: 1px solid var(--card-border); border-radius: 12px; padding: 10px 12px; box-shadow: 0 8px 24px rgba(0,0,0,.25); }
+.layout-pop { left: auto; right: 12px; top: 40px; bottom: auto; width: 330px; }
 .pop-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 5px 0; font-size: 12px; color: var(--text-2); }
 
 /* ---------- Script area ---------- */

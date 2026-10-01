@@ -12,6 +12,7 @@ function iris(active = [], obie = false) {
   const edge = obie ? 'var(--iris-obie)' : 'var(--iris-ring)';
   let s = '<svg class="iris" viewBox="-1 -1 42 42" aria-hidden="true" style="stroke:none">';
   BLADES.forEach((d, i) => { s += `<path d="${d}" fill="${on.has(SEG[i]) ? `var(--iris-${SEG[i]})` : 'var(--iris-off)'}"/>`; });
+  BLADES.forEach(d => { s += `<path d="${d}" fill="url(#iris-sheen)"/>`; }); // metal sheen, lit from the top-left
   BLADES.forEach(d => { s += `<path d="${d}" fill="none" stroke="${edge}" stroke-width="0.7"/>`; });
   s += `<circle cx="20" cy="20" r="18.7" fill="none" stroke="${edge}" stroke-width="0.9"/>`;
   if (obie) s += '<circle cx="20" cy="20" r="20.4" fill="none" stroke="var(--iris-obie)" stroke-width="1.4"/>';
@@ -408,37 +409,98 @@ $('#search-btn').addEventListener('click', () => {
 });
 $('#search').addEventListener('input', e => { query = e.target.value.trim().toLowerCase(); renderScripts(); });
 
-// ---------- panes: resize and hide ----------
+// ---------- layout: each section left, middle or right, or hidden ----------
+// Default: Dailies left, the Script area in the middle, Scripts right. The Script
+// area takes the spare width; the others keep their own, and resize by dragging.
 const app = $('#app');
-function sizes() {
-  // The sidebar opens at the iPhone's height-to-width proportion (393 x 852), clamped.
-  const sb = store.get('sbW', Math.round(Math.min(560, Math.max(320, (innerHeight - 44) * 393 / 852))));
-  app.style.setProperty('--sb-w', sb + 'px');
-  app.style.setProperty('--list-w', store.get('listW', 340) + 'px');
+const PANE = { dailies: $('#sidebar'), editor: $('#editor-pane'), scripts: $('#scriptlist') };
+const SLOTS = ['left', 'middle', 'right'];
+const LIMIT = { dailies: [300, 640], scripts: [260, 520], editor: [420, 1400] };
+let layout = Object.assign({ dailies: 'left', editor: 'middle', scripts: 'right' }, store.get('layout', {}));
+const lastPos = Object.assign({ dailies: 'left', editor: 'middle', scripts: 'right' }, store.get('lastPos', {}));
+// Dailies opens at the iPhone's height-to-width proportion (393 x 852), clamped.
+const widths = Object.assign({ dailies: Math.round(Math.min(560, Math.max(320, (innerHeight - 44) * 393 / 852))), scripts: 340, editor: 760 }, store.get('widths', {}));
+
+function applyLayout() {
+  const order = SLOTS.map(p => Object.keys(layout).find(k => layout[k] === p)).filter(Boolean);
+  const flex = order.includes('editor') ? 'editor' : order[order.length >> 1];
+  app.querySelectorAll('.resizer').forEach(r => r.remove());
+  const cols = [];
+  for (const k in PANE) PANE[k].hidden = !order.includes(k);
+  order.forEach((k, i) => {
+    if (i > 0) {
+      const left = order[i - 1], target = left !== flex ? left : k;
+      const r = document.createElement('div');
+      r.className = 'resizer'; r.setAttribute('role', 'separator'); r.setAttribute('aria-orientation', 'vertical');
+      r.style.gridColumn = cols.length + 1; cols.push('1px');
+      app.append(r); dragger(r, target, target === left ? 1 : -1);
+    }
+    PANE[k].style.gridColumn = cols.length + 1;
+    cols.push(k === flex ? 'minmax(0, 1fr)' : widths[k] + 'px');
+  });
+  app.style.gridTemplateColumns = cols.join(' ');
+  document.querySelectorAll('#layout-pop .seg').forEach(seg => {
+    seg.innerHTML = [...SLOTS, 'hidden'].map(p => `<button data-p="${p}" class="${layout[seg.dataset.pane] === p ? 'on' : ''}">${p === 'hidden' ? 'Hide' : p[0].toUpperCase() + p.slice(1)}</button>`).join('');
+  });
+  store.set('layout', layout); store.set('lastPos', lastPos);
+  paginate();
 }
-function dragger(handle, varName, key, min, max) {
+
+function place(k, p) {
+  const visible = Object.keys(layout).filter(x => layout[x] !== 'hidden');
+  if (p === 'hidden') {
+    if (visible.length === 1 && visible[0] === k) return; // always keep one section on screen
+    if (layout[k] !== 'hidden') lastPos[k] = layout[k];
+    layout[k] = 'hidden';
+  } else {
+    const other = Object.keys(layout).find(x => x !== k && layout[x] === p);
+    const from = layout[k];
+    layout[k] = p;
+    if (other) {
+      // Swap into the slot this section left, or the first free one, or hide.
+      const free = SLOTS.find(s => !Object.values(layout).includes(s));
+      layout[other] = from !== 'hidden' ? from : (free || 'hidden');
+      if (layout[other] === 'hidden') lastPos[other] = p;
+    }
+  }
+  applyLayout();
+}
+function toggleHide(k) {
+  if (layout[k] !== 'hidden') return place(k, 'hidden');
+  const free = SLOTS.find(s => !Object.values(layout).includes(s));
+  place(k, Object.values(layout).includes(lastPos[k]) && free ? free : lastPos[k]);
+}
+
+function dragger(handle, k, sign) {
   handle.addEventListener('pointerdown', e => {
     e.preventDefault();
     handle.setPointerCapture(e.pointerId); handle.classList.add('dragging');
-    const start = e.clientX, startW = parseFloat(getComputedStyle(app).getPropertyValue(varName));
+    const start = e.clientX, startW = PANE[k].getBoundingClientRect().width;
     const move = ev => {
-      const w = Math.round(Math.min(max, Math.max(min, startW + ev.clientX - start)));
-      app.style.setProperty(varName, w + 'px'); store.set(key, w); paginate();
+      widths[k] = Math.round(Math.min(LIMIT[k][1], Math.max(LIMIT[k][0], startW + sign * (ev.clientX - start))));
+      const cols = app.style.gridTemplateColumns.split(' ');
+      cols[+PANE[k].style.gridColumn - 1] = widths[k] + 'px';
+      app.style.gridTemplateColumns = cols.join(' ');
+      store.set('widths', widths); paginate();
     };
     const up = () => { handle.classList.remove('dragging'); handle.removeEventListener('pointermove', move); handle.removeEventListener('pointerup', up); };
     handle.addEventListener('pointermove', move); handle.addEventListener('pointerup', up);
   });
 }
-dragger($('#rz-sidebar'), '--sb-w', 'sbW', 300, 640);
-dragger($('#rz-list'), '--list-w', 'listW', 260, 520);
 
-function toggle(cls) { app.classList.toggle(cls); store.set(cls, app.classList.contains(cls)); paginate(); }
-$('#tb-sidebar').addEventListener('click', () => toggle('no-sidebar'));
-$('#tb-list').addEventListener('click', () => toggle('no-list'));
+$('#tb-sidebar').addEventListener('click', () => toggleHide('dailies'));
+$('#tb-list').addEventListener('click', () => toggleHide('scripts'));
+$('#tb-layout').addEventListener('click', () => {
+  const p = $('#layout-pop'); p.hidden = !p.hidden; $('#tb-layout').setAttribute('aria-expanded', String(!p.hidden));
+});
+$('#layout-pop').addEventListener('click', e => { const b = e.target.closest('button[data-p]'); if (b) place(b.closest('.seg').dataset.pane, b.dataset.p); });
+document.addEventListener('mousedown', e => {
+  if (!e.target.closest('#layout-pop, #tb-layout')) { $('#layout-pop').hidden = true; $('#tb-layout').setAttribute('aria-expanded', 'false'); }
+});
 document.addEventListener('keydown', e => {
   if (!(e.metaKey && e.ctrlKey)) return;
-  if (e.key.toLowerCase() === 's') { e.preventDefault(); toggle('no-sidebar'); }
-  if (e.key.toLowerCase() === 'l') { e.preventDefault(); toggle('no-list'); }
+  if (e.key.toLowerCase() === 's') { e.preventDefault(); toggleHide('dailies'); }
+  if (e.key.toLowerCase() === 'l') { e.preventDefault(); toggleHide('scripts'); }
 });
 addEventListener('resize', debounce(paginate, 100));
 
@@ -454,9 +516,7 @@ mq.addEventListener('change', applyScene);
 $('#tb-scene').addEventListener('click', () => { scene = scenes[(scenes.indexOf(scene) + 1) % 3]; store.set('scene', scene); applyScene(); });
 
 // ---------- start ----------
-applyScene(); sizes();
-if (store.get('no-sidebar', false)) app.classList.add('no-sidebar');
-if (store.get('no-list', false)) app.classList.add('no-list');
+applyScene(); applyLayout();
 if (!script() && scripts[0]) current = scripts[0].id;
 renderTakes(); renderScripts(); renderDoc();
 $('#tb-title').textContent = script() ? titleOf(script()) : '';
