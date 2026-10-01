@@ -10,13 +10,22 @@ const SEG = ['important', 'task', 'image', 'note', 'voice', 'remind'];
 function iris(active = [], obie = false) {
   const on = new Set(obie ? [...active, 'important'] : active);
   const edge = obie ? 'var(--iris-obie)' : 'var(--iris-ring)';
-  let s = '<svg class="iris" viewBox="-1 -1 42 42" aria-hidden="true" style="stroke:none">';
+  let s = '<svg class="iris" viewBox="-1 -1 42 42" aria-hidden="true" style="stroke:none;overflow:visible">';
   BLADES.forEach((d, i) => { s += `<path d="${d}" fill="${on.has(SEG[i]) ? `var(--iris-${SEG[i]})` : 'var(--iris-off)'}"/>`; });
   BLADES.forEach(d => { s += `<path d="${d}" fill="url(#iris-sheen)"/>`; }); // metal sheen, lit from the top-left
   BLADES.forEach(d => { s += `<path d="${d}" fill="none" stroke="${edge}" stroke-width="0.7"/>`; });
   s += `<circle cx="20" cy="20" r="18.7" fill="none" stroke="${edge}" stroke-width="0.9"/>`;
-  if (obie) s += '<circle cx="20" cy="20" r="20.4" fill="none" stroke="var(--iris-obie)" stroke-width="1.4"/>';
+  if (obie) s += '<circle cx="20" cy="20" r="22.7" fill="none" stroke="var(--iris-obie)" stroke-width="1.8"/>';
+  // The rim catchlight: hot core and bloom at ten o'clock, dim bounce opposite
+  // (TakeCircleView.glint). An Obie catches it on both rings. turnGlints() swings it.
+  s += '<g class="glints">' + glint(0.976, 0.052, 0.235, 0.150) + (obie ? glint(1.109, 0.040, 0.180, 0.115) : '') + '</g>';
   return s + '</svg>';
+}
+function glint(unit, core, bloom, bounce) {
+  const d = unit * 20 * Math.SQRT1_2, near = 20 - d, far = 20 + d; // 225°: up and left of centre
+  return `<circle cx="${far}" cy="${far}" r="${bounce * 20}" fill="url(#glint-bounce)"/>`
+    + `<circle cx="${near}" cy="${near}" r="${bloom * 20}" fill="url(#glint-bloom)"/>`
+    + `<circle cx="${near}" cy="${near}" r="${core * 20}" fill="#FFFEF8"/>`;
 }
 
 // ---------- small helpers ----------
@@ -512,6 +521,28 @@ function applyScene() {
 }
 mq.addEventListener('change', applyScene);
 $('#tb-scene').addEventListener('click', () => { scene = scenes[(scenes.indexOf(scene) + 1) % 3]; store.set('scene', scene); applyScene(); });
+
+// ---------- the light is fixed in the world ----------
+// Each Iris's catchlight turns with where it sits on screen: lit from the side (west)
+// at the top, from above (north) at the bottom, 26° either way of ten o'clock
+// (IrisDepth.specularTravelDegrees). Reduce Motion parks every light at ten o'clock.
+const still = matchMedia('(prefers-reduced-motion: reduce)');
+let glintFrame = 0;
+function turnGlints() {
+  glintFrame = 0;
+  const h = innerHeight;
+  document.querySelectorAll('.iris-wrap').forEach(w => {
+    const r = w.getBoundingClientRect();
+    const t = Math.min(1, Math.max(0, (r.top + r.height / 2) / h));
+    const deg = still.matches ? 0 : (t - 0.5) * 2 * 26;
+    w.querySelector('.glints').setAttribute('transform', `rotate(${deg.toFixed(1)} 20 20)`);
+  });
+}
+const queueGlints = () => { if (!glintFrame) glintFrame = requestAnimationFrame(turnGlints); };
+document.querySelectorAll('.timeline').forEach(t => t.addEventListener('scroll', queueGlints, { passive: true }));
+addEventListener('resize', queueGlints);
+still.addEventListener('change', queueGlints);
+new MutationObserver(queueGlints).observe(document.querySelector('#app'), { childList: true, subtree: true });
 
 // ---------- start ----------
 applyScene(); applyLayout();
