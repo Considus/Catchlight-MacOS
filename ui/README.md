@@ -24,6 +24,7 @@ In the Claude desktop app the preview config is `catchlight-macos-ui`.
 
 ## What the prototype covers
 
+- First run (D-327), as `OnboardingView` on iOS, shown until an account exists; `?first-run` replays it. The desktop needs no phone: Welcome, then either "Create my Privacy phrase" (Local or Cloud, the Local warning, the 12 words, confirm three of them, two pages of basics, done) or "I already use Catchlight" (type the 12 words, then connect the cloud folder). The copy is the phone's, adapted where a desktop differs. Unlike the phone, the Cloud path chooses the folder during setup. The device and backup names come from one `PLATFORM` setting so Windows and Linux can swap theirs in. The words are placeholders: Core generates and checks the real phrase (BIP-39, with its checksum), and the shell owns the Keychain and the folder picker, so the prototype only checks the shape of what is typed. No paywall: the desktop is free.
 - One window, split (D-312), with no dividing lines (D-319). Default: Dailies left, the Script area in the middle, Scripts right. The Layout button, beside the window controls where macOS puts the sidebar control, puts each section left, middle or right, or hides it; one section always stays on screen.
 - Dailies opens at the iPhone's 393 × 852 proportion of the window height. Side sections resize by dragging their inner edge; the Script area takes the spare width. ⌃⌘S hides or restores Dailies, ⌃⌘L Scripts.
 - The Dailies dock, as `BottomDockView` on iOS: Add Take, the Storyboard (∠), Sequence and Search. The heading reads DAILIES, SEQUENCE, SEARCH or STORYBOARD to match.
@@ -47,7 +48,7 @@ In the Claude desktop app the preview config is `catchlight-macos-ui`.
 
 ## Known gaps
 
-Tables, swipe actions on Take rows, the Shot List Angle, the swipe up on the dock that opens Settings, dragging checklist items (the handles are drawn but inert), a reminder picker beyond a plain date-and-time field (no repeats or places), undo across blocks, and caret placement on click is approximate (the edited face is wider by its markers). Turning a Script into a Take and back keeps fenced code blocks whole, but a Shift+Enter line break inside an ordinary block comes back as two blocks.
+Pairing with another device (D-327 makes it a later convenience), Windows and Linux backup wording, tables, swipe actions on Take rows, the Shot List Angle, the swipe up on the dock that opens Settings, dragging checklist items (the handles are drawn but inert), a reminder picker beyond a plain date-and-time field (no repeats or places), undo across blocks, and caret placement on click is approximate (the edited face is wider by its markers). Turning a Script into a Take and back keeps fenced code blocks whole, but a Shift+Enter line break inside an ordinary block comes back as two blocks.
 
 ## Fonts
 
