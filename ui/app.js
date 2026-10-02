@@ -119,9 +119,20 @@ function renderScripts() {
 }
 
 // ---------- markdown: one parser, two faces (source while editing, rendered otherwise) ----------
+// A table is one block: a header row, a separator row of dashes, then body rows.
+const isTable = t => /^\|.*\|[ \t]*\n\|[ \t]*:?-{3,}:?[ \t]*(\|[ \t]*:?-{3,}:?[ \t]*)*\|[ \t]*(\n|$)/.test(t);
+const cells = line => line.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(c => c.trim());
+function tableHtml(t) {
+  const [head, sep, ...body] = t.split('\n');
+  const align = cells(sep).map(c => c.startsWith(':') && c.endsWith(':') ? 'center' : c.endsWith(':') ? 'right' : '');
+  const td = (tag, row) => cells(row).map((c, i) => `<${tag}${align[i] ? ` style="text-align:${align[i]}"` : ''}>${inline(c, false)}</${tag}>`).join('');
+  return `<table><thead><tr>${td('th', head)}</tr></thead><tbody>${body.filter(r => r.trim() && r.trim() !== '|').map(r => `<tr>${td('td', r)}</tr>`).join('')}</tbody></table>`;
+}
+
 function classify(t) {
   let m;
   if (/^```/.test(t)) return { type: 'code', pre: '' };
+  if (isTable(t)) return { type: 'table', pre: '' };
   if ((m = t.match(/^(#{1,3}) /))) return { type: 'h' + m[1].length, pre: m[0] };
   if ((m = t.match(/^> /))) return { type: 'quote', pre: m[0] };
   if ((m = t.match(/^[-*] \[( |x|X)\] /))) return { type: 'check', pre: m[0], done: m[1] !== ' ' };
@@ -156,6 +167,7 @@ function paint(el, text, active) {
   if (i === 0 && text === '') { el.classList.add('placeholder'); el.dataset.ph = 'Title'; } else el.classList.remove('placeholder');
   if (active) {
     if (k.type === 'code') el.innerHTML = esc(text).replace(/^```.*$/gm, l => `<span class="mk">${l}</span>`);
+    else if (k.type === 'table') el.innerHTML = esc(text).replace(/\|/g, '<span class="mk">|</span>');
     else el.innerHTML = (k.pre ? `<span class="mk">${esc(k.pre)}</span>` : '') + inline(text.slice(k.pre.length), true);
     if (text.endsWith('\n')) el.innerHTML += '<br>';
     return;
@@ -163,6 +175,7 @@ function paint(el, text, active) {
   const rest = text.slice(k.pre.length);
   if (k.type === 'code') el.textContent = text.replace(/^```.*\n?/, '').replace(/\n?```\s*$/, '');
   else if (k.type === 'hr') el.textContent = text;
+  else if (k.type === 'table') el.innerHTML = tableHtml(text);
   else if (k.type === 'check') el.innerHTML = `<input type="checkbox"${k.done ? ' checked' : ''} aria-label="Done"><span class="txt">${inline(rest, false)}</span>`;
   else el.innerHTML = inline(rest, false);
 }
@@ -229,6 +242,44 @@ function rebuild(focusI, off) { renderDoc(); activate(focusI, off); changed(); }
 
 const changed = debounce(() => { save(); renderScripts(); $('#script-heading').textContent = titleOf(script()); paginate(); }, 250);
 
+// ---------- undo across the whole Script ----------
+// The browser's own undo cannot span blocks, and repainting a block as you type breaks it
+// within one too, so the editor keeps its own: a snapshot of every block before each change.
+// Typing coalesces into one step until a pause of a second; splitting, merging, ticking and
+// starting a table are a step each. ⌘Z undoes, ⇧⌘Z (or ⌃Y) redoes, and so does the Edit menu.
+const edits = { undo: [], redo: [], typing: 0, id: null };
+function snapshot() {
+  return { blocks: [...script().blocks], active, off: active >= 0 ? caretOffset(doc.children[active]) : null };
+}
+function remember(kind) {
+  const s = script();
+  if (!s) return;
+  if (edits.id !== s.id) Object.assign(edits, { undo: [], redo: [], typing: 0, id: s.id });
+  const now = Date.now();
+  if (kind === 'type' && now - edits.typing < 1000) { edits.typing = now; return; }
+  edits.typing = kind === 'type' ? now : 0;
+  edits.undo.push(snapshot());
+  if (edits.undo.length > 200) edits.undo.shift();
+  edits.redo = [];
+}
+function step(from, to) {
+  const s = script();
+  if (!s || edits.id !== s.id || !from.length) return;
+  to.push(snapshot());
+  const snap = from.pop();
+  s.blocks = [...snap.blocks];
+  edits.typing = 0;
+  if (snap.active >= 0) rebuild(Math.min(snap.active, s.blocks.length - 1), snap.off);
+  else { renderDoc(); changed(); }
+}
+const undo = () => step(edits.undo, edits.redo);
+const redo = () => step(edits.redo, edits.undo);
+doc.addEventListener('beforeinput', e => {
+  if (e.inputType === 'historyUndo') { e.preventDefault(); undo(); }
+  else if (e.inputType === 'historyRedo') { e.preventDefault(); redo(); }
+  else if (active >= 0) remember('type');
+});
+
 doc.addEventListener('input', e => {
   if (active < 0 || e.isComposing) return;
   const el = doc.children[active];
@@ -246,12 +297,43 @@ doc.addEventListener('keydown', e => {
   const k = classify(text);
   const collapsed = getSelection().isCollapsed;
 
+  if ((e.metaKey || e.ctrlKey) && !e.altKey && (e.key.toLowerCase() === 'z' || (e.ctrlKey && e.key.toLowerCase() === 'y'))) {
+    e.preventDefault();
+    if (e.shiftKey || e.key.toLowerCase() === 'y') redo(); else undo();
+    return;
+  }
+  // In a table, Enter starts a row; Enter on an empty row leaves the table.
+  if (e.key === 'Enter' && k.type === 'table') {
+    e.preventDefault();
+    remember('edit');
+    const start = text.lastIndexOf('\n', off - 1) + 1, end = (text.indexOf('\n', off) + 1 || text.length + 1) - 1;
+    const line = text.slice(start, end);
+    if (line.replace(/[|\s]/g, '') === '' && start > 0) {
+      s.blocks[active] = text.slice(0, start - 1) + text.slice(end);
+      s.blocks.splice(active + 1, 0, '');
+      return rebuild(active + 1, 0);
+    }
+    s.blocks[active] = text.slice(0, end) + '\n| ' + text.slice(end);
+    paint(el, s.blocks[active], true); setCaret(el, end + 3); changed();
+    return;
+  }
+  // A header row, "| a | b |", becomes a table on Enter: the separator and a first row follow.
+  if (e.key === 'Enter' && !e.shiftKey && k.type === 'p' && !text.includes('\n') && /^\|.*\|.*\|\s*$/.test(text) && off === text.length) {
+    e.preventDefault();
+    remember('edit');
+    const n = cells(text).length;
+    s.blocks[active] = `${text.trimEnd()}\n|${' --- |'.repeat(n)}\n| `;
+    paint(el, s.blocks[active], true); setCaret(el, s.blocks[active].length); changed();
+    return;
+  }
   if (e.key === 'Enter' && (e.shiftKey || (k.type === 'code' && !/\n```\s*$/.test(text)))) {
     e.preventDefault();
+    remember('edit');
     s.blocks[active] = text.slice(0, off) + '\n' + text.slice(off);
     paint(el, s.blocks[active], true); setCaret(el, off + 1); changed();
   } else if (e.key === 'Enter') {
     e.preventDefault();
+    remember('edit');
     if (k.pre && text.length === k.pre.length && /li|check/.test(k.type)) { s.blocks[active] = ''; return rebuild(active, 0); }
     let next = '';
     if (k.type === 'check') next = '- [ ] ';
@@ -262,6 +344,7 @@ doc.addEventListener('keydown', e => {
     rebuild(active + 1, next.length);
   } else if (e.key === 'Backspace' && collapsed && off === 0 && active > 0) {
     e.preventDefault();
+    remember('edit');
     const prev = s.blocks[active - 1];
     s.blocks[active - 1] = prev + text;
     s.blocks.splice(active, 1);
@@ -282,16 +365,36 @@ doc.addEventListener('mousedown', e => {
   const gutter = el.classList.contains('check') && e.clientX - el.getBoundingClientRect().left < 34;
   if (e.target.matches('input[type=checkbox]') || gutter) {
     e.preventDefault();
+    remember('edit');
     s.blocks[i] = s.blocks[i].replace(/^([-*] \[)( |x|X)\]/, (_, a, b) => `${a}${b === ' ' ? 'x' : ' '}]`);
     paint(el, s.blocks[i], false); changed(); return;
   }
   if (e.target.closest('a[href]') && (e.metaKey || e.ctrlKey)) return; // ⌘-click follows a link
   e.preventDefault();
-  activate(i);
-  // Place the caret near the click: the source face is wider by its markers, so this is close, not exact.
-  const pos = document.caretRangeFromPoint ? document.caretRangeFromPoint(e.clientX, e.clientY) : null;
-  if (pos && el.contains(pos.startContainer)) { const sel = getSelection(); sel.removeAllRanges(); sel.addRange(pos); }
+  // The caret lands on the character clicked. Measured in the formatted face before it turns
+  // into source, then mapped across the markers the source face adds.
+  const at = pointInText(el, e.clientX, e.clientY);
+  activate(i, at == null ? undefined : sourceOffset(s.blocks[i], el.textContent, at));
 });
+// How many characters of an element's text lie before a point, or null if it is not in it.
+function pointInText(el, x, y) {
+  let node, offset;
+  if (document.caretPositionFromPoint) { const p = document.caretPositionFromPoint(x, y); node = p?.offsetNode; offset = p?.offset; }
+  else if (document.caretRangeFromPoint) { const r = document.caretRangeFromPoint(x, y); node = r?.startContainer; offset = r?.startOffset; }
+  if (!node || !el.contains(node)) return null;
+  const r = document.createRange();
+  r.selectNodeContents(el); r.setEnd(node, offset);
+  return r.toString().length;
+}
+// The formatted text is the source with its markers taken out, so its characters appear in the
+// source in order: walk both and land on the source character the click was before.
+function sourceOffset(src, shown, at) {
+  if (at >= shown.length) return src.length;
+  let i = 0;
+  for (let j = 0; j < at && i < src.length; i++) if (src[i] === shown[j]) j++;
+  while (i < src.length && src[i] !== shown[at]) i++;
+  return Math.min(i, src.length);
+}
 doc.addEventListener('click', e => { if (e.target.closest('a') && !(e.metaKey || e.ctrlKey)) e.preventDefault(); });
 $('#editor-scroll').addEventListener('mousedown', e => {
   if (e.target.closest('.blk')) return;
@@ -353,21 +456,30 @@ document.querySelectorAll('#page-mode button').forEach(b => b.addEventListener('
 // ---------- selecting, creating and changing kind (D-313) ----------
 function open(id) {
   current = id; save(); renderScripts(); renderDoc();
+  Object.assign(edits, { undo: [], redo: [], typing: 0, id });
   $('#script-heading').textContent = titleOf(script());
 }
 $('#scripts').addEventListener('click', e => { const c = e.target.closest('[data-script]'); if (c) open(c.dataset.script); });
-// A Take's lines become blocks, except that a fenced code block stays one block.
+// A Take's lines become blocks, except that a fenced code block or a table stays one block,
+// and a line ending in two spaces (markdown's line break) runs on into the next, which is how
+// a Shift+Enter break inside a block survives the trip to a Take and back.
 function linesToBlocks(text) {
   const out = [];
   let fence = null;
   for (const line of text.split('\n')) {
+    const prev = out.at(-1);
     if (fence !== null) { fence += '\n' + line; if (/^```\s*$/.test(line)) { out.push(fence); fence = null; } }
     else if (/^```/.test(line)) fence = line;
+    else if (prev != null && /^\|/.test(line) && (isTable(prev + '\n' + line) || isTable(prev))) out[out.length - 1] = prev + '\n' + line;
+    else if (prev != null && / {2,}$/.test(prev) && !prev.includes('```')) out[out.length - 1] = prev.replace(/ {2,}$/, '') + '\n' + line;
     else out.push(line);
   }
   if (fence !== null) out.push(fence);
   return out;
 }
+// The other way: a break inside a block becomes markdown's line break, two spaces before the
+// newline, so the block comes back whole. Code and tables keep their lines as they are.
+const blocksToText = blocks => blocks.map(b => /^(```|\|)/.test(b) ? b : b.replace(/\n/g, '  \n')).join('\n');
 function newScript(blocks = ['']) {
   const s = { id: 's' + Date.now(), at: new Date().toISOString().slice(0, 10), mode: newScriptMode(), blocks };
   scripts.push(s); open(s.id); activate(0);
