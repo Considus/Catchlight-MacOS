@@ -432,3 +432,21 @@ body.first-running .app { visibility: hidden; }
 .fr-pill.hold:active { background: var(--obie-text); border-color: var(--obie-text); }
 .card .stamp, .take-editor .stamp { margin-top: 2px; font-size: 11px; color: var(--text-done); }
 .take-editor .stamp:empty { display: none; }
+
+/* ---------- swipe a Take, drag a checklist item (SwipeActionRow, BlockEditor) ---------- */
+#takes .card, #pinned .card { touch-action: pan-y; user-select: none; -webkit-user-select: none; }   /* vertical strokes scroll; horizontal ones are ours, and select nothing */
+.card.swipe-settle { transition: transform .25s cubic-bezier(.2,.9,.3,1); }
+.card.swipe-off { transition: transform .28s ease-in-out; }
+@media (prefers-reduced-motion: reduce) { .card.swipe-settle, .card.swipe-off { transition: none; } }
+.swipe-fill { position: absolute; z-index: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; border-radius: 12px; font: 500 11px "DM Sans", sans-serif; }
+.swipe-fill.leading { background: var(--accent-fill); color: var(--on-accent); }
+.swipe-fill.trailing { background: var(--ruby); color: #fff; }
+:root[data-scene="night"] .swipe-fill.trailing { color: var(--on-accent); }
+.swipe-fill svg { width: 17px; height: 17px; stroke-width: 2.2; }
+#takes .card, #pinned .card { z-index: 1; }
+.take-rows { position: relative; }
+.take-rows.reordering { overflow: hidden; }   /* no scrolling during a drag, as on iOS */
+.erow.lifted { z-index: 2; transform: scale(1.02); transition: transform .15s; background: var(--surface); }
+.erow-gap { flex: none; }
+.ehandle { cursor: grab; touch-action: none; }
+.reordering .ehandle { cursor: grabbing; }
