@@ -216,6 +216,7 @@ sheet.addEventListener('change', e => {
     if (k === 'scriptTextSize' || k === 'spellcheck') { applyScriptArea(); paginate(); }
   }
   paintSettings();
+  sheet.querySelector(`[data-set="${k}"]`)?.focus();   // the repaint must not lose a keyboard user's place
 });
 
 sheet.addEventListener('click', async e => {

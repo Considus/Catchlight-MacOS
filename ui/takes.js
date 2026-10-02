@@ -108,7 +108,7 @@ function paintEditor() {
   paintIris();
   rows.innerHTML = '';
   draft.blocks.forEach(b => rows.append(rowFor(b)));
-  $('#take-editor-stamp').textContent = settings.creationStamp !== 'off' && original ? createdLabel(draft.at) : '';
+  $('#take-editor-stamp').textContent = settings.creationStamp !== 'off' ? createdLabel(draft.at) : '';
   paintBar();
 }
 
