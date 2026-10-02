@@ -7,7 +7,9 @@
 // are stand-ins.
 //
 // A reminder on a Take is one of:
-//   { kind: 'time', when, done, allDay, notify, repeat, weekdays }   weekdays: 1 = Sunday … 7
+//   { kind: 'time', when, done, allDay, notify, repeat, weekdays, anchorDay? }   weekdays: 1 = Sunday … 7
+//     anchorDay is set only while a monthly or annual repeat sits on a clamped day, so a series
+//     on the 31st returns to the 31st after February (D-329).
 //   { kind: 'place', name, mode: 'arrive' | 'leave', radius, notify, done }
 // A reminder written before kinds existed ({ when, done }) is a time.
 
@@ -17,10 +19,10 @@ const repeats = r => isTimeR(r) && !!r.repeat && r.repeat !== 'none';
 const REPEAT_LABEL = { hourly: 'Hourly', daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', annually: 'Annually' };
 const lastDay = (y, m) => new Date(y, m + 1, 0).getDate();
 
-// The occurrence after `from`. Monthly and annual repeats keep the anchor's day, moving to the
-// last day of a shorter month, so the 31st becomes the 30th or the 28th.
+// The occurrence after `from`. Monthly and annual repeats keep the series' day, moving to the
+// last day of a shorter month, so the 31st becomes the 30th or the 28th and then the 31st again.
 function nextOccurrence(r, from) {
-  const d = new Date(from), anchor = new Date(r.when);
+  const d = new Date(from), day = r.anchorDay ?? new Date(r.when).getDate();
   switch (r.repeat) {
     case 'hourly': d.setHours(d.getHours() + 1); return d;
     case 'daily': d.setDate(d.getDate() + 1); return d;
@@ -28,8 +30,8 @@ function nextOccurrence(r, from) {
       if (!r.weekdays?.length) { d.setDate(d.getDate() + 7); return d; }
       do d.setDate(d.getDate() + 1); while (!r.weekdays.includes(d.getDay() + 1));
       return d;
-    case 'monthly': { const y = d.getFullYear(), m = d.getMonth() + 1; d.setDate(1); d.setMonth(m); d.setDate(Math.min(anchor.getDate(), lastDay(d.getFullYear(), d.getMonth()))); return d; }
-    case 'annually': { d.setDate(1); d.setFullYear(d.getFullYear() + 1); d.setDate(Math.min(anchor.getDate(), lastDay(d.getFullYear(), d.getMonth()))); return d; }
+    case 'monthly': { const y = d.getFullYear(), m = d.getMonth() + 1; d.setDate(1); d.setMonth(m); d.setDate(Math.min(day, lastDay(d.getFullYear(), d.getMonth()))); return d; }
+    case 'annually': { d.setDate(1); d.setFullYear(d.getFullYear() + 1); d.setDate(Math.min(day, lastDay(d.getFullYear(), d.getMonth()))); return d; }
   }
   return d;
 }
@@ -61,7 +63,13 @@ const ICON_PIN = '<svg viewBox="0 0 24 24"><path d="M12 21s-6-5.6-6-11a6 6 0 0 1
 const reminderMeta = r => `<div class="meta">${isPlaceR(r) ? ICON_PIN : ICON_CLOCK}${r.notify === false ? ICON_BELL_SLASH : ICON_BELL}${esc(reminderLine(r))}</div>`;
 
 // Marking a repeating reminder done moves it to the following occurrence; the series goes on.
-function advanceRepeat(r) { r.when = nextOccurrence(r, nextDue(r)).toISOString(); r.done = false; }
+// A monthly or annual series that lands on a clamped day remembers its own day (D-329).
+function advanceRepeat(r) {
+  const next = nextOccurrence(r, nextDue(r)), seriesDay = r.anchorDay ?? new Date(r.when).getDate();
+  r.when = next.toISOString(); r.done = false;
+  if ((r.repeat === 'monthly' || r.repeat === 'annually') && next.getDate() !== seriesDay) r.anchorDay = seriesDay;
+  else delete r.anchorDay;
+}
 
 // ---------- the picker ----------
 const rsheet = document.createElement('section');
@@ -197,7 +205,10 @@ function doneReminder() {
     const d = new Date(rs.date);
     if (rs.allDay) d.setHours(9, 0, 0, 0);   // an all-day reminder fires at 09:00
     else { const [h, m] = rs.time.split(':').map(Number); d.setHours(h, m, 0, 0); }
+    const prev = t.reminder;
     t.reminder = { kind: 'time', when: d.toISOString(), done: false, allDay: rs.allDay, notify: rs.notify, repeat: rs.repeat, weekdays: rs.repeat === 'weekly' ? [...rs.weekdays].sort() : [] };
+    // Re-saving the same date and repeat keeps the series' day; a new date starts afresh.
+    if (isTimeR(prev) && prev.anchorDay != null && prev.when === t.reminder.when && prev.repeat === t.reminder.repeat) t.reminder.anchorDay = prev.anchorDay;
   }
   const after = reminderAfter; closeReminder(); after && after();
 }
