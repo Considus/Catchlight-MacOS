@@ -247,7 +247,7 @@ const changed = debounce(() => { save(); renderScripts(); $('#script-heading').t
 // within one too, so the editor keeps its own: a snapshot of every block before each change.
 // Typing coalesces into one step until a pause of a second; splitting, merging, ticking and
 // starting a table are a step each. ⌘Z undoes, ⇧⌘Z (or ⌃Y) redoes, and so does the Edit menu.
-const edits = { undo: [], redo: [], typing: 0, id: null };
+const edits = { undo: [], redo: [], typing: 0, block: -1, id: null };
 function snapshot() {
   return { blocks: [...script().blocks], active, off: active >= 0 ? caretOffset(doc.children[active]) : null };
 }
@@ -256,8 +256,10 @@ function remember(kind) {
   if (!s) return;
   if (edits.id !== s.id) Object.assign(edits, { undo: [], redo: [], typing: 0, id: s.id });
   const now = Date.now();
-  if (kind === 'type' && now - edits.typing < 1000) { edits.typing = now; return; }
+  // Typing coalesces only while it stays in the same block, with less than a second between keys.
+  if (kind === 'type' && edits.block === active && now - edits.typing < 1000) { edits.typing = now; return; }
   edits.typing = kind === 'type' ? now : 0;
+  edits.block = active;
   edits.undo.push(snapshot());
   if (edits.undo.length > 200) edits.undo.shift();
   edits.redo = [];
@@ -277,7 +279,8 @@ const redo = () => step(edits.redo, edits.undo);
 doc.addEventListener('beforeinput', e => {
   if (e.inputType === 'historyUndo') { e.preventDefault(); undo(); }
   else if (e.inputType === 'historyRedo') { e.preventDefault(); redo(); }
-  else if (active >= 0) remember('type');
+  // Typed characters and deletions coalesce; a paste, cut or drop is a step of its own.
+  else if (active >= 0) remember(/^(insertText|insertReplacementText|deleteContent)/.test(e.inputType) ? 'type' : 'edit');
 });
 
 doc.addEventListener('input', e => {
@@ -302,7 +305,8 @@ doc.addEventListener('keydown', e => {
     if (e.shiftKey || e.key.toLowerCase() === 'y') redo(); else undo();
     return;
   }
-  // In a table, Enter starts a row; Enter on an empty row leaves the table.
+  // In a table, Enter starts a row; Enter on an empty row leaves the table. Shift+Enter does the
+  // same, deliberately: a line break inside a row would break the table.
   if (e.key === 'Enter' && k.type === 'table') {
     e.preventDefault();
     remember('edit');
