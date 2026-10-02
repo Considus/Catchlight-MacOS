@@ -143,9 +143,10 @@ function doRestore() {
 }
 
 function finish() {
-  // The prototype keeps its placeholder words so Settings → Privacy phrase shows the same ones.
-  // The real phrase lives only in the Keychain, through Core.
-  store.set('account', { storage: fr.storage || 'cloud', folder: fr.folder, restored: fr.restore, phrase: fr.restore ? restoreWords().map(w => w.toLowerCase()) : fr.words });
+  // The prototype keeps only its own placeholder words, so Settings → Privacy phrase shows the
+  // same ones. Words someone typed in could be a real phrase and are never stored: a restored
+  // account shows "Phrase isn't on this device". The real phrase lives only in the Keychain.
+  store.set('account', { storage: fr.storage || 'cloud', folder: fr.folder, restored: fr.restore, phrase: fr.restore ? undefined : fr.words });
   layer.hidden = true; layer.innerHTML = '';
   document.body.classList.remove('first-running');
 }
