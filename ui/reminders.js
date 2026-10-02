@@ -207,8 +207,8 @@ function doneReminder() {
     else { const [h, m] = rs.time.split(':').map(Number); d.setHours(h, m, 0, 0); }
     const prev = t.reminder;
     t.reminder = { kind: 'time', when: d.toISOString(), done: false, allDay: rs.allDay, notify: rs.notify, repeat: rs.repeat, weekdays: rs.repeat === 'weekly' ? [...rs.weekdays].sort() : [] };
-    // Re-saving the same date and repeat keeps the series' day; a new date starts afresh.
-    if (isTimeR(prev) && prev.anchorDay != null && prev.when === t.reminder.when && prev.repeat === t.reminder.repeat) t.reminder.anchorDay = prev.anchorDay;
+    // Re-saving the same day and repeat keeps the series' day, even at a new time; a new day starts afresh.
+    if (isTimeR(prev) && prev.anchorDay != null && prev.repeat === t.reminder.repeat && new Date(prev.when).toDateString() === d.toDateString()) t.reminder.anchorDay = prev.anchorDay;
   }
   const after = reminderAfter; closeReminder(); after && after();
 }
