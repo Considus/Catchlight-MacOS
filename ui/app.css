@@ -370,13 +370,13 @@ body.first-running .app { visibility: hidden; }
 @media (max-width: 420px) { .fr-words, .fr-bank, .fr-slots { grid-template-columns: repeat(2, 1fr); } }
 
 /* ---------- Settings (SettingsView on iOS): a sheet of grouped cards over the window ---------- */
-.sheet { position: fixed; inset: 0; z-index: 40; display: flex; justify-content: center; align-items: flex-end; background: rgba(0,0,0,0); transition: background .3s ease; }
-.sheet[hidden] { display: none; }
-.sheet.open { background: rgba(0,0,0,.35); }
+.settings-sheet { position: fixed; inset: 0; z-index: 40; display: flex; justify-content: center; align-items: flex-end; background: rgba(0,0,0,0); transition: background .3s ease; }
+.settings-sheet[hidden] { display: none; }
+.settings-sheet.open { background: rgba(0,0,0,.35); }
 .sheet-panel { width: min(560px, 100%); height: min(92vh, 100% - 24px); display: flex; flex-direction: column; background: var(--bg); border-radius: 14px 14px 0 0;
   box-shadow: 0 -10px 40px rgba(0,0,0,.35); transform: translateY(100%); transition: transform .3s cubic-bezier(.2,.8,.2,1); }
-.sheet.open .sheet-panel { transform: none; }
-@media (prefers-reduced-motion: reduce) { .sheet, .sheet-panel { transition: none; } }
+.settings-sheet.open .sheet-panel { transform: none; }
+@media (prefers-reduced-motion: reduce) { .settings-sheet, .sheet-panel { transition: none; } }
 .sheet-bar { flex: none; display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; padding: 6px 8px 0; }
 .sheet-title { text-align: center; font-weight: 500; font-size: 15px; }
 .sheet-x, .sheet-back { width: 44px; height: 44px; display: grid; place-items: center; color: var(--accent); border-radius: 50%; }
@@ -427,8 +427,8 @@ body.first-running .app { visibility: hidden; }
 .scard.links a span { color: var(--accent); }
 .swarn { width: 100%; text-align: left; padding: 12px 14px; border-radius: 10px; color: var(--ruby); background: color-mix(in srgb, var(--ruby) 8%, transparent); border: 1px solid color-mix(in srgb, var(--ruby) 35%, transparent); font-size: 14px; line-height: 1.4; }
 .empty-col .srow-icon { width: 32px; height: 32px; color: var(--text-2); }
-.sheet .held { filter: blur(6px); transition: filter .15s; }
-.sheet.revealing .held { filter: none; }
+.settings-sheet .held { filter: blur(6px); transition: filter .15s; }
+.settings-sheet.revealing .held { filter: none; }
 .fr-pill.hold:active { background: var(--obie-text); border-color: var(--obie-text); }
 .card .stamp, .take-editor .stamp { margin-top: 2px; font-size: 11px; color: var(--text-done); }
 .take-editor .stamp:empty { display: none; }

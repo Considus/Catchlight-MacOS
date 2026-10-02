@@ -161,10 +161,15 @@ const SUB = {
       <h2 class="ssub-heading">Reveal your Privacy phrase</h2>
       <p>Authenticate with Touch ID or your password to view the 12 words. They're the only way to recover your account, so reveal them somewhere private.</p>
       <button class="fr-pill primary" type="button" data-act="reveal-phrase">Reveal phrase</button></div>`],
-  'phrase-shown': () => ['Privacy phrase', `<div class="ssub-col">
-      <ol class="fr-words">${shell.newPhrase().map((w, i) => `<li><span>${i + 1}</span><b class="held">${w}</b></li>`).join('')}</ol>
+  'phrase-shown': () => {
+    const words = store.get('account', {})?.phrase;
+    if (!words) return ['Privacy phrase', `<div class="ssub-col"><h2 class="ssub-heading">Phrase isn't on this device</h2>
+      <p>Catchlight stores the Privacy phrase only on the device where you set it up. If you onboarded on a different device, use that one to view it.</p></div>`];
+    return ['Privacy phrase', `<div class="ssub-col">
+      <ol class="fr-words">${words.map((w, i) => `<li><span>${i + 1}</span><b class="held">${esc(w)}</b></li>`).join('')}</ol>
       <p>Write these 12 words down somewhere safe, on paper. They're the only way back into your Takes on a new device.</p>
-      <button class="fr-pill primary hold" type="button" data-hold>Hold to reveal</button></div>`],
+      <button class="fr-pill primary hold" type="button" data-hold>Hold to reveal</button></div>`];
+  },
   'second-device': () => ['Second device', `<div class="ssub-col">
       <div class="swarn">This replaces the account on this ${PLATFORM.device}. Takes stored only here will be removed and can't be recovered. If you haven't already, close this and use Export Takes (Markdown) to keep a copy first.</div>
       <h2 class="ssub-heading">Enter your Privacy phrase</h2>

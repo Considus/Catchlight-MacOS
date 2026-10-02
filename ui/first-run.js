@@ -143,7 +143,9 @@ function doRestore() {
 }
 
 function finish() {
-  store.set('account', { storage: fr.storage || 'cloud', folder: fr.folder, restored: fr.restore });
+  // The prototype keeps its placeholder words so Settings → Privacy phrase shows the same ones.
+  // The real phrase lives only in the Keychain, through Core.
+  store.set('account', { storage: fr.storage || 'cloud', folder: fr.folder, restored: fr.restore, phrase: fr.restore ? restoreWords().map(w => w.toLowerCase()) : fr.words });
   layer.hidden = true; layer.innerHTML = '';
   document.body.classList.remove('first-running');
 }
