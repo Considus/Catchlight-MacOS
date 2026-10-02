@@ -381,7 +381,7 @@ sidebar.addEventListener('pointerdown', e => {
     const t = takes.find(x => x.id === hold.id);
     const make = !t.obie;
     takes.forEach(x => { x.obie = false; });
-    t.obie = make; if (make) t.isImportant = true;   // an Obie is always Important (Take.isObie)
+    t.obie = make; if (make) t.isImportant = true;   // becoming the Obie makes it Important; Important can be removed later, as on iOS (Take.isObie)
     t.modifiedAt = Date.now(); saveTakes(); renderTakes();
   }, 450) };
 });
