@@ -28,6 +28,9 @@ In the Claude desktop app the preview config is `catchlight-macos-ui`.
 - Dailies opens at the iPhone's 393 × 852 proportion of the window height. Side sections resize by dragging their inner edge; the Script area takes the spare width. ⌃⌘S hides or restores Dailies, ⌃⌘L Scripts.
 - Both docks carry the Angle button; on the Scripts dock it is a placeholder.
 - The Iris leans back 24° with its cast shadow, and the beam crosses only its top half, hidden by the card below and its centre on the card's top edge, and a rim catchlight that turns with the Iris's height on screen, west at the top to north at the bottom, parked under Reduce Motion (IrisDepth, TimelineBeam.swift and TakeCircleView.swift on iOS).
+- Editing a Take (D-324), as `KeyboardTakeEditor` does on iOS: click a card's text and it floats above the editor bar, growing upward, with the list dimmed to 14% and the dock replaced by the bar (× discard, reminder, Important or Shot List, Done). Clicking outside, Escape and ⌘S save; only × discards. A blank Take is not kept, and an edit that changes nothing writes nothing (D-250). Checklists follow `BlockEditor`: Return in an item adds one, Return on an empty item leaves the list, Backspace on an empty row removes it. `takes.js` holds all of Dailies.
+- The Focus-ring: click a card's Iris. Four Marks fan out at R = 68 (Note, Task, Remind, Important), the card lifted over a 90% veil. A Take is never "none": with Task and Remind off, Note comes back on. Turning Remind on asks when; Cancel turns it off. Turning Task on from the list opens the editor on the new item. Hold an Iris for 0.45s to make that Take the Obie.
+- The Take menu (right-click, or long press on touch): Mark Done, Make Important, Make Obie, Expand into a Script, Delete Take (asks twice in place).
 - Script list mirrors Dailies, with Preview, Spacing and Sort as on iOS.
 - Under each heading, as in DailiesView: a 12px fade the list dissolves into; in Dailies a pinned Obie that never scrolls, with a solid zone down to its card instead of the fade.
 - Script editor: one view, markdown formatted inline as you type. The block being edited shows its markers dimmed, every other block shows the result. `- [ ]` is a real checkbox.
@@ -38,7 +41,7 @@ In the Claude desktop app the preview config is `catchlight-macos-ui`.
 
 ## Known gaps
 
-Tables, Take editing in the sidebar, the Focus-ring, undo across blocks, and caret placement on click is approximate (the edited face is wider by its markers). Turning a Script into a Take and back keeps fenced code blocks whole, but a Shift+Enter line break inside an ordinary block comes back as two blocks.
+Tables, swipe actions on Take rows, the Shot List Angle, Expand/Collapse and Export in the Take menu, dragging checklist items (the handles are drawn but inert), a reminder picker beyond a plain date-and-time field (no repeats or places), undo across blocks, and caret placement on click is approximate (the edited face is wider by its markers). Turning a Script into a Take and back keeps fenced code blocks whole, but a Shift+Enter line break inside an ordinary block comes back as two blocks.
 
 ## Fonts
 

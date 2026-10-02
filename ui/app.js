@@ -40,18 +40,10 @@ const monthLabel = iso => new Date(iso.length === 10 ? iso + 'T00:00' : iso).toL
 const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
 const ICON_CLOCK = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
 const ICON_BELL = '<svg viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20.5h4"/></svg>';
+const ICON_CHECKLIST = '<svg viewBox="0 0 24 24"><path d="M4 7l1.6 1.6L8.5 5.5M4 15l1.6 1.6 2.9-3.1M11.5 7.5h8.5M11.5 15.5h8.5"/></svg>';
+const ICON_IMPORTANT = '<span class="bang">!</span>';
 
-// ---------- placeholder data ----------
-let takes = store.get('takes', [
-  { id: 't1', at: '2026-06-28', text: 'Call the framer about the exhibition print', types: ['remind', 'important'], obie: true, remind: 'Tomorrow at 09:00' },
-  { id: 't2', at: '2026-06-29', text: 'The eye is the lamp of the body. Might belong on the About page one day.', types: ['note'] },
-  { id: 't3', at: '2026-06-30', text: 'Water the studio plants', types: ['remind'], remind: 'Yesterday at 18:30', overdue: true },
-  { id: 't4', at: '2026-06-30', text: 'Send the June invoice\nBack up the Whitby shoot', types: ['task'], done: true, checklist: '2 of 2 completed' },
-  { id: 't5', at: '2026-07-02', text: 'Winter series idea. Cold light, long shadows, one subject, no colour.', types: ['note'] },
-  { id: 't6', at: '2026-07-04', text: 'Ask Sam about the second-hand 90mm lens before the weekend', types: ['task'] },
-  { id: 't7', at: '2026-07-09', text: 'Paper stock: Hahnemühle Photo Rag 308 for the large prints, Baryta for the small ones.', types: ['note', 'important'] },
-]);
-
+// ---------- placeholder data (Takes live in takes.js) ----------
 const LETTER_REGIONS = new Set(['US', 'CA', 'MX', 'PH', 'CL', 'CO', 'VE', 'PR', 'GT', 'CR', 'DO', 'PA', 'SV', 'NI', 'HN', 'BO']);
 function regionPaper() {
   try { const r = new Intl.Locale(navigator.language).maximize().region; return LETTER_REGIONS.has(r) ? 'letter' : 'a4'; } catch { return 'a4'; }
@@ -95,7 +87,7 @@ let scripts = store.get('scripts', [
 const view = Object.assign({ preview: 'some', spacing: 'standard', sort: 'oldest' }, store.get('view', {}));
 let current = store.get('current', 's1');
 let query = '';
-const save = () => { store.set('takes', takes); store.set('scripts', scripts); store.set('current', current); };
+const save = () => { store.set('scripts', scripts); store.set('current', current); };
 
 // ---------- the two Dailies-style timelines ----------
 function timeline(container, items, cardHtml) {
@@ -106,23 +98,6 @@ function timeline(container, items, cardHtml) {
     html += cardHtml(it);
   }
   container.innerHTML = html;
-}
-
-function takeCard(t) {
-  const cls = ['card', t.obie && 'obie', t.overdue && 'overdue', t.done && 'done'].filter(Boolean).join(' ');
-  let meta = '';
-  if (t.checklist) meta += `<div class="meta">${esc(t.checklist)}</div>`;
-  if (t.remind) meta += `<div class="meta">${ICON_CLOCK}${ICON_BELL}${esc(t.remind)}</div>`;
-  return `<div class="${cls}" data-take="${t.id}"><span class="iris-wrap"><span class="iris-shadow"></span>${iris(t.types, t.obie)}</span><div class="body">${esc(plain(t.text))}</div>${meta}</div>`;
-}
-function renderTakes() {
-  // The Obie is pinned above the timeline and never scrolls, as on iOS.
-  const obie = takes.find(t => t.obie);
-  const pinned = $('#pinned');
-  pinned.hidden = !obie;
-  pinned.innerHTML = obie ? takeCard(obie) : '';
-  $('#takes').classList.toggle('under-obie', !!obie);
-  timeline($('#takes'), takes.filter(t => t !== obie).sort((a, b) => a.at.localeCompare(b.at)), takeCard);
 }
 
 const plain = s => s.replace(/^```.*$/gm, '').replace(/^(#{1,3}|>|[-*] \[[ xX]\]|[-*]|\d+\.)\s+/gm, '')
@@ -400,43 +375,52 @@ function newScript(blocks = ['']) {
 $('#new-script').addEventListener('click', () => newScript());
 
 const ctx = $('#ctx');
-let ctxTarget = null;
+// Built per target: a Take's menu comes from takeMenu() in takes.js; a Script has one item.
 function openCtx(target, x, y) {
   const take = target.closest('[data-take]'), scr = target.closest('[data-script]');
   if (!take && !scr) return false;
-  ctxTarget = take ? { take: take.dataset.take } : { script: scr.dataset.script };
-  $('#ctx-expand').textContent = take ? 'Expand into a Script' : 'Make this a Take';
+  const items = take ? takeMenu(take.dataset.take)
+    : isBlank(takeFromScript(scripts.find(x => x.id === scr.dataset.script))) ? []   // a blank Take is never kept
+    : [['Make this a Take', () => scriptToTake(scr.dataset.script)]];
+  if (!items.length) return false;
+  ctx.innerHTML = '';
+  for (const [label, act, kind] of items) {
+    const li = document.createElement('li'), b = document.createElement('button');
+    b.textContent = label; b.type = 'button';
+    if (kind === 'danger') {
+      // Delete asks twice in place rather than through a dialog the shells would each draw.
+      b.className = 'danger';
+      b.addEventListener('click', () => {
+        if (b.dataset.armed) { ctx.hidden = true; deleteTake(take.dataset.take); return; }
+        b.dataset.armed = '1'; b.textContent = 'Delete? Click again';
+      });
+    } else b.addEventListener('click', () => { ctx.hidden = true; act(); });
+    li.append(b); ctx.append(li);
+  }
   ctx.hidden = false;
-  ctx.style.left = Math.min(x, innerWidth - 220) + 'px'; ctx.style.top = Math.min(y, innerHeight - 60) + 'px';
+  ctx.style.left = Math.min(x, innerWidth - 220) + 'px'; ctx.style.top = Math.min(y, innerHeight - 44 * items.length - 16) + 'px';
   return true;
 }
 document.addEventListener('contextmenu', e => { if (openCtx(e.target, e.clientX, e.clientY)) e.preventDefault(); });
 // Touch has no right-click: a long press (500ms, under 10px of movement) opens the same menu.
 let press = null;
 document.addEventListener('pointerdown', e => {
-  if (e.pointerType === 'mouse') return;
+  if (e.pointerType === 'mouse' || e.target.closest('.iris-wrap')) return;   // holding an Iris makes the Obie
   const { target, clientX: x, clientY: y } = e;
   press = { x, y, t: setTimeout(() => { press = null; openCtx(target, x, y); }, 500) };
 });
 document.addEventListener('pointermove', e => { if (press && Math.hypot(e.clientX - press.x, e.clientY - press.y) > 10) { clearTimeout(press.t); press = null; } });
 document.addEventListener('pointerup', () => { if (press) { clearTimeout(press.t); press = null; } });
 document.addEventListener('mousedown', e => { if (!ctx.contains(e.target)) ctx.hidden = true; });
-$('#ctx-expand').addEventListener('click', () => {
-  ctx.hidden = true;
-  if (ctxTarget.take) {
-    const t = takes.find(x => x.id === ctxTarget.take);
-    takes = takes.filter(x => x !== t);
-    renderTakes(); newScript(linesToBlocks(t.text));
-  } else {
-    const s = scripts.find(x => x.id === ctxTarget.script);
-    scripts = scripts.filter(x => x !== s);
-    // The text moves as it is, markdown included: changing kind changes nothing else (D-313).
-    takes.push({ id: 't' + Date.now(), at: s.at, text: s.blocks.join('\n'), types: ['note'] });
-    if (current === s.id) current = scripts[0] ? scripts[0].id : null;
-    save(); renderTakes(); renderScripts(); renderDoc();
-    $('#script-heading').textContent = titleOf(script());
-  }
-});
+function scriptToTake(id) {
+  const s = scripts.find(x => x.id === id);
+  scripts = scripts.filter(x => x !== s);
+  // The text moves as it is: "- [ ]" lines become checklist items, the rest stays text (D-313).
+  takes.push(takeFromScript(s));
+  if (current === s.id) current = scripts[0] ? scripts[0].id : null;
+  save(); saveTakes(); renderTakes(); renderScripts(); renderDoc();
+  $('#script-heading').textContent = titleOf(script());
+}
 
 // ---------- view options and search ----------
 $('#view-opts').addEventListener('click', () => { const p = $('#view-pop'); p.hidden = !p.hidden; $('#view-opts').classList.toggle('on', !p.hidden); });
@@ -570,7 +554,7 @@ function turnGlints() {
     const r = w.getBoundingClientRect();
     const t = Math.min(1, Math.max(0, (r.top + r.height / 2) / h));
     const deg = still.matches ? 0 : (t - 0.5) * 2 * 26;
-    w.querySelector('.glints').setAttribute('transform', `rotate(${deg.toFixed(1)} 20 20)`);
+    w.querySelector('.glints')?.setAttribute('transform', `rotate(${deg.toFixed(1)} 20 20)`);
   });
 }
 const queueGlints = () => { if (!glintFrame) glintFrame = requestAnimationFrame(turnGlints); };
@@ -582,6 +566,6 @@ new MutationObserver(queueGlints).observe(document.querySelector('#app'), { chil
 // ---------- start ----------
 applyScene(); applyLayout();
 if (!script() && scripts[0]) current = scripts[0].id;
-renderTakes(); renderScripts(); renderDoc();
+renderScripts(); renderDoc();   // renderTakes runs at the end of takes.js
 $('#script-heading').textContent = script() ? titleOf(script()) : '';
 document.fonts.ready.then(paginate);

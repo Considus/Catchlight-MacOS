@@ -228,7 +228,74 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 .blk a, .blk .a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
 .blk .mk { color: var(--mark); font-weight: 400; font-style: normal; text-decoration: none; }
 
+/* ---------- editing a Take (KeyboardTakeEditor / EditorKeyboardBar on iOS) ---------- */
+.sidebar { --veil: rgba(15,14,12,.9); }
+:root[data-scene="daylight"] .sidebar { --veil: rgba(247,244,239,.9); }
+.sidebar .timeline, .sidebar #pinned, .sidebar .page-heading { transition: opacity .22s ease-in-out; }
+.sidebar.editing .timeline, .sidebar.editing #pinned { opacity: .14; pointer-events: none; }
+.sidebar.editing .page-heading { opacity: .12; }
+.editor-bar { display: none; }
+.sidebar.editing .editor-bar { display: grid; }
+.sidebar.editing .dock:not(.editor-bar) { display: none; }
+.dock-btn:disabled { color: color-mix(in srgb, var(--text-2) 40%, transparent); cursor: default; }
+.dock-btn:disabled:hover { background: none; }
+.dock-btn .bang, .mark .bang { font: 500 22px/1 "DM Sans", sans-serif; }
+
+.take-editor {
+  position: absolute; z-index: 5; margin: 0; display: flex; flex-direction: column;
+  left: calc(12px + (100cqw - 24px) / 8 - 38px); right: 12px; bottom: 80px;
+  max-height: calc(100% - 80px - 120px);
+}
+.take-editor::after { display: none; }
+.take-editor[hidden], .focus-ring[hidden], .reminder-pop[hidden] { display: none; }
+.take-editor .iris-wrap { cursor: pointer; }
+.take-rows { overflow-y: auto; min-height: 30px; scrollbar-width: thin; }
+.erow { display: flex; align-items: flex-start; gap: 8px; }
+.erow + .erow { margin-top: 2px; }
+.etext { flex: 1; min-width: 0; outline: none; white-space: pre-wrap; overflow-wrap: anywhere; padding: 6px 0; caret-color: var(--accent); }
+.erow.check.ticked .etext { color: var(--text-done); }
+.echeck { position: relative; flex: none; width: 24px; height: 32px; margin-left: -4px; }
+.echeck::after { content: ""; position: absolute; inset: -6px -10px; }   /* 44 x 44 hit area */
+.echeck::before { content: ""; position: absolute; left: 4px; top: 8px; width: 15px; height: 15px; border: 1.5px solid var(--text-2); border-radius: 3px; box-sizing: border-box; }
+.erow.ticked .echeck::before { border: 0; border-radius: 50%; background: var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.4l2.6 2.6L12 5.4' fill='none' stroke='%230F0E0C' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/100% no-repeat; }
+.ehandle { flex: none; width: 36px; height: 32px; background: linear-gradient(color-mix(in srgb, var(--text-2) 55%, transparent), color-mix(in srgb, var(--text-2) 55%, transparent)) center 11px / 14px 1.5px no-repeat, linear-gradient(color-mix(in srgb, var(--text-2) 55%, transparent), color-mix(in srgb, var(--text-2) 55%, transparent)) center 15.5px / 14px 1.5px no-repeat, linear-gradient(color-mix(in srgb, var(--text-2) 55%, transparent), color-mix(in srgb, var(--text-2) 55%, transparent)) center 20px / 14px 1.5px no-repeat; }
+.card .body .ticked { color: var(--text-done); }
+
+/* ---------- the Focus-ring (FocusRingFanView on iOS) ---------- */
+.focus-ring { position: absolute; inset: 0; z-index: 8; background: transparent; transition: background .84s ease-in-out; }
+.focus-ring.open { background: var(--veil); }
+.sidebar.ringed .dock { opacity: .18; transition: opacity .3s; }
+.focus-ring .lifted { position: absolute; z-index: 1; pointer-events: none; }
+.focus-ring .hub { position: absolute; z-index: 3; left: calc(var(--cx) - 22px); top: calc(var(--cy) - 22px); width: 44px; height: 44px; transition: transform .7s cubic-bezier(.34, 1.25, .64, 1); }
+.focus-ring .hub .iris { width: 44px; height: 44px; transform: perspective(200px) rotateX(24deg); }
+.focus-ring.open .hub { transform: rotate(90deg); }
+.focus-ring .hub .tick { position: absolute; left: 21.25px; top: -4px; width: 1.5px; height: 17px; background: rgba(201,169,110,.6); opacity: 0; transition: opacity .5s .2s; }
+.focus-ring.open .hub .tick { opacity: 1; }
+.focus-ring .mark {
+  --fill: var(--iris-note);
+  position: absolute; z-index: 2; left: calc(var(--cx) - 22px); top: calc(var(--cy) - 22px);
+  width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center;
+  border: 1.5px solid color-mix(in srgb, var(--accent) 55%, transparent); background: var(--bg); color: var(--accent);
+  opacity: 0; transform: translate(0, -8px) scale(.6);
+  transition: transform .52s cubic-bezier(.34, 1.4, .64, 1), opacity .25s, background .3s, color .3s, border-color .3s;
+}
+.focus-ring .mark svg { width: 22px; height: 22px; stroke-width: 1.4; }
+.focus-ring.open .mark { opacity: 1; transform: translate(var(--dx), var(--dy)); }
+.focus-ring .mark[data-key="task"] { --fill: var(--iris-task); transition-delay: .25s, .25s, 0s, 0s, 0s; }
+.focus-ring .mark[data-key="remind"] { --fill: var(--iris-remind); transition-delay: .185s, .185s, 0s, 0s, 0s; }
+.focus-ring .mark[data-key="important"] { --fill: var(--iris-important); transition-delay: .12s, .12s, 0s, 0s, 0s; }
+.focus-ring .mark.on { background: var(--fill); border-color: var(--fill); color: var(--bg); }
+@media (prefers-reduced-motion: reduce) { .focus-ring, .focus-ring * { transition: none !important; } }
+
+.reminder-pop { z-index: 9; bottom: 92px; }
+.reminder-pop input { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--card-border); border-radius: 8px; padding: 8px 10px; min-height: 40px; }
+.pop-actions { justify-content: flex-end; }
+.pop-btn { min-height: 44px; padding: 0 14px; border-radius: 999px; font-size: 13px; color: var(--text-2); }
+.pop-btn.primary { background: var(--accent-fill); color: var(--on-accent); }
+
 /* ---------- context menu ---------- */
 .ctx { position: fixed; z-index: 20; margin: 0; padding: 4px; list-style: none; background: var(--surface); border: 1px solid var(--card-border); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.3); }
 .ctx button { display: block; width: 100%; min-height: 44px; text-align: left; padding: 5px 14px; border-radius: 5px; font-size: 13px; }
 .ctx button:hover { background: var(--accent-fill); color: var(--on-accent); }
+.ctx button.danger { color: var(--ruby); }
+.ctx button.danger:hover { background: var(--ruby); color: #fff; }
