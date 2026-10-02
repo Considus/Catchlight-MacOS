@@ -471,15 +471,23 @@ function linesToBlocks(text) {
     if (fence !== null) { fence += '\n' + line; if (/^```\s*$/.test(line)) { out.push(fence); fence = null; } }
     else if (/^```/.test(line)) fence = line;
     else if (prev != null && /^\|/.test(line) && (isTable(prev + '\n' + line) || isTable(prev))) out[out.length - 1] = prev + '\n' + line;
-    else if (prev != null && / {2,}$/.test(prev) && !prev.includes('```') && !isTable(prev)) out[out.length - 1] = prev.replace(/ {2,}$/, '') + '\n' + line;
+    else if (prev != null && line !== '' && / {2,}$/.test(prev) && !prev.includes('```') && !isTable(prev)) out[out.length - 1] = prev.replace(/ {2,}$/, '') + '\n' + line;
     else out.push(line);
   }
   if (fence !== null) out.push(fence);
   return out;
 }
 // The other way: a break inside a block becomes markdown's line break, two spaces before the
-// newline, so the block comes back whole. Code and tables keep their lines as they are.
-const blocksToText = blocks => blocks.map(b => ['code', 'table'].includes(classify(b).type) ? b : b.replace(/\n/g, '  \n')).join('\n');
+// newline, so the block comes back whole. Spaces at the end of a block mean nothing in
+// markdown, so they go, or they would read as a break on the way back. Code and tables keep
+// their lines; a checklist item's continuation becomes text in the Take, so it carries no
+// spaces into the item.
+const blocksToText = blocks => blocks.map(b => {
+  const type = classify(b).type;
+  if (type === 'code' || type === 'table') return b;
+  const body = b.replace(/[ \t]+$/, '');
+  return type === 'check' ? body.replace(/[ \t]+\n/g, '\n') : body.replace(/[ \t]*\n/g, '  \n');
+}).join('\n');
 function newScript(blocks = ['']) {
   const s = { id: 's' + Date.now(), at: new Date().toISOString().slice(0, 10), mode: newScriptMode(), blocks };
   scripts.push(s); open(s.id); activate(0);
