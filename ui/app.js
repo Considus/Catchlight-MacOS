@@ -109,7 +109,6 @@ const titleOf = s => (s && plain(s.blocks[0] || '')) || (s ? 'Untitled Script' :
 function renderScripts() {
   const tl = $('#scripts');
   tl.dataset.preview = view.preview; tl.dataset.spacing = view.spacing;
-  for (const el of [$('#takes'), $('#pinned')]) { el.dataset.preview = view.preview; el.dataset.spacing = view.spacing; }
   let items = scripts.filter(s => !query || s.blocks.join('\n').toLowerCase().includes(query));
   items.sort((a, b) => view.sort === 'oldest' ? a.at.localeCompare(b.at) : b.at.localeCompare(a.at));
   timeline(tl, items, s => {
@@ -117,7 +116,6 @@ function renderScripts() {
     const pages = s.mode === 'continuous' ? 'Continuous' : `${s.mode === 'a4' ? 'A4' : 'US Letter'}${s.pageCount ? ` · ${s.pageCount} page${s.pageCount > 1 ? 's' : ''}` : ''}`;
     return `<div class="card${s.id === current ? ' selected' : ''}" data-script="${s.id}"><span class="iris-wrap"><span class="iris-shadow"></span>${iris(['note'])}</span><div class="body">${esc(body)}</div><div class="pages">${pages}</div></div>`;
   });
-  document.querySelectorAll('#view-pop .seg').forEach(seg => seg.querySelectorAll('button').forEach(b => b.classList.toggle('on', view[seg.dataset.setting] === b.dataset.v)));
 }
 
 // ---------- markdown: one parser, two faces (source while editing, rendered otherwise) ----------
@@ -371,7 +369,7 @@ function linesToBlocks(text) {
   return out;
 }
 function newScript(blocks = ['']) {
-  const s = { id: 's' + Date.now(), at: new Date().toISOString().slice(0, 10), mode: regionPaper(), blocks };
+  const s = { id: 's' + Date.now(), at: new Date().toISOString().slice(0, 10), mode: newScriptMode(), blocks };
   scripts.push(s); open(s.id); activate(0);
 }
 $('#new-script').addEventListener('click', () => newScript());
@@ -393,7 +391,7 @@ function openCtx(target, x, y) {
       // Delete asks twice in place rather than through a dialog the shells would each draw.
       b.className = 'danger';
       b.addEventListener('click', () => {
-        if (b.dataset.armed) { ctx.hidden = true; deleteTake(take.dataset.take); return; }
+        if (b.dataset.armed || !settings.confirmDelete) { ctx.hidden = true; deleteTake(take.dataset.take); return; }
         b.dataset.armed = '1'; b.textContent = 'Delete? Click again';
       });
     } else b.addEventListener('click', () => { ctx.hidden = true; act(); });
@@ -425,10 +423,6 @@ function scriptToTake(id) {
 }
 
 // ---------- view options and search ----------
-$('#view-opts').addEventListener('click', () => { const p = $('#view-pop'); p.hidden = !p.hidden; $('#view-opts').classList.toggle('on', !p.hidden); });
-document.querySelectorAll('#view-pop .seg button').forEach(b => b.addEventListener('click', () => {
-  view[b.closest('.seg').dataset.setting] = b.dataset.v; store.set('view', view); renderScripts();
-}));
 $('#search-btn').addEventListener('click', () => {
   const row = $('#search-row'); row.hidden = !row.hidden; $('#search-btn').classList.toggle('on', !row.hidden);
   if (!row.hidden) $('#search').focus(); else { query = ''; $('#search').value = ''; renderScripts(); }

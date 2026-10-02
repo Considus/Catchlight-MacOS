@@ -55,6 +55,7 @@
     <div class="card take-editor" id="take-editor" hidden>
       <span class="iris-wrap" id="take-editor-iris" role="button" tabindex="0" aria-label="Open the Focus-ring"></span>
       <div class="take-rows" id="take-rows" aria-label="Take"></div>
+      <div class="stamp" id="take-editor-stamp"></div>
     </div>
     <nav class="dock editor-bar" id="editor-bar" aria-label="Editor">
       <button class="dock-btn" id="eb-discard" aria-label="Discard changes" title="Discard changes"><svg viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg></button>
@@ -83,18 +84,10 @@
       <input type="search" id="search" placeholder="Search Scripts" aria-label="Search Scripts">
     </div>
     <div class="timeline" id="scripts"></div>
-    <div class="popover" id="view-pop" hidden>
-      <div class="pop-row"><span>Preview</span><div class="seg small" data-setting="preview">
-        <button data-v="single">Single</button><button data-v="some">Some</button><button data-v="all">All</button></div></div>
-      <div class="pop-row"><span>Spacing</span><div class="seg small" data-setting="spacing">
-        <button data-v="compact">Compact</button><button data-v="standard">Standard</button><button data-v="comfort">Comfort</button></div></div>
-      <div class="pop-row"><span>Sort</span><div class="seg small" data-setting="sort">
-        <button data-v="oldest">Oldest first</button><button data-v="newest">Newest first</button></div></div>
-    </div>
     <nav class="dock" aria-label="Scripts dock">
       <button class="dock-btn" id="new-script" aria-label="New Script"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
       <button class="dock-btn" id="scripts-angle" aria-label="Angle (not built yet)" title="Angle (not built yet)"><svg viewBox="0 0 24 24"><path d="M5 18h14M5 18l9-11M10.5 18a6 6 0 0 0-1.9-4.4"/></svg></button>
-      <button class="dock-btn" id="view-opts" aria-label="View options"><svg viewBox="0 0 24 24"><path d="M4 8h10M18 8h2M4 16h2M10 16h10"/><circle cx="16" cy="8" r="2"/><circle cx="8" cy="16" r="2"/></svg></button>
+      <button class="dock-btn" id="view-opts" aria-label="Script timeline settings" title="Script timeline settings"><svg viewBox="0 0 24 24"><path d="M4 8h10M18 8h2M4 16h2M10 16h10"/><circle cx="16" cy="8" r="2"/><circle cx="8" cy="16" r="2"/></svg></button>
       <button class="dock-btn" id="search-btn" aria-label="Search Scripts"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="5.5"/><path d="M15 15l4.5 4.5"/></svg></button>
     </nav>
   </section>
@@ -113,10 +106,14 @@
 
 <menu class="ctx" id="ctx" hidden></menu>
 
+<!-- Settings: painted by settings.js, a sheet over the window. -->
+<section class="settings-sheet" id="settings" hidden></section>
+
 <!-- First run: painted by first-run.js until an account exists. -->
 <section class="first-run" id="first-run" aria-label="Set up Catchlight" hidden></section>
 
 <script src="app.js"></script>
+<script src="settings.js"></script>
 <script src="takes.js"></script>
 <script src="first-run.js"></script>
 </body>

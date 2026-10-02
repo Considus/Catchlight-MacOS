@@ -51,6 +51,7 @@ function takeCard(t) {
     meta += `<div class="meta">${checks.filter(b => b.done).length} of ${checks.length} completed</div>`;
   }
   if (t.reminder) meta += `<div class="meta">${ICON_CLOCK}${ICON_BELL}${esc(whenLabel(t.reminder.when))}</div>`;
+  if (settings.creationStamp === 'always') meta += `<div class="stamp">${esc(createdLabel(t.at))}</div>`;   // Settings → Creation date
   return `<div class="${cls}${expanded.has(t.id) ? ' expanded' : ''}" data-take="${t.id}"><span class="iris-wrap" data-iris="${t.id}">${irisHtml(typesOf(t), t.obie)}</span><div class="body">${body}</div>${meta}</div>`;
 }
 
@@ -59,10 +60,12 @@ function renderTakes() {
   $('#sb-close').hidden = !storyboard;
   sidebar.classList.toggle('storyboard', storyboard);
   const list = $('#takes'), pinned = $('#pinned');
+  for (const el of [list, pinned]) { el.dataset.preview = settings.takePreview; el.dataset.spacing = settings.takeSpacing; }
+  const order = (a, b) => settings.takeSort === 'newest' ? b.at.localeCompare(a.at) : a.at.localeCompare(b.at);
   if (storyboard) {
     // Every Take with an unticked item, the Obie among them and not pinned; no month dividers.
     pinned.hidden = true; list.classList.remove('under-obie');
-    const items = takes.filter(t => isTask(t) && !isComplete(t)).sort((a, b) => a.at.localeCompare(b.at));
+    const items = takes.filter(t => isTask(t) && !isComplete(t)).sort(order);
     list.innerHTML = items.length ? items.map(takeCard).join('')
       : '<div class="empty"><p class="empty-title">Nothing planned yet</p><p>Takes with a task appear here.</p></div>';
   } else {
@@ -71,8 +74,11 @@ function renderTakes() {
     pinned.hidden = !obie;
     pinned.innerHTML = obie ? takeCard(obie) : '';
     list.classList.toggle('under-obie', !!obie);
-    // Oldest first, as on iOS; the view options belong to the Scripts list.
-    timeline(list, takes.filter(t => t !== obie && matches(t)).sort((a, b) => a.at.localeCompare(b.at)), takeCard);
+    // Order and Arrangement from Settings → Dailies. Manual hides the month rows; arranging
+    // by hand (dragging) is not built yet, so the order stays by date.
+    const items = takes.filter(t => t !== obie && matches(t)).sort(order);
+    if (settings.takeArrangement === 'manual') list.innerHTML = items.map(takeCard).join('');
+    else timeline(list, items, takeCard);
     const lit = filterMonth && list.querySelector(`.month[data-month="${filterMonth}"]`);
     if (lit) { lit.classList.add('on'); lit.querySelector('.month-label').insertAdjacentHTML('beforeend', ICON_XMARK); }
   }
@@ -102,6 +108,7 @@ function paintEditor() {
   paintIris();
   rows.innerHTML = '';
   draft.blocks.forEach(b => rows.append(rowFor(b)));
+  $('#take-editor-stamp').textContent = settings.creationStamp !== 'off' ? createdLabel(draft.at) : '';
   paintBar();
 }
 
@@ -252,7 +259,8 @@ function toggleDone(t) {
 let reminderFor = null, reminderAfter = null;
 function openReminder(t, after, onCancel) {
   reminderFor = t; reminderAfter = after;
-  const d = t.reminder ? new Date(t.reminder.when) : (() => { const n = new Date(Date.now() + DAY); n.setHours(9, 0, 0, 0); return n; })();
+  // A new reminder starts at Settings → Default timing from now, to the minute.
+  const d = t.reminder ? new Date(t.reminder.when) : new Date(Math.round((Date.now() + settings.reminderHours * 36e5) / 6e4) * 6e4);
   const local = new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 16);
   $('#reminder-when').value = local;
   $('#reminder-remove').hidden = !t.reminder;
@@ -514,7 +522,20 @@ function holdFilter(k) {
 
 const takesDock = $('#takes-dock');
 let filterHold = null;
+// A swipe up on the dock opens Settings, as on iOS: it starts on the buttons, travels more
+// than 30 up and drifts under 60 sideways. The click that ends it is not a tap.
+let dockSwipe = null;
+takesDock.addEventListener('pointerdown', e => { dockSwipe = { x: e.clientX, y: e.clientY, fired: false }; });
+addEventListener('pointerup', e => {
+  if (!dockSwipe) return;
+  const dy = e.clientY - dockSwipe.y, dx = Math.abs(e.clientX - dockSwipe.x);
+  // The flag only has to outlive the click that ends this gesture, which may never come.
+  if (dy < -30 && dx < 60) { dockSwipe.fired = true; setTimeout(() => { dockSwipe = null; }, 400); clearTimeout(filterHold?.t); filterHold = null; openSettings(); }
+  else dockSwipe = null;
+});
 takesDock.addEventListener('click', e => {
+  if (dockSwipe?.fired) { dockSwipe = null; return; }
+  dockSwipe = null;
   // The click that ends a long press is not a tap. The hold repaints the dock, so that click
   // may land on the dock itself rather than a button: clear the flag before anything else.
   if (filterHold?.fired) { filterHold = null; return; }
@@ -564,22 +585,28 @@ function toggleExpanded(id) {
   renderTakes();
 }
 
-// TakeExporter's Markdown for one Take, less the trailing data block, which is Core's to write.
-function exportMarkdown(t, now = new Date()) {
+// TakeExporter's Markdown, oldest first, less the trailing data block, which is Core's to write.
+function exportMarkdown(list, now = new Date()) {
   const pad = n => String(n).padStart(2, '0');
   const day = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-  const made = day(new Date(t.at));
-  let head;
-  if (t.reminder) { const r = new Date(t.reminder.when); head = `Reminder — ${made} · 🔔 ${day(r)} ${pad(r.getHours())}:${pad(r.getMinutes())}`; }
-  else if (isTask(t)) head = `Task — ${made}${isComplete(t) ? ' · ✓ Complete' : ''}`;
-  else head = `Note — ${made}`;
-  return `---\nexported: ${now.toISOString().replace(/\.\d{3}Z$/, 'Z')}\ntakes: 1\n---\n\n## ${head}\n${textOf(t)}\n`;
+  const sorted = [].concat(list).sort((a, b) => a.at.localeCompare(b.at));
+  let out = `---\nexported: ${now.toISOString().replace(/\.\d{3}Z$/, 'Z')}\ntakes: ${sorted.length}\n---\n`;
+  for (const t of sorted) {
+    const made = day(new Date(t.at));
+    let head;
+    if (t.reminder) { const r = new Date(t.reminder.when); head = `Reminder — ${made} · 🔔 ${day(r)} ${pad(r.getHours())}:${pad(r.getMinutes())}`; }
+    else if (isTask(t)) head = `Task — ${made}${isComplete(t) ? ' · ✓ Complete' : ''}`;
+    else head = `Note — ${made}`;
+    out += `\n## ${head}\n${textOf(t)}\n`;
+  }
+  return out;
 }
 // The shells hand this to a save panel or share sheet; the prototype downloads it.
 const exportName = (now = new Date()) => `catchlight-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}.md`;
-function exportTake(t) {
+const exportTake = t => exportTakes([t]);
+function exportTakes(list) {
   const now = new Date(), a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([exportMarkdown(t, now)], { type: 'text/markdown' }));
+  a.href = URL.createObjectURL(new Blob([exportMarkdown(list, now)], { type: 'text/markdown' }));
   a.download = exportName(now); a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 0);
 }
