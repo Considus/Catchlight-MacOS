@@ -567,6 +567,7 @@ function exportMarkdown(list, now = new Date()) {
       const every = repeats(t.reminder) ? ` · repeats ${REPEAT_LABEL[t.reminder.repeat].toLowerCase()}${w.length ? ` (${w.map(n => new Date(2026, 1, n).toLocaleDateString('en-GB', { weekday: 'short' })).join(', ')})` : ''}` : '';
       head = `Reminder — ${made} · 🔔 ${day(r)} ${pad(r.getHours())}:${pad(r.getMinutes())}${every}`;
     }
+    else if (isPlaceR(t.reminder)) head = `Reminder — ${made} · 📍 ${t.reminder.name || 'Location'} · ${t.reminder.mode === 'leave' ? 'on leaving' : 'on arrival'}`;
     else if (isTask(t)) head = `Task — ${made}${isComplete(t) ? ' · ✓ Complete' : ''}`;
     else head = `Note — ${made}`;
     out += `\n## ${head}\n${textOf(t)}\n`;
