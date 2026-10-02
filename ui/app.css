@@ -450,3 +450,10 @@ body.first-running .app { visibility: hidden; }
 .erow-gap { flex: none; }
 .ehandle { cursor: grab; touch-action: none; }
 .reordering .ehandle { cursor: grabbing; }
+
+/* ---------- tables in a Script (decision I: Scripts get tables) ---------- */
+.doc .blk.table { overflow-x: auto; }
+.doc .blk.table table { border-collapse: collapse; margin: 4px 0; font-size: .95em; }
+.doc .blk.table th, .doc .blk.table td { border: 1px solid var(--card-border); padding: 6px 10px; text-align: left; vertical-align: top; }
+.doc .blk.table th { font-weight: 500; background: color-mix(in srgb, var(--accent) 6%, transparent); }
+.doc .blk.table.active { white-space: pre; font-family: ui-monospace, Menlo, monospace; font-size: .88em; }

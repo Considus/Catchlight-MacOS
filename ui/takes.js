@@ -647,7 +647,7 @@ function deleteTake(id) {
 // A Script made back into a Take: "- [ ]" lines become checklist items, the rest text.
 function takeFromScript(s) {
   const blocks = [];
-  for (const line of s.blocks.join('\n').split('\n')) {
+  for (const line of blocksToText(s.blocks).split('\n')) {
     const m = line.match(/^[-*] \[( |x|X)\] (.*)$/);
     if (m) blocks.push({ k: 'check', text: m[2], done: m[1] !== ' ' });
     else if (blocks.at(-1)?.k === 'text') blocks.at(-1).text += '\n' + line;
