@@ -379,7 +379,10 @@ const ctx = $('#ctx');
 function openCtx(target, x, y) {
   const take = target.closest('[data-take]'), scr = target.closest('[data-script]');
   if (!take && !scr) return false;
-  const items = take ? takeMenu(take.dataset.take) : [['Make this a Take', () => scriptToTake(scr.dataset.script)]];
+  const items = take ? takeMenu(take.dataset.take)
+    : isBlank(takeFromScript(scripts.find(x => x.id === scr.dataset.script))) ? []   // a blank Take is never kept
+    : [['Make this a Take', () => scriptToTake(scr.dataset.script)]];
+  if (!items.length) return false;
   ctx.innerHTML = '';
   for (const [label, act, kind] of items) {
     const li = document.createElement('li'), b = document.createElement('button');
@@ -402,7 +405,7 @@ document.addEventListener('contextmenu', e => { if (openCtx(e.target, e.clientX,
 // Touch has no right-click: a long press (500ms, under 10px of movement) opens the same menu.
 let press = null;
 document.addEventListener('pointerdown', e => {
-  if (e.pointerType === 'mouse') return;
+  if (e.pointerType === 'mouse' || e.target.closest('.iris-wrap')) return;   // holding an Iris makes the Obie
   const { target, clientX: x, clientY: y } = e;
   press = { x, y, t: setTimeout(() => { press = null; openCtx(target, x, y); }, 500) };
 });

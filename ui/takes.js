@@ -27,14 +27,17 @@ const isOverdue = t => !!t.reminder && !t.reminder.done && new Date(t.reminder.w
 const typesOf = t => [t.isNote && 'note', isTask(t) && 'task', t.reminder && 'remind', t.isImportant && 'important'].filter(Boolean);
 const textOf = t => t.blocks.map(b => b.k === 'check' ? `- [${b.done ? 'x' : ' '}] ${b.text}` : b.text).join('\n');
 const isBlank = t => !t.blocks.some(b => b.text.trim()) && !isTask(t) && !t.reminder;
+// A Take is never "none": with no Task, no reminder and no Note, Note comes back on.
+const noteFloor = t => { if (!t.isNote && !isTask(t) && !t.reminder) t.isNote = true; };
+const irisHtml = (types, obie) => `<span class="iris-shadow"></span>${iris(types, obie)}`;
 
-// "Tomorrow at 09:00", as the iOS reminder line reads.
+// "Tomorrow at 09:00", as the iOS reminder line reads, in the viewer's own locale.
 function whenLabel(iso) {
   const d = new Date(iso), today = new Date(); today.setHours(0, 0, 0, 0);
   const day = Math.round((new Date(d).setHours(0, 0, 0, 0) - today) / DAY);
-  const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const name = { '-1': 'Yesterday', 0: 'Today', 1: 'Tomorrow' }[day]
-    ?? d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+    ?? d.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' });
   return `${name} at ${time}`;
 }
 
@@ -48,7 +51,7 @@ function takeCard(t) {
     meta += `<div class="meta">${checks.filter(b => b.done).length} of ${checks.length} completed</div>`;
   }
   if (t.reminder) meta += `<div class="meta">${ICON_CLOCK}${ICON_BELL}${esc(whenLabel(t.reminder.when))}</div>`;
-  return `<div class="${cls}" data-take="${t.id}"><span class="iris-wrap" data-iris="${t.id}"><span class="iris-shadow"></span>${iris(typesOf(t), t.obie)}</span><div class="body">${body}</div>${meta}</div>`;
+  return `<div class="${cls}" data-take="${t.id}"><span class="iris-wrap" data-iris="${t.id}">${irisHtml(typesOf(t), t.obie)}</span><div class="body">${body}</div>${meta}</div>`;
 }
 
 function renderTakes() {
@@ -82,7 +85,7 @@ function beginEdit(t, isNew = false) {
 
 function paintEditor() {
   editorCard.classList.toggle('obie', !!draft.obie);
-  $('#take-editor-iris').innerHTML = `<span class="iris-shadow"></span>${iris(typesOf(draft), draft.obie)}`;
+  paintIris();
   rows.innerHTML = '';
   draft.blocks.forEach(b => rows.append(rowFor(b)));
   paintBar();
@@ -143,6 +146,7 @@ function commitEdit() {
 function discardEdit() { endEdit(); }
 
 function endEdit() {
+  closeReminder();   // the picker belongs to the edit; it never outlives it
   draft = original = null;
   editorCard.hidden = true;
   rows.innerHTML = '';   // nothing of an edit outlives it, discarded or not
@@ -183,18 +187,18 @@ rows.addEventListener('click', e => {
   draft.blocks.length && paintIris();
 });
 rows.addEventListener('input', () => { readRows(); paintIris(); paintBar(); });
-const paintIris = () => { $('#take-editor-iris').innerHTML = `<span class="iris-shadow"></span>${iris(typesOf(draft), draft.obie)}`; };
+function paintIris() { $('#take-editor-iris').innerHTML = irisHtml(typesOf(draft), draft.obie); }
 
 // Save on any press outside the card and its bar; Escape and ⌘S save too.
 document.addEventListener('mousedown', e => {
+  swallowClick = false;   // a press with no click after it must not leave the flag set
   if (!draft || focusRing) return;
   if (e.target.closest('#take-editor, #editor-bar, #reminder-pop')) return;
-  e.preventDefault();
-  swallowClick = sidebar.contains(e.target);
+  if (sidebar.contains(e.target)) { e.preventDefault(); swallowClick = true; }
   commitEdit();
 }, true);
 document.addEventListener('keydown', e => {
-  if (!draft || focusRing) return;
+  if (!draft || focusRing || reminderFor) return;
   if (e.key === 'Escape' || ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's')) {
     e.preventDefault();
     commitEdit();
@@ -213,7 +217,7 @@ $('#eb-third').addEventListener('click', () => {
   readRows();
   if (isTask(draft)) return;                                            // the Shot List Angle is not built yet
   draft.isImportant = !draft.isImportant;
-  if (!draft.isImportant && !draft.isNote && !isTask(draft) && !draft.reminder) draft.isNote = true;
+  if (!draft.isImportant) noteFloor(draft);
   paintIris(); paintBar();
 });
 $('#eb-done').addEventListener('click', () => {
@@ -250,10 +254,13 @@ $('#reminder-save').addEventListener('click', () => {
 });
 $('#reminder-remove').addEventListener('click', () => {
   reminderFor.reminder = null;
-  if (!reminderFor.isNote && !isTask(reminderFor)) reminderFor.isNote = true;   // the Note floor
+  noteFloor(reminderFor);
   const after = reminderAfter; closeReminder(); after && after();
 });
-$('#reminder-cancel').addEventListener('click', () => { const c = reminderCancel; closeReminder(); c && c(); });
+const cancelReminder = () => { const c = reminderCancel; closeReminder(); c && c(); };
+$('#reminder-cancel').addEventListener('click', cancelReminder);
+// Escape with the picker open closes the picker only, not the ring or the edit beneath it.
+document.addEventListener('keydown', e => { if (reminderFor && e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); cancelReminder(); } });
 
 // ---------- the Focus-ring (FocusRingFanView on iOS) ----------
 // Four Marks fan out to the right of the Iris at R = 68: Note -80°, Task -26.7°,
@@ -268,6 +275,7 @@ const MARKS = [
 
 function openFocusRing(t, irisEl, fromEditor) {
   if (focusRing) return;
+  closeReminder();   // a picker opened from the editor bar does not carry into the ring
   if (fromEditor) readRows();
   const box = irisEl.getBoundingClientRect(), host = sidebar.getBoundingClientRect();
   const cx = box.left + box.width / 2 - host.left, cy = box.top + box.height / 2 - host.top;
@@ -286,7 +294,7 @@ function openFocusRing(t, irisEl, fromEditor) {
   }
   const hub = document.createElement('div');
   hub.className = 'hub';
-  hub.innerHTML = `<span class="iris-shadow"></span>${iris([...sel], t.obie)}<i class="tick"></i>`;
+  hub.innerHTML = irisHtml([...sel], t.obie) + '<i class="tick"></i>';
   ring.append(hub);
   for (const m of MARKS) {
     const b = document.createElement('button');
@@ -311,7 +319,7 @@ function paintRing() {
     b.classList.toggle('on', sel.has(b.dataset.key));
     b.setAttribute('aria-pressed', String(sel.has(b.dataset.key)));
   });
-  $('#focus-ring .hub').innerHTML = `<span class="iris-shadow"></span>${iris([...sel], t.obie)}<i class="tick"></i>`;
+  $('#focus-ring .hub').innerHTML = irisHtml([...sel], t.obie) + '<i class="tick"></i>';
 }
 
 $('#focus-ring').addEventListener('click', e => {
@@ -332,14 +340,19 @@ $('#focus-ring').addEventListener('click', e => {
 
 function closeFocusRing(apply) {
   const { t, sel, fromEditor, pendingReminder } = focusRing;
+  if (reminderFor) {   // closing the ring cancels a picker it opened, which turns Remind back off
+    sel.delete('remind'); if (!sel.has('task')) sel.add('note');
+    closeReminder();
+  }
   if (apply) {
     const target = fromEditor ? draft : takes.find(x => x.id === t.id);
     const before = JSON.stringify(target);
-    target.isNote = sel.has('note');
-    target.isImportant = sel.has('important');
+    // Only what changed is written, so an unchanged ring is a no-op (D-250).
+    if (!!target.isNote !== sel.has('note')) target.isNote = sel.has('note');
+    if (!!target.isImportant !== sel.has('important')) target.isImportant = sel.has('important');
     if (sel.has('task') && !isTask(target)) target.blocks.push({ k: 'check', text: '', done: false });
     if (!sel.has('task') && isTask(target)) target.blocks = target.blocks.map(b => ({ k: 'text', text: b.text }));
-    if (!sel.has('remind')) target.reminder = null;
+    if (!sel.has('remind') && target.reminder) target.reminder = null;
     else if (pendingReminder) target.reminder = pendingReminder;
     if (!fromEditor && JSON.stringify(target) !== before) { target.modifiedAt = Date.now(); saveTakes(); }
   }
@@ -355,7 +368,7 @@ function closeFocusRing(apply) {
     if (apply && sel.has('task') && target && target.blocks.at(-1)?.k === 'check' && !target.blocks.at(-1).text) beginEdit(target);
   }
 }
-document.addEventListener('keydown', e => { if (focusRing && e.key === 'Escape') { e.preventDefault(); closeFocusRing(true); } });
+document.addEventListener('keydown', e => { if (focusRing && !reminderFor && e.key === 'Escape') { e.preventDefault(); closeFocusRing(true); } });
 
 // ---------- clicks and presses on the timeline ----------
 // Click a card's body to edit it; click its Iris for the Focus-ring; hold the Iris for
@@ -364,16 +377,20 @@ let irisHold = null;
 sidebar.addEventListener('pointerdown', e => {
   const ir = e.target.closest('.timeline .iris-wrap, #pinned .iris-wrap');
   if (!ir || draft) return;
-  irisHold = { id: ir.dataset.iris, fired: false, t: setTimeout(() => {
-    irisHold.fired = true;
-    const t = takes.find(x => x.id === irisHold.id);
+  const hold = irisHold = { id: ir.dataset.iris, x: e.clientX, y: e.clientY, fired: false, t: setTimeout(() => {
+    hold.fired = true;
+    const t = takes.find(x => x.id === hold.id);
     const make = !t.obie;
     takes.forEach(x => { x.obie = false; });
     t.obie = make; if (make) t.isImportant = true;
     t.modifiedAt = Date.now(); saveTakes(); renderTakes();
   }, 450) };
 });
-sidebar.addEventListener('pointerup', () => { if (irisHold && !irisHold.fired) clearTimeout(irisHold.t); });
+// A hold that moves (a scroll) or is cancelled is not a hold.
+const dropHold = () => { if (irisHold && !irisHold.fired) { clearTimeout(irisHold.t); irisHold = null; } };
+document.addEventListener('pointermove', e => { if (irisHold && Math.hypot(e.clientX - irisHold.x, e.clientY - irisHold.y) > 10) dropHold(); });
+document.addEventListener('pointerup', () => { if (irisHold && !irisHold.fired) clearTimeout(irisHold.t); });
+document.addEventListener('pointercancel', dropHold);
 sidebar.addEventListener('click', e => {
   if (draft || focusRing) return;
   const ir = e.target.closest('.timeline .iris-wrap, #pinned .iris-wrap');
@@ -399,7 +416,7 @@ function takeMenu(id) {
   if (canBeMarkedDone(t)) items.push([isDone(t) ? 'Mark Not Done' : 'Mark Done', () => { toggleDone(t); touch(t); }]);
   items.push([t.isImportant ? 'Remove Important' : 'Make Important', () => {
     t.isImportant = !t.isImportant;
-    if (!t.isImportant && !t.isNote && !isTask(t) && !t.reminder) t.isNote = true;
+    if (!t.isImportant) noteFloor(t);
     touch(t);
   }]);
   if (!t.obie) items.push(['Make Obie', () => { takes.forEach(x => { x.obie = false; }); t.obie = true; t.isImportant = true; touch(t); }]);
@@ -422,7 +439,8 @@ function takeFromScript(s) {
     else if (blocks.at(-1)?.k === 'text') blocks.at(-1).text += '\n' + line;
     else blocks.push({ k: 'text', text: line });
   }
-  return { id: 't' + Date.now(), at: s.at + (s.at.length === 10 ? 'T00:00:00Z' : ''), blocks, isNote: true };
+  // removeEmptyTextBlocks, as a save does; a Script that leaves a blank Take is not offered.
+  return { id: 't' + Date.now(), at: s.at + (s.at.length === 10 ? 'T00:00:00Z' : ''), blocks: blocks.filter(b => b.k === 'check' || b.text.trim()), isNote: true };
 }
 
 // A press outside the edited Take saves it and does nothing else inside Dailies, as a tap
