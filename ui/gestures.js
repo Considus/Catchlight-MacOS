@@ -239,7 +239,8 @@ rows.addEventListener('keydown', e => {
   const all = [...rows.children], checks = all.filter(r => r.classList.contains('check'));
   const k = checks.indexOf(row), to = checks[e.key === 'ArrowUp' ? k - 1 : k + 1];
   if (!to) return;
+  const caret = getSelection().focusOffset;   // before the move: moving the row drops the selection
   if (e.key === 'ArrowUp') to.before(row); else to.after(row);
   readRows();
-  focusRow([...rows.children].indexOf(row), getSelection().focusOffset);
+  focusRow([...rows.children].indexOf(row), caret);
 });
