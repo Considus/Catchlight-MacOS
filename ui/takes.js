@@ -61,9 +61,8 @@ function renderTakes() {
   pinned.hidden = !obie;
   pinned.innerHTML = obie ? takeCard(obie) : '';
   $('#takes').classList.toggle('under-obie', !!obie);
-  const rest = takes.filter(t => t !== obie).sort((a, b) => a.at.localeCompare(b.at));
-  if (view.sort === 'newest') rest.reverse();
-  timeline($('#takes'), rest, takeCard);
+  // Oldest first, as on iOS; the view options belong to the Scripts list.
+  timeline($('#takes'), takes.filter(t => t !== obie).sort((a, b) => a.at.localeCompare(b.at)), takeCard);
 }
 
 // ---------- in-place editing ----------
@@ -352,7 +351,7 @@ function closeFocusRing(apply) {
     if (!!target.isImportant !== sel.has('important')) target.isImportant = sel.has('important');
     if (sel.has('task') && !isTask(target)) target.blocks.push({ k: 'check', text: '', done: false });
     if (!sel.has('task') && isTask(target)) target.blocks = target.blocks.map(b => ({ k: 'text', text: b.text }));
-    if (!sel.has('remind') && target.reminder) target.reminder = null;
+    if (!sel.has('remind')) { if (target.reminder) target.reminder = null; }   // a picked time with Remind off is dropped
     else if (pendingReminder) target.reminder = pendingReminder;
     if (!fromEditor && JSON.stringify(target) !== before) { target.modifiedAt = Date.now(); saveTakes(); }
   }
@@ -382,7 +381,7 @@ sidebar.addEventListener('pointerdown', e => {
     const t = takes.find(x => x.id === hold.id);
     const make = !t.obie;
     takes.forEach(x => { x.obie = false; });
-    t.obie = make; if (make) t.isImportant = true;
+    t.obie = make; if (make) t.isImportant = true;   // an Obie is always Important (Take.isObie)
     t.modifiedAt = Date.now(); saveTakes(); renderTakes();
   }, 450) };
 });

@@ -425,7 +425,7 @@ function scriptToTake(id) {
 // ---------- view options and search ----------
 $('#view-opts').addEventListener('click', () => { const p = $('#view-pop'); p.hidden = !p.hidden; $('#view-opts').classList.toggle('on', !p.hidden); });
 document.querySelectorAll('#view-pop .seg button').forEach(b => b.addEventListener('click', () => {
-  view[b.closest('.seg').dataset.setting] = b.dataset.v; store.set('view', view); renderScripts(); renderTakes();
+  view[b.closest('.seg').dataset.setting] = b.dataset.v; store.set('view', view); renderScripts();
 }));
 $('#search-btn').addEventListener('click', () => {
   const row = $('#search-row'); row.hidden = !row.hidden; $('#search-btn').classList.toggle('on', !row.hidden);
