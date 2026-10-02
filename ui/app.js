@@ -306,7 +306,10 @@ doc.addEventListener('keydown', e => {
   if (e.key === 'Enter' && k.type === 'table') {
     e.preventDefault();
     remember('edit');
-    const start = text.lastIndexOf('\n', off - 1) + 1, end = (text.indexOf('\n', off) + 1 || text.length + 1) - 1;
+    let start = text.lastIndexOf('\n', off - 1) + 1, end = (text.indexOf('\n', off) + 1 || text.length + 1) - 1;
+    // On the header or the separator, a new row goes after the separator, never between them.
+    const lineNo = text.slice(0, start).split('\n').length - 1;
+    if (lineNo < 2) { const sepEnd = text.indexOf('\n', text.indexOf('\n') + 1); end = sepEnd < 0 ? text.length : sepEnd; start = text.lastIndexOf('\n', end - 1) + 1; }
     const line = text.slice(start, end);
     if (line.replace(/[|\s]/g, '') === '' && start > 0) {
       s.blocks[active] = text.slice(0, start - 1) + text.slice(end);
@@ -373,8 +376,7 @@ doc.addEventListener('mousedown', e => {
   e.preventDefault();
   // The caret lands on the character clicked. Measured in the formatted face before it turns
   // into source, then mapped across the markers the source face adds.
-  const at = pointInText(el, e.clientX, e.clientY);
-  activate(i, at == null ? undefined : sourceOffset(s.blocks[i], el.textContent, at));
+  activate(i, clickToSource(el, s.blocks[i], e));
 });
 // How many characters of an element's text lie before a point, or null if it is not in it.
 function pointInText(el, x, y) {
@@ -387,13 +389,40 @@ function pointInText(el, x, y) {
   return r.toString().length;
 }
 // The formatted text is the source with its markers taken out, so its characters appear in the
-// source in order: walk both and land on the source character the click was before.
-function sourceOffset(src, shown, at) {
+// source in order: walk both and land on the source character the click was before. The walk
+// starts after the block's own prefix ("- [x] ", "# ", a code fence), so a letter in the prefix
+// can't be mistaken for one in the text. It stays a matching heuristic inside the text: a click
+// next to an inline marker can land either side of it.
+function sourceOffset(src, shown, at, from = 0) {
   if (at >= shown.length) return src.length;
-  let i = 0;
+  let i = from;
   for (let j = 0; j < at && i < src.length; i++) if (src[i] === shown[j]) j++;
   while (i < src.length && src[i] !== shown[at]) i++;
   return Math.min(i, src.length);
+}
+// Where in the source a click on a formatted block belongs.
+function clickToSource(el, src, e) {
+  const k = classify(src);
+  if (k.type === 'table') {
+    // A table maps cell by cell: the row and column clicked, then the place within that cell.
+    const cell = e.target.closest('td, th'), tr = cell?.parentElement;
+    if (!cell) return undefined;
+    const lines = src.split('\n');
+    const bodyLines = lines.map((l, n) => n).filter(n => n > 1 && lines[n].trim() && lines[n].trim() !== '|');
+    const n = tr.parentElement.tagName === 'THEAD' ? 0 : bodyLines[tr.rowIndex - 1];
+    if (n == null) return undefined;
+    const line = lines[n], lineStart = lines.slice(0, n).reduce((a, l) => a + l.length + 1, 0);
+    const pipes = [...line.matchAll(/\|/g)].map(m => m.index);
+    const start = pipes[cell.cellIndex], end = pipes[cell.cellIndex + 1] ?? line.length;
+    if (start == null) return lineStart + line.length;
+    const raw = line.slice(start + 1, end), lead = raw.length - raw.trimStart().length;
+    const at = pointInText(cell, e.clientX, e.clientY);
+    return lineStart + start + 1 + lead + (at == null ? 0 : sourceOffset(raw.trim(), cell.textContent, at));
+  }
+  const at = pointInText(el, e.clientX, e.clientY);
+  if (at == null) return undefined;
+  const from = k.type === 'code' ? src.indexOf('\n') + 1 : k.pre.length;
+  return sourceOffset(src, el.textContent, at, from);
 }
 doc.addEventListener('click', e => { if (e.target.closest('a') && !(e.metaKey || e.ctrlKey)) e.preventDefault(); });
 $('#editor-scroll').addEventListener('mousedown', e => {
@@ -460,6 +489,10 @@ function open(id) {
   $('#script-heading').textContent = titleOf(script());
 }
 $('#scripts').addEventListener('click', e => { const c = e.target.closest('[data-script]'); if (c) open(c.dataset.script); });
+// A line that opens a block of its own: a list item, heading, quote, numbered item, fence,
+// table row or rule. A line break never joins one of these to the line before, and nothing
+// joins onto a heading, which is one line.
+const startsBlock = line => /^([-*] |#{1,3} |> |\d+\. |```|\||(-{3,}|\*{3,})\s*$)/.test(line);
 // A Take's lines become blocks, except that a fenced code block or a table stays one block,
 // and a line ending in two spaces (markdown's line break) runs on into the next, which is how
 // a Shift+Enter break inside a block survives the trip to a Take and back.
@@ -471,7 +504,7 @@ function linesToBlocks(text) {
     if (fence !== null) { fence += '\n' + line; if (/^```\s*$/.test(line)) { out.push(fence); fence = null; } }
     else if (/^```/.test(line)) fence = line;
     else if (prev != null && /^\|/.test(line) && (isTable(prev + '\n' + line) || isTable(prev))) out[out.length - 1] = prev + '\n' + line;
-    else if (prev != null && line !== '' && / {2,}$/.test(prev) && !prev.includes('```') && !isTable(prev)) out[out.length - 1] = prev.replace(/ {2,}$/, '') + '\n' + line;
+    else if (prev != null && line !== '' && !startsBlock(line) && !/^#{1,3} /.test(prev) && / {2,}$/.test(prev) && !prev.includes('```') && !isTable(prev)) out[out.length - 1] = prev.replace(/ {2,}$/, '') + '\n' + line;
     else out.push(line);
   }
   if (fence !== null) out.push(fence);
