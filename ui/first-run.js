@@ -95,7 +95,7 @@ const SCREENS = {
     <div class="fr-actions">${pill('finish', 'Start using Catchlight', ' primary')}</div>`,
 
   restore: () => `<h2>Enter your Privacy phrase</h2>
-    <ol class="fr-words fr-entry">${Array.from({ length: 12 }, (_, i) => `<li><span>${i + 1}</span><input type="text" data-word="${i}" aria-label="Word ${i + 1} of 12" autocomplete="off" autocapitalize="off" spellcheck="false"></li>`).join('')}</ol>
+    ${phraseGrid()}
     <p>The 12 words from your other device, in order.</p>
     <p class="fr-status" id="fr-status" aria-live="polite">0 of 12 words</p>
     <div class="fr-actions">${pill('back-welcome', 'Back')}${pill('do-restore', 'Restore', ' primary')}</div>`,
@@ -130,7 +130,7 @@ function checkConfirm() {
   setTimeout(() => { if (fr.step === 'confirm') { fr.picked = []; show('confirm'); $('#fr-error').hidden = false; } }, 600);
 }
 
-const restoreWords = () => [...layer.querySelectorAll('[data-word]')].map(i => i.value.trim());
+const restoreWords = () => phraseWords(layer);
 function paintRestoreStatus(error) {
   const n = restoreWords().filter(Boolean).length, status = $('#fr-status');
   status.classList.toggle('error', !!error);
@@ -172,38 +172,44 @@ layer.addEventListener('click', e => {
   }
 });
 
-// Phrase entry, as PhraseEntryGrid: a space moves to the next word; a paste spreads its words
-// across the fields from the one pasted into, counting only runs of letters, so "1. anchor"
-// works; Return moves on, and on the last word restores.
-layer.addEventListener('input', e => {
-  const i = e.target.dataset?.word;
-  if (i == null) return;
-  const v = e.target.value;
-  if (/\s/.test(v)) {
-    const words = v.toLowerCase().match(/[a-z]+/g) || [];
-    const fields = layer.querySelectorAll('[data-word]');
-    words.forEach((w, k) => { if (fields[+i + k]) fields[+i + k].value = w; });
-    fields[Math.min(11, +i + Math.max(words.length, 1))]?.focus();
-  } else e.target.value = v.toLowerCase();
-  paintRestoreStatus();
-});
-layer.addEventListener('paste', e => {
-  const i = e.target.dataset?.word;
-  if (i == null) return;
-  e.preventDefault();
-  const words = (e.clipboardData.getData('text').toLowerCase().match(/[a-z]+/g) || []).slice(0, 12 - i);
-  const fields = layer.querySelectorAll('[data-word]');
-  words.forEach((w, k) => { fields[+i + k].value = w; });
-  fields[Math.min(11, +i + words.length)].focus();
-  paintRestoreStatus();
-});
-layer.addEventListener('keydown', e => {
-  const i = e.target.dataset?.word;
-  if (i == null || e.key !== 'Enter') return;
-  e.preventDefault();
-  if (+i < 11) layer.querySelector(`[data-word="${+i + 1}"]`).focus();
-  else if (!layer.querySelector('[data-fr="do-restore"]').disabled) doRestore();
-});
+// ---------- phrase entry, shared by first run and Settings → Second device ----------
+// As PhraseEntryGrid: a space moves to the next word; a paste spreads its words across the
+// fields from the one pasted into, counting only runs of letters, so "1. anchor" works;
+// Return moves on, and on the last word submits.
+const phraseGrid = () => `<ol class="fr-words fr-entry">${Array.from({ length: 12 }, (_, i) => `<li><span>${i + 1}</span><input type="text" data-word="${i}" aria-label="Word ${i + 1} of 12" autocomplete="off" autocapitalize="off" spellcheck="false"></li>`).join('')}</ol>`;
+const phraseWords = root => [...root.querySelectorAll('[data-word]')].map(i => i.value.trim());
+function wirePhraseEntry(root, changed, submit) {
+  root.addEventListener('input', e => {
+    const i = e.target.dataset?.word;
+    if (i == null) return;
+    const v = e.target.value;
+    if (/\s/.test(v)) {
+      const words = v.toLowerCase().match(/[a-z]+/g) || [];
+      const fields = root.querySelectorAll('[data-word]');
+      words.forEach((w, k) => { if (fields[+i + k]) fields[+i + k].value = w; });
+      fields[Math.min(11, +i + Math.max(words.length, 1))]?.focus();
+    } else e.target.value = v.toLowerCase();
+    changed();
+  });
+  root.addEventListener('paste', e => {
+    const i = e.target.dataset?.word;
+    if (i == null) return;
+    e.preventDefault();
+    const words = (e.clipboardData.getData('text').toLowerCase().match(/[a-z]+/g) || []).slice(0, 12 - i);
+    const fields = root.querySelectorAll('[data-word]');
+    words.forEach((w, k) => { fields[+i + k].value = w; });
+    fields[Math.min(11, +i + words.length)].focus();
+    changed();
+  });
+  root.addEventListener('keydown', e => {
+    const i = e.target.dataset?.word;
+    if (i == null || e.key !== 'Enter') return;
+    e.preventDefault();
+    if (+i < 11) root.querySelector(`[data-word="${+i + 1}"]`).focus();
+    else submit();
+  });
+}
+wirePhraseEntry(layer, () => paintRestoreStatus(), () => { if (!layer.querySelector('[data-fr="do-restore"]').disabled) doRestore(); });
 
 // Runs once, until an account exists. `?first-run` replays it.
 if (!store.get('account', null) || new URLSearchParams(location.search).has('first-run')) {
