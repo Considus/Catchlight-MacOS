@@ -523,7 +523,9 @@ const blocksToText = blocks => blocks.map(b => {
   const type = classify(b).type;
   if (type === 'code' || type === 'table') return b;
   const body = b.replace(/[ \t]+$/, '');
-  return type === 'check' ? body.replace(/[ \t]+\n/g, '\n') : body.replace(/[ \t]*\n/g, '  \n');
+  // A heading is one line, as a checklist item is, so neither carries a break: what follows
+  // comes back as its own block, with no spaces left behind.
+  return type === 'check' || /^h\d/.test(type) ? body.replace(/[ \t]+\n/g, '\n') : body.replace(/[ \t]*\n/g, '  \n');
 }).join('\n');
 function newScript(blocks = ['']) {
   const s = { id: 's' + Date.now(), at: new Date().toISOString().slice(0, 10), mode: newScriptMode(), blocks };
