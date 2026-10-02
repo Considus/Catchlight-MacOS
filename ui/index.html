@@ -49,8 +49,30 @@
     <h1 class="page-heading">Dailies</h1>
     <div class="pinned" id="pinned" hidden></div>
     <div class="timeline" id="takes"></div>
+    <!-- The edited Take floats above the editor bar, which stands in for the dock (iOS:
+         KeyboardTakeEditor and EditorKeyboardBar). -->
+    <div class="card take-editor" id="take-editor" hidden>
+      <span class="iris-wrap" id="take-editor-iris" role="button" tabindex="0" aria-label="Open the Focus-ring"></span>
+      <div class="take-rows" id="take-rows" aria-label="Take"></div>
+    </div>
+    <nav class="dock editor-bar" id="editor-bar" aria-label="Editor">
+      <button class="dock-btn" id="eb-discard" aria-label="Discard changes" title="Discard changes"><svg viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg></button>
+      <button class="dock-btn" id="eb-remind" aria-label="Reminder" title="Reminder"><svg viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20.5h4"/></svg></button>
+      <button class="dock-btn" id="eb-third"></button>
+      <button class="dock-btn" id="eb-done" aria-label="Mark done" title="Mark done"><svg viewBox="0 0 24 24"><path d="M5.5 12.5l4.2 4.2 8.8-9.4"/></svg></button>
+    </nav>
+    <div class="focus-ring" id="focus-ring" hidden></div>
+    <div class="popover reminder-pop" id="reminder-pop" hidden>
+      <div class="pop-row"><span>Remind me</span><input type="datetime-local" id="reminder-when" aria-label="Reminder date and time"></div>
+      <div class="pop-row pop-actions">
+        <button class="pop-btn" id="reminder-remove" type="button">Remove</button>
+        <span class="tb-spacer"></span>
+        <button class="pop-btn" id="reminder-cancel" type="button">Cancel</button>
+        <button class="pop-btn primary" id="reminder-save" type="button">Set</button>
+      </div>
+    </div>
     <nav class="dock" aria-label="Takes dock">
-      <button class="dock-btn" aria-label="Add a Take"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+      <button class="dock-btn" id="add-take" aria-label="Add a Take"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
       <button class="dock-btn" aria-label="Angle"><svg viewBox="0 0 24 24"><path d="M5 18h14M5 18l9-11M10.5 18a6 6 0 0 0-1.9-4.4"/></svg></button>
       <button class="dock-btn" aria-label="Sequence"><svg viewBox="0 0 24 24"><circle cx="6.5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="17.5" cy="12" r="2"/></svg></button>
       <button class="dock-btn" aria-label="Search"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="5.5"/><path d="M15 15l4.5 4.5"/></svg></button>
@@ -92,10 +114,9 @@
   </main>
 </div>
 
-<menu class="ctx" id="ctx" hidden>
-  <li><button id="ctx-expand">Expand into a Script</button></li>
-</menu>
+<menu class="ctx" id="ctx" hidden></menu>
 
 <script src="app.js"></script>
+<script src="takes.js"></script>
 </body>
 </html>
