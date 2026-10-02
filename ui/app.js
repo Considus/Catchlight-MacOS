@@ -325,7 +325,7 @@ doc.addEventListener('keydown', e => {
     return;
   }
   // A header row, "| a | b |", becomes a table on Enter: the separator and a first row follow.
-  if (e.key === 'Enter' && !e.shiftKey && k.type === 'p' && !text.includes('\n') && /^\|.*\|.*\|\s*$/.test(text) && off === text.length) {
+  if (e.key === 'Enter' && k.type === 'p' && !text.includes('\n') && /^\|.*\|.*\|\s*$/.test(text) && off === text.length) {
     e.preventDefault();
     remember('edit');
     const n = cells(text).length;
@@ -333,7 +333,9 @@ doc.addEventListener('keydown', e => {
     paint(el, s.blocks[active], true); setCaret(el, s.blocks[active].length); changed();
     return;
   }
-  if (e.key === 'Enter' && (e.shiftKey || (k.type === 'code' && !/\n```\s*$/.test(text)))) {
+  // Return is the line break: Shift+Enter does what Enter does (owner, 2026-10-02), except in a
+  // code block, where a line is part of the block until its closing fence.
+  if (e.key === 'Enter' && k.type === 'code' && !/\n```\s*$/.test(text)) {
     e.preventDefault();
     remember('edit');
     s.blocks[active] = text.slice(0, off) + '\n' + text.slice(off);
@@ -493,13 +495,9 @@ function open(id) {
   $('#script-heading').textContent = titleOf(script());
 }
 $('#scripts').addEventListener('click', e => { const c = e.target.closest('[data-script]'); if (c) open(c.dataset.script); });
-// A line that opens a block of its own: a list item, heading, quote, numbered item, fence,
-// table row or rule. A line break never joins one of these to the line before, and nothing
-// joins onto a heading, which is one line.
-const startsBlock = line => /^([-*] |#{1,3} |> |\d+\. |```|\||(-{3,}|\*{3,})\s*$)/.test(line);
-// A Take's lines become blocks, except that a fenced code block or a table stays one block,
-// and a line ending in two spaces (markdown's line break) runs on into the next, which is how
-// a Shift+Enter break inside a block survives the trip to a Take and back.
+// A Take's lines become blocks, except that a fenced code block or a table stays one block.
+// Return is the line break (owner, 2026-10-02: the editor is WYSIWYG), so one line is one block
+// and markdown's two-space line break means nothing here.
 function linesToBlocks(text) {
   const out = [];
   let fence = null;
@@ -508,25 +506,13 @@ function linesToBlocks(text) {
     if (fence !== null) { fence += '\n' + line; if (/^```\s*$/.test(line)) { out.push(fence); fence = null; } }
     else if (/^```/.test(line)) fence = line;
     else if (prev != null && /^\|/.test(line) && (isTable(prev + '\n' + line) || isTable(prev))) out[out.length - 1] = prev + '\n' + line;
-    else if (prev != null && line !== '' && !startsBlock(line) && !/^#{1,3} /.test(prev) && / {2,}$/.test(prev) && !prev.includes('```') && !isTable(prev)) out[out.length - 1] = prev.replace(/ {2,}$/, '') + '\n' + line;
     else out.push(line);
   }
   if (fence !== null) out.push(fence);
   return out;
 }
-// The other way: a break inside a block becomes markdown's line break, two spaces before the
-// newline, so the block comes back whole. Spaces at the end of a block mean nothing in
-// markdown, so they go, or they would read as a break on the way back. Code and tables keep
-// their lines; a checklist item's continuation becomes text in the Take, so it carries no
-// spaces into the item.
-const blocksToText = blocks => blocks.map(b => {
-  const type = classify(b).type;
-  if (type === 'code' || type === 'table') return b;
-  const body = b.replace(/[ \t]+$/, '');
-  // A heading is one line, as a checklist item is, so neither carries a break: what follows
-  // comes back as its own block, with no spaces left behind.
-  return type === 'check' || /^h\d/.test(type) ? body.replace(/[ \t]+\n/g, '\n') : body.replace(/[ \t]*\n/g, '  \n');
-}).join('\n');
+// The other way: one block per line, code blocks and tables keeping their own lines.
+const blocksToText = blocks => blocks.join('\n');
 function newScript(blocks = ['']) {
   const s = { id: 's' + Date.now(), at: new Date().toISOString().slice(0, 10), mode: newScriptMode(), blocks };
   scripts.push(s); open(s.id); activate(0);
