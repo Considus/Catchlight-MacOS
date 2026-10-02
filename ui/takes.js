@@ -529,7 +529,8 @@ takesDock.addEventListener('pointerdown', e => { dockSwipe = { x: e.clientX, y: 
 addEventListener('pointerup', e => {
   if (!dockSwipe) return;
   const dy = e.clientY - dockSwipe.y, dx = Math.abs(e.clientX - dockSwipe.x);
-  if (dy < -30 && dx < 60) { dockSwipe.fired = true; clearTimeout(filterHold?.t); filterHold = null; openSettings(); }
+  // The flag only has to outlive the click that ends this gesture, which may never come.
+  if (dy < -30 && dx < 60) { dockSwipe.fired = true; setTimeout(() => { dockSwipe = null; }, 400); clearTimeout(filterHold?.t); filterHold = null; openSettings(); }
   else dockSwipe = null;
 });
 takesDock.addEventListener('click', e => {
