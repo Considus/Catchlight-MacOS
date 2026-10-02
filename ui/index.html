@@ -64,15 +64,6 @@
       <button class="dock-btn" id="eb-done" aria-label="Mark done" title="Mark done"><svg viewBox="0 0 24 24"><path d="M5.5 12.5l4.2 4.2 8.8-9.4"/></svg></button>
     </nav>
     <div class="focus-ring" id="focus-ring" hidden></div>
-    <div class="popover reminder-pop" id="reminder-pop" hidden>
-      <div class="pop-row"><span>Remind me</span><input type="datetime-local" id="reminder-when" aria-label="Reminder date and time"></div>
-      <div class="pop-row pop-actions">
-        <button class="pop-btn" id="reminder-remove" type="button">Remove</button>
-        <span class="tb-spacer"></span>
-        <button class="pop-btn" id="reminder-cancel" type="button">Cancel</button>
-        <button class="pop-btn primary" id="reminder-save" type="button">Set</button>
-      </div>
-    </div>
     <!-- Painted by paintDock() in takes.js: resting, Sequence filters, or search (BottomDockView). -->
     <nav class="dock" id="takes-dock" aria-label="Takes dock"></nav>
   </aside>
@@ -114,6 +105,7 @@
 
 <script src="app.js"></script>
 <script src="settings.js"></script>
+<script src="reminders.js"></script>
 <script src="takes.js"></script>
 <script src="gestures.js"></script>
 <script src="first-run.js"></script>
