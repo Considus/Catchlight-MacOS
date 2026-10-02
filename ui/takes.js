@@ -51,18 +51,32 @@ function takeCard(t) {
     meta += `<div class="meta">${checks.filter(b => b.done).length} of ${checks.length} completed</div>`;
   }
   if (t.reminder) meta += `<div class="meta">${ICON_CLOCK}${ICON_BELL}${esc(whenLabel(t.reminder.when))}</div>`;
-  return `<div class="${cls}" data-take="${t.id}"><span class="iris-wrap" data-iris="${t.id}">${irisHtml(typesOf(t), t.obie)}</span><div class="body">${body}</div>${meta}</div>`;
+  return `<div class="${cls}${expanded.has(t.id) ? ' expanded' : ''}" data-take="${t.id}"><span class="iris-wrap" data-iris="${t.id}">${irisHtml(typesOf(t), t.obie)}</span><div class="body">${body}</div>${meta}</div>`;
 }
 
 function renderTakes() {
-  // The Obie is pinned above the timeline and never scrolls, as on iOS.
-  const obie = takes.find(t => t.obie);
-  const pinned = $('#pinned');
-  pinned.hidden = !obie;
-  pinned.innerHTML = obie ? takeCard(obie) : '';
-  $('#takes').classList.toggle('under-obie', !!obie);
-  // Oldest first, as on iOS; the view options belong to the Scripts list.
-  timeline($('#takes'), takes.filter(t => t !== obie).sort((a, b) => a.at.localeCompare(b.at)), takeCard);
+  $('#dailies-heading').textContent = storyboard ? 'Storyboard' : { resting: 'Dailies', filtering: 'Sequence', searching: 'Search' }[dock];
+  $('#sb-close').hidden = !storyboard;
+  sidebar.classList.toggle('storyboard', storyboard);
+  const list = $('#takes'), pinned = $('#pinned');
+  if (storyboard) {
+    // Every Take with an unticked item, the Obie among them and not pinned; no month dividers.
+    pinned.hidden = true; list.classList.remove('under-obie');
+    const items = takes.filter(t => isTask(t) && !isComplete(t)).sort((a, b) => a.at.localeCompare(b.at));
+    list.innerHTML = items.length ? items.map(takeCard).join('')
+      : '<div class="empty"><p class="empty-title">Nothing planned yet</p><p>Takes with a task appear here.</p></div>';
+  } else {
+    // The Obie is pinned above the timeline, never scrolls and is never filtered, as on iOS.
+    const obie = takes.find(t => t.obie);
+    pinned.hidden = !obie;
+    pinned.innerHTML = obie ? takeCard(obie) : '';
+    list.classList.toggle('under-obie', !!obie);
+    // Oldest first, as on iOS; the view options belong to the Scripts list.
+    timeline(list, takes.filter(t => t !== obie && matches(t)).sort((a, b) => a.at.localeCompare(b.at)), takeCard);
+    const lit = filterMonth && list.querySelector(`.month[data-month="${filterMonth}"]`);
+    if (lit) { lit.classList.add('on'); lit.querySelector('.month-label').insertAdjacentHTML('beforeend', ICON_XMARK); }
+  }
+  paintDock();
 }
 
 // ---------- in-place editing ----------
@@ -73,6 +87,7 @@ let draft = null, original = null, focusRing = null;
 
 function beginEdit(t, isNew = false) {
   if (draft) commitEdit();
+  if (dock === 'searching') exitToResting();   // opening a Take leaves search first (UIState)
   original = isNew ? null : t;
   draft = structuredClone(t);
   if (!draft.blocks.length) draft.blocks.push({ k: 'text', text: '' });
@@ -392,6 +407,16 @@ document.addEventListener('pointerup', () => { if (irisHold && !irisHold.fired) 
 document.addEventListener('pointercancel', dropHold);
 sidebar.addEventListener('click', e => {
   if (draft || focusRing) return;
+  const label = e.target.closest('#takes .month-label');
+  if (label) {   // a month label toggles that month's filter, in any mode
+    const key = label.parentElement.dataset.month;
+    filterMonth = filterMonth === key ? null : key;
+    renderTakes();
+    return;
+  }
+  // A dock button repaints the dock, so its click arrives here from a detached element:
+  // only a press on something still in Dailies can be a press on empty space.
+  if (!storyboard && dock !== 'resting' && sidebar.contains(e.target) && !e.target.closest('.card, .dock, .sheet-close')) { exitToResting(); return; }
   const ir = e.target.closest('.timeline .iris-wrap, #pinned .iris-wrap');
   if (ir) {
     if (irisHold?.fired) { irisHold = null; return; }
@@ -403,31 +428,186 @@ sidebar.addEventListener('click', e => {
   if (card) beginEdit(takes.find(x => x.id === card.dataset.take));
 });
 $('#take-editor-iris').addEventListener('click', () => openFocusRing(draft, $('#take-editor-iris'), true));
-$('#add-take').addEventListener('click', () => {
-  beginEdit({ id: 't' + Date.now(), at: new Date().toISOString(), blocks: [{ k: 'text', text: '' }], isNote: true }, true);
+const newTake = () => beginEdit({ id: 't' + Date.now(), at: new Date().toISOString(), blocks: [{ k: 'text', text: '' }], isNote: true }, true);
+
+// ---------- the dock (BottomDockView): resting, Sequence and Search ----------
+// Resting: Add, the Storyboard, Sequence, Search. Sequence turns the dock into four filter
+// toggles; Search into Cancel, a field and the magnifier. There is no exit button: clicking
+// the heading, empty timeline or the blank part of a month row returns to resting, as a tap
+// does on iOS. Escape does the same here, since a Mac has the key. A month label filters by
+// that month in any mode. Nothing is saved: a Sequence is a live filter.
+let dock = 'resting', storyboard = false, filterMonth = null, searchText = '';
+const seq = { important: false, notes: false, tasks: false, tasksDone: false, reminders: false, remindersExpired: false };
+const plainText = t => t.blocks.map(b => b.text).join('\n');
+
+// SequenceFilter.matches: every active condition must hold.
+function matches(t) {
+  if (filterMonth && monthKey(t.at) !== filterMonth) return false;
+  if (dock === 'searching') {
+    const q = searchText.trim().toLowerCase();
+    return !q || plainText(t).toLowerCase().includes(q);
+  }
+  if (dock !== 'filtering') return true;
+  return (!seq.tasks || isTask(t)) && (!seq.reminders || !!t.reminder)
+    && (!seq.notes || (!isTask(t) && !t.reminder)) && (!seq.tasksDone || isComplete(t))
+    && (!seq.remindersExpired || isOverdue(t)) && (!seq.important || !!t.isImportant);
+}
+
+const ICON = {
+  add: '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
+  angle: '<svg viewBox="0 0 24 24"><path d="M5 18h14M5 18l9-11M10.5 18a6 6 0 0 0-1.9-4.4"/></svg>',
+  sequence: '<svg viewBox="0 0 24 24"><circle cx="6.5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="17.5" cy="12" r="2"/></svg>',
+  search: '<svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="5.5"/><path d="M15 15l4.5 4.5"/></svg>',
+  cancel: '<svg viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg>',
+  note: '<svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="16" rx="2"/><path d="M8.5 9h7M8.5 12.5h7M8.5 16h4"/></svg>',
+  task: '<svg viewBox="0 0 24 24"><rect x="4.5" y="4.5" width="15" height="15" rx="3"/><path d="M8.5 12.2l2.6 2.6 4.6-5.3"/></svg>',
+  taskDone: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M8.5 12.2l2.6 2.6 4.6-5.3"/></svg>',
+  bell: ICON_BELL,
+  expired: '<svg viewBox="0 0 24 24"><circle cx="11" cy="12" r="7"/><path d="M11 8.5V12l2.4 1.6M20 7v5M20 15.2v.3"/></svg>',
+};
+
+function paintDock() {
+  const bar = $('#takes-dock');
+  bar.hidden = storyboard;   // the Storyboard covers Dailies and carries only its ×
+  bar.dataset.mode = dock;
+  const btn = (act, icon, label, extra = '') => `<button class="dock-btn${extra}" type="button" data-act="${act}" aria-label="${label}" title="${label}">${icon}</button>`;
+  const tog = (act, icon, label, on, fill) => btn(act, icon, label, ` toggle${on ? ' on' : ''}" style="--fill: var(--iris-${fill})" aria-pressed="${on}`);
+  if (dock === 'resting') {
+    bar.innerHTML = btn('add', ICON.add, 'Add Take') + btn('storyboard', ICON.angle, 'Storyboard')
+      + btn('sequence', ICON.sequence, 'Sequence') + btn('search', ICON.search, 'Search');
+  } else if (dock === 'filtering') {
+    bar.innerHTML = tog('important', ICON_IMPORTANT, 'Important filter', seq.important, 'important')
+      + tog('notes', ICON.note, 'Notes filter', seq.notes, 'note')
+      + tog('tasks', seq.tasksDone ? ICON.taskDone : ICON.task, seq.tasksDone ? 'Tasks filter, done only' : 'Tasks filter', seq.tasks, 'task')
+      + tog('reminders', seq.remindersExpired ? ICON.expired : ICON.bell, seq.remindersExpired ? 'Reminders filter, expired only' : 'Reminders filter', seq.reminders, 'remind');
+  } else if (!bar.querySelector('#take-search')) {
+    // Built once per search, so typing never loses the caret to a repaint.
+    bar.innerHTML = btn('cancel-search', ICON.cancel, 'Cancel search', ' filled')
+      + '<input class="dock-search" id="take-search" type="search" placeholder="Search your Takes" aria-label="Search Takes" autocomplete="off" spellcheck="false">'
+      + btn('focus-search', ICON.search, 'Search');
+  }
+}
+
+function exitToResting() {
+  dock = 'resting'; filterMonth = null; searchText = '';
+  for (const k in seq) seq[k] = false;
+  renderTakes();
+}
+
+// Toggle rules from UIState: Important stands alone; Notes clears Tasks and Reminders; Tasks
+// or Reminders clears Notes; a long press (or right-click) gives Done-only or Expired-only,
+// and a second one returns to plain on.
+function tapFilter(k) {
+  if (k === 'important') seq.important = !seq.important;
+  else if (k === 'notes') { if (seq.notes) seq.notes = false; else Object.assign(seq, { notes: true, tasks: false, tasksDone: false, reminders: false, remindersExpired: false }); }
+  else if (k === 'tasks') { if (seq.tasks) Object.assign(seq, { tasks: false, tasksDone: false }); else Object.assign(seq, { tasks: true, tasksDone: false, notes: false }); }
+  else if (k === 'reminders') { if (seq.reminders) Object.assign(seq, { reminders: false, remindersExpired: false }); else Object.assign(seq, { reminders: true, remindersExpired: false, notes: false }); }
+  renderTakes();
+}
+function holdFilter(k) {
+  if (k === 'tasks') { if (seq.tasks && seq.tasksDone) seq.tasksDone = false; else Object.assign(seq, { tasks: true, tasksDone: true, notes: false }); }
+  else if (k === 'reminders') { if (seq.reminders && seq.remindersExpired) seq.remindersExpired = false; else Object.assign(seq, { reminders: true, remindersExpired: true, notes: false }); }
+  else return false;
+  renderTakes();
+  return true;
+}
+
+const takesDock = $('#takes-dock');
+let filterHold = null;
+takesDock.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]');
+  if (!b) return;
+  if (filterHold?.fired) { filterHold = null; return; }   // the click that ends a long press
+  const act = b.dataset.act;
+  if (act === 'add') newTake();
+  else if (act === 'storyboard') { storyboard = true; renderTakes(); }
+  else if (act === 'sequence') { dock = 'filtering'; renderTakes(); }
+  else if (act === 'search') { dock = 'searching'; searchText = ''; renderTakes(); $('#take-search').focus(); }
+  else if (act === 'cancel-search') exitToResting();
+  else if (act === 'focus-search') $('#take-search').focus();
+  else tapFilter(act);
+});
+takesDock.addEventListener('pointerdown', e => {
+  const b = e.target.closest('[data-act="tasks"], [data-act="reminders"]');
+  if (!b || e.button !== 0) return;
+  const hold = filterHold = { fired: false, t: setTimeout(() => { hold.fired = true; holdFilter(b.dataset.act); }, 400) };
+});
+const endFilterHold = () => { if (filterHold && !filterHold.fired) { clearTimeout(filterHold.t); filterHold = null; } };
+takesDock.addEventListener('pointerup', endFilterHold);
+takesDock.addEventListener('pointerleave', endFilterHold);
+takesDock.addEventListener('contextmenu', e => {
+  const b = e.target.closest('[data-act]');
+  if (b && holdFilter(b.dataset.act)) e.preventDefault();
+});
+takesDock.addEventListener('input', e => { if (e.target.id === 'take-search') { searchText = e.target.value; renderTakes(); } });
+takesDock.addEventListener('keydown', e => { if (e.target.id === 'take-search' && e.key === 'Enter') e.target.blur(); });   // keeps the results
+$('#sb-close').addEventListener('click', () => { storyboard = false; renderTakes(); });
+document.addEventListener('keydown', e => {
+  // An Escape the editor, the ring or the picker has already used is not this one.
+  if (e.key !== 'Escape' || e.defaultPrevented || draft || focusRing || reminderFor || !ctx.hidden) return;
+  if (storyboard) { storyboard = false; renderTakes(); }
+  else if (dock !== 'resting' || filterMonth) exitToResting();
 });
 
+// ---------- Expand and Export (the Take menu) ----------
+// Expanded Takes ignore the Preview setting and show in full. Kept per device, never synced.
+let expanded = new Set(store.get('expanded', []));
+function toggleExpanded(id) {
+  if (expanded.has(id)) expanded.delete(id); else expanded.add(id);
+  store.set('expanded', [...expanded].sort());
+  renderTakes();
+}
+
+// TakeExporter's Markdown for one Take, less the trailing data block, which is Core's to write.
+function exportMarkdown(t, now = new Date()) {
+  const pad = n => String(n).padStart(2, '0');
+  const day = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const made = day(new Date(t.at));
+  let head;
+  if (t.reminder) { const r = new Date(t.reminder.when); head = `Reminder — ${made} · 🔔 ${day(r)} ${pad(r.getHours())}:${pad(r.getMinutes())}`; }
+  else if (isTask(t)) head = `Task — ${made}${isComplete(t) ? ' · ✓ Complete' : ''}`;
+  else head = `Note — ${made}`;
+  return `---\nexported: ${now.toISOString().replace(/\.\d{3}Z$/, 'Z')}\ntakes: 1\n---\n\n## ${head}\n${textOf(t)}\n`;
+}
+// The shells hand this to a save panel or share sheet; the prototype downloads it.
+const exportName = (now = new Date()) => `catchlight-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}.md`;
+function exportTake(t) {
+  const now = new Date(), a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([exportMarkdown(t, now)], { type: 'text/markdown' }));
+  a.download = exportName(now); a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 0);
+}
+
 // ---------- the Take menu (right-click, or long press on touch) ----------
-// The iOS long-press menu, less Expand and Export, plus Expand into a Script (D-313).
+// The iOS long-press menu, plus Expand into a Script (D-313). The Storyboard's is shorter:
+// Mark Done, Important and Delete, as on iOS.
 function takeMenu(id) {
   const t = takes.find(x => x.id === id);
   const items = [];
+  if (!storyboard) items.push([expanded.has(id) ? 'Collapse Take' : 'Expand Take', () => toggleExpanded(id)]);
   if (canBeMarkedDone(t)) items.push([isDone(t) ? 'Mark Not Done' : 'Mark Done', () => { toggleDone(t); touch(t); }]);
   items.push([t.isImportant ? 'Remove Important' : 'Make Important', () => {
     t.isImportant = !t.isImportant;
     if (!t.isImportant) noteFloor(t);
     touch(t);
   }]);
-  if (!t.obie) items.push(['Make Obie', () => { takes.forEach(x => { x.obie = false; }); t.obie = true; t.isImportant = true; touch(t); }]);
-  items.push(['Expand into a Script', () => {
-    takes = takes.filter(x => x !== t);
-    saveTakes(); renderTakes(); newScript(linesToBlocks(textOf(t)));
-  }]);
+  if (!storyboard) {
+    if (!t.obie) items.push(['Make Obie', () => { takes.forEach(x => { x.obie = false; }); t.obie = true; t.isImportant = true; touch(t); }]);
+    items.push(['Export Take', () => exportTake(t)]);
+    items.push(['Expand into a Script', () => {
+      takes = takes.filter(x => x !== t);
+      saveTakes(); renderTakes(); newScript(linesToBlocks(textOf(t)));
+    }]);
+  }
   items.push(['Delete Take', null, 'danger']);
   return items;
 }
 function touch(t) { t.modifiedAt = Date.now(); saveTakes(); renderTakes(); }
-function deleteTake(id) { takes = takes.filter(x => x.id !== id); saveTakes(); renderTakes(); }
+function deleteTake(id) {
+  takes = takes.filter(x => x.id !== id);
+  if (expanded.delete(id)) store.set('expanded', [...expanded].sort());
+  saveTakes(); renderTakes();
+}
 
 // A Script made back into a Take: "- [ ]" lines become checklist items, the rest text.
 function takeFromScript(s) {
