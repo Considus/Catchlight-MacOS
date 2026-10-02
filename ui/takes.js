@@ -416,7 +416,7 @@ sidebar.addEventListener('click', e => {
   }
   // A dock button repaints the dock, so its click arrives here from a detached element:
   // only a press on something still in Dailies can be a press on empty space.
-  if (!storyboard && dock !== 'resting' && sidebar.contains(e.target) && !e.target.closest('.card, .dock, .sheet-close')) { exitToResting(); return; }
+  if (!storyboard && (dock !== 'resting' || filterMonth) && sidebar.contains(e.target) && !e.target.closest('.card, .dock, .sheet-close')) { exitToResting(); return; }
   const ir = e.target.closest('.timeline .iris-wrap, #pinned .iris-wrap');
   if (ir) {
     if (irisHold?.fired) { irisHold = null; return; }
@@ -515,9 +515,11 @@ function holdFilter(k) {
 const takesDock = $('#takes-dock');
 let filterHold = null;
 takesDock.addEventListener('click', e => {
+  // The click that ends a long press is not a tap. The hold repaints the dock, so that click
+  // may land on the dock itself rather than a button: clear the flag before anything else.
+  if (filterHold?.fired) { filterHold = null; return; }
   const b = e.target.closest('[data-act]');
   if (!b) return;
-  if (filterHold?.fired) { filterHold = null; return; }   // the click that ends a long press
   const act = b.dataset.act;
   if (act === 'add') newTake();
   else if (act === 'storyboard') { storyboard = true; renderTakes(); }
@@ -528,6 +530,7 @@ takesDock.addEventListener('click', e => {
   else tapFilter(act);
 });
 takesDock.addEventListener('pointerdown', e => {
+  filterHold = null;
   const b = e.target.closest('[data-act="tasks"], [data-act="reminders"]');
   if (!b || e.button !== 0) return;
   const hold = filterHold = { fired: false, t: setTimeout(() => { hold.fired = true; holdFilter(b.dataset.act); }, 400) };
@@ -596,6 +599,7 @@ function takeMenu(id) {
     items.push(['Export Take', () => exportTake(t)]);
     items.push(['Expand into a Script', () => {
       takes = takes.filter(x => x !== t);
+      forgetExpanded(t.id);
       saveTakes(); renderTakes(); newScript(linesToBlocks(textOf(t)));
     }]);
   }
@@ -603,9 +607,10 @@ function takeMenu(id) {
   return items;
 }
 function touch(t) { t.modifiedAt = Date.now(); saveTakes(); renderTakes(); }
+function forgetExpanded(id) { if (expanded.delete(id)) store.set('expanded', [...expanded].sort()); }
 function deleteTake(id) {
   takes = takes.filter(x => x.id !== id);
-  if (expanded.delete(id)) store.set('expanded', [...expanded].sort());
+  forgetExpanded(id);
   saveTakes(); renderTakes();
 }
 
