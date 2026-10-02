@@ -65,7 +65,7 @@ In the Claude desktop app the preview config is `catchlight-macos-ui`.
 
 ## Known gaps
 
-Spotlight & Siri and Writing Tools rows (macOS has both; not yet decided), the native behind Lock after, Auto-Delete, Snooze, Follow-up reminders, Notifications, Import and Export diagnostics (stored or stubbed until the shell exists), Touch ID before Privacy phrase and Start over, pairing with another device (D-327 makes it a later convenience), Windows and Linux backup wording, the Shot List Angle, dragging Takes into a manual order, the repeating-reminder delete choice, notifications themselves and place search, map and location (the shell's), the repeating-reminder delete choice beyond Delete Take, editing a table cell by cell (it is edited as its pipe source), and images in a Script (deferred by decision I).
+Spotlight & Siri and Writing Tools rows (macOS has both; not yet decided), the native behind Lock after, Auto-Delete, Snooze, Follow-up reminders, Notifications, Import and Export diagnostics (stored or stubbed until the shell exists), Touch ID before Privacy phrase and Start over, pairing with another device (D-327 makes it a later convenience), Windows and Linux backup wording, the Shot List Angle, dragging Takes into a manual order, the repeating-reminder delete choice, notifications themselves and place search, map and location (the shell's), editing a table cell by cell (it is edited as its pipe source), and images in a Script (deferred by decision I).
 
 ## Fonts
 

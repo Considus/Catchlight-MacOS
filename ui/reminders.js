@@ -122,8 +122,8 @@ function setInterval_(v) {
   } else { rs.repeat = v; rs.weekdays = []; }
 }
 
-const rrow = (icon, label, control) => `<label class="srow">${icon}<span class="srow-label">${label}</span>${control}</label>`;
-const rselect = (id, options, value) => `<span class="srow-value">${(options.find(o => o[0] === value) || [, 'Select'])[1]}</span>${UPDOWN}<select data-r="${id}" aria-label="${id}">${value == null ? '<option value="" selected disabled>Select</option>' : ''}${options.map(([v, l]) => `<option value="${v}"${v === value ? ' selected' : ''}>${l}</option>`).join('')}</select>`;
+const rrow = (icon, label, control) => `<label class="srow">${icon}<span class="srow-label">${label}</span>${control.replace('aria-label="@"', `aria-label="${label}"`)}</label>`;
+const rselect = (id, options, value) => `<span class="srow-value">${(options.find(o => o[0] === value) || [, 'Select'])[1]}</span>${UPDOWN}<select data-r="${id}" aria-label="@">${value == null ? '<option value="" selected disabled>Select</option>' : ''}${options.map(([v, l]) => `<option value="${v}"${v === value ? ' selected' : ''}>${l}</option>`).join('')}</select>`;
 const rswitch = (id, on) => `<input type="checkbox" role="switch" class="srow-switch" data-r="${id}"${on ? ' checked' : ''}>`;
 const RI = k => `<svg class="srow-icon" viewBox="0 0 24 24" aria-hidden="true">${SI[k] || k}</svg>`;
 
