@@ -539,6 +539,9 @@ const endFilterHold = () => { if (filterHold && !filterHold.fired) { clearTimeou
 takesDock.addEventListener('pointerup', endFilterHold);
 takesDock.addEventListener('pointerleave', endFilterHold);
 takesDock.addEventListener('contextmenu', e => {
+  // A touch long press can raise contextmenu after the hold timer has already acted; it is
+  // the same gesture, so it must not toggle a second time.
+  if (filterHold?.fired) { e.preventDefault(); return; }
   const b = e.target.closest('[data-act]');
   if (b && holdFilter(b.dataset.act)) e.preventDefault();
 });
