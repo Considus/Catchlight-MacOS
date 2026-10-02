@@ -36,8 +36,8 @@ function paintFill(card, offset) {
     fill.setAttribute('aria-label', a.label);
     card.parentElement.insertBefore(fill, card);
   }
-  const host = card.parentElement.getBoundingClientRect(), r = card.getBoundingClientRect();
-  const inset = side === 'leading' ? r.left - host.left : host.right - r.right;
+  // From the card's resting place: offsetLeft ignores the transform the swipe applies.
+  const inset = side === 'leading' ? card.offsetLeft : card.parentElement.clientWidth - card.offsetLeft - card.offsetWidth;
   Object.assign(fill.style, {
     top: card.offsetTop + 'px', height: card.offsetHeight + 'px',
     width: inset + Math.abs(offset) + SW.tuck + 'px', opacity: Math.min(1, Math.abs(offset) / SW.fade),

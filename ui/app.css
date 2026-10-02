@@ -434,7 +434,7 @@ body.first-running .app { visibility: hidden; }
 .take-editor .stamp:empty { display: none; }
 
 /* ---------- swipe a Take, drag a checklist item (SwipeActionRow, BlockEditor) ---------- */
-#takes .card, #pinned .card { touch-action: pan-y; }   /* vertical strokes scroll; horizontal ones are ours */
+#takes .card, #pinned .card { touch-action: pan-y; user-select: none; -webkit-user-select: none; }   /* vertical strokes scroll; horizontal ones are ours, and select nothing */
 .card.swipe-settle { transition: transform .25s cubic-bezier(.2,.9,.3,1); }
 .card.swipe-off { transition: transform .28s ease-in-out; }
 @media (prefers-reduced-motion: reduce) { .card.swipe-settle, .card.swipe-off { transition: none; } }
