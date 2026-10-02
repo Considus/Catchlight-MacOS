@@ -36,12 +36,14 @@ const store = {
   get(k, d) { try { const v = localStorage.getItem('cl.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
   set(k, v) { try { localStorage.setItem('cl.' + k, JSON.stringify(v)); } catch { /* storage unavailable: session only */ } },
 };
+const monthKey = iso => { const d = new Date(iso.length === 10 ? iso + 'T00:00' : iso); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; };
 const monthLabel = iso => new Date(iso.length === 10 ? iso + 'T00:00' : iso).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }).toUpperCase();
 const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
 const ICON_CLOCK = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
 const ICON_BELL = '<svg viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20.5h4"/></svg>';
 const ICON_CHECKLIST = '<svg viewBox="0 0 24 24"><path d="M4 7l1.6 1.6L8.5 5.5M4 15l1.6 1.6 2.9-3.1M11.5 7.5h8.5M11.5 15.5h8.5"/></svg>';
 const ICON_IMPORTANT = '<span class="bang">!</span>';
+const ICON_XMARK = '<svg class="xmark" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/></svg>';
 
 // ---------- placeholder data (Takes live in takes.js) ----------
 const LETTER_REGIONS = new Set(['US', 'CA', 'MX', 'PH', 'CL', 'CO', 'VE', 'PR', 'GT', 'CR', 'DO', 'PA', 'SV', 'NI', 'HN', 'BO']);
@@ -94,7 +96,7 @@ function timeline(container, items, cardHtml) {
   let html = '', month = '';
   for (const it of items) {
     const m = monthLabel(it.at);
-    if (m !== month) { html += `<div class="month">${m}</div>`; month = m; }
+    if (m !== month) { html += `<div class="month" data-month="${monthKey(it.at)}"><span class="month-label">${m}</span></div>`; month = m; }
     html += cardHtml(it);
   }
   container.innerHTML = html;

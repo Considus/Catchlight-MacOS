@@ -299,3 +299,27 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 .ctx button:hover { background: var(--accent-fill); color: var(--on-accent); }
 .ctx button.danger { color: var(--ruby); }
 .ctx button.danger:hover { background: var(--ruby); color: #fff; }
+
+/* ---------- the Dailies dock: Sequence, Search and the Storyboard (BottomDockView) ---------- */
+.dock[hidden] { display: none; }
+/* A filter toggle fills with its quadrant colour when on; Done-only and Expired-only change
+   the glyph, not the fill. */
+.dock-btn.toggle.on, .dock-btn.toggle.on:hover { background: var(--fill); border-color: var(--fill); color: var(--bg); }
+.dock-btn.filled { background: var(--surface); }
+.dock-search {
+  grid-column: span 2; align-self: center; width: 100%; height: 44px; min-width: 0; padding: 0 16px; border-radius: 22px;
+  border: 1.5px solid color-mix(in srgb, var(--accent) 55%, transparent); background: var(--surface);
+  color: var(--text); font: 14px "DM Sans", sans-serif; outline: none;
+}
+.dock-search::placeholder { color: var(--text-2); }
+.sidebar .month-label { cursor: pointer; }
+.month.on .month-label { color: var(--obie-text); display: inline-flex; gap: 6px; align-items: center; }
+.month .xmark { width: 14px; height: 14px; stroke-width: 1.6; }
+.sheet-close { position: absolute; z-index: 4; top: 6px; right: 12px; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; color: var(--accent); }
+.sheet-close::after { content: ""; position: absolute; inset: -6px; }   /* a 44 × 44 hit area (D-320) */
+.sheet-close svg { width: 20px; height: 20px; stroke-width: 1.6; }
+.sheet-close[hidden] { display: none; }
+.card.expanded .body { display: block; -webkit-line-clamp: unset; }
+.empty { margin: 48px 24px; text-align: center; color: var(--text-2); font-size: 14px; }
+.empty .empty-title { margin: 0 0 6px; color: var(--text); font: 300 20px/1.2 "Cormorant Garamond", serif; }
+.empty p { margin: 0; }
