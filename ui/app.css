@@ -247,7 +247,7 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
   max-height: calc(100% - 80px - 120px);
 }
 .take-editor::after { display: none; }
-.take-editor[hidden], .focus-ring[hidden], .reminder-pop[hidden] { display: none; }
+.take-editor[hidden], .focus-ring[hidden] { display: none; }
 .take-editor .iris-wrap { cursor: pointer; }
 .take-rows { overflow-y: auto; min-height: 30px; scrollbar-width: thin; }
 .erow { display: flex; align-items: flex-start; gap: 8px; }
@@ -287,8 +287,6 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 .focus-ring .mark.on { background: var(--fill); border-color: var(--fill); color: var(--bg); }
 @media (prefers-reduced-motion: reduce) { .focus-ring, .focus-ring * { transition: none !important; } }
 
-.reminder-pop { z-index: 9; bottom: 92px; }
-.reminder-pop input { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--card-border); border-radius: 8px; padding: 8px 10px; min-height: 40px; }
 .pop-actions { justify-content: flex-end; }
 .pop-btn { min-height: 44px; padding: 0 14px; border-radius: 999px; font-size: 13px; color: var(--text-2); }
 .pop-btn.primary { background: var(--accent-fill); color: var(--on-accent); }
@@ -457,3 +455,35 @@ body.first-running .app { visibility: hidden; }
 .doc .blk.table th, .doc .blk.table td { border: 1px solid var(--card-border); padding: 6px 10px; text-align: left; vertical-align: top; }
 .doc .blk.table th { font-weight: 500; background: color-mix(in srgb, var(--accent) 6%, transparent); }
 .doc .blk.table.active { white-space: pre; font-family: ui-monospace, Menlo, monospace; font-size: .88em; }
+
+/* ---------- the reminder picker (ReminderPickerSheet on iOS) ---------- */
+.reminder-sheet { z-index: 45; }
+.reminder-sheet .sheet-panel { width: min(440px, 100%); height: auto; max-height: min(92vh, 100% - 24px); }
+.rbar { grid-template-columns: auto 1fr auto; padding: 6px 12px 0; }
+.rbar .slink { color: var(--accent); font-size: 15px; padding: 0 6px; }
+.rbar .slink.strong { font-weight: 600; }
+.rbar .slink:disabled { opacity: .38; }
+.rbody { display: flex; flex-direction: column; gap: 14px; padding-top: 10px; }
+.rtabs { align-self: stretch; display: grid; grid-template-columns: 1fr 1fr; }
+.rtime { font: 400 15px "DM Sans", sans-serif; color: var(--text); background: var(--bg); border: 0; border-radius: 8px; padding: 6px 8px; }
+.rdays { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; padding: 8px 16px 12px; }
+.rwd { position: relative; height: 38px; border-radius: 50%; border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); background: var(--bg); color: var(--text); font-size: 14px; }
+.rwd::after { content: ""; position: absolute; inset: -3px; }
+.rwd.on { background: color-mix(in srgb, var(--accent-fill) 85%, transparent); color: var(--on-accent); }
+.rcal { background: var(--surface); border-radius: 12px; padding: 10px 12px 12px; }
+.rcal-head { display: flex; align-items: center; justify-content: space-between; font-weight: 500; }
+.rcal-head button { width: 44px; height: 36px; color: var(--accent); font-size: 22px; }
+.rcal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; }
+.rcal-grid i { font-style: normal; font-size: 12px; color: var(--text-2); padding: 6px 0; }
+.rday { height: 40px; border-radius: 50%; font-size: 15px; color: var(--text); }
+.rday.today { color: var(--accent); font-weight: 600; }
+.rday.on { background: var(--accent-fill); color: var(--on-accent); font-weight: 600; }
+.rsearch { display: flex; align-items: center; gap: 8px; padding: 0 14px; min-height: 44px; border-radius: 12px; background: var(--surface); }
+.rsearch svg { width: 18px; height: 18px; color: var(--text-2); }
+.rsearch input { flex: 1; min-width: 0; border: 0; background: none; color: var(--text); font: 400 15px "DM Sans", sans-serif; outline: none; }
+.rcurrent { align-self: center; display: inline-flex; align-items: center; gap: 6px; }
+.rcurrent svg { width: 16px; height: 16px; }
+.rmap { height: 160px; border-radius: 12px; overflow: hidden; background: var(--surface); color: var(--text-2); }
+.rmap svg { width: 100%; height: 100%; display: block; }
+.rname { width: 50%; text-align: right; border: 0; background: none; color: var(--text); font: 400 15px "DM Sans", sans-serif; outline: none; }
+.srow-icon svg { width: 22px; height: 22px; }

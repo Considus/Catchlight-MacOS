@@ -22,8 +22,10 @@ const saveTakes = () => store.set('takes2', takes);
 const isTask = t => t.blocks.some(b => b.k === 'check');
 const isComplete = t => isTask(t) && t.blocks.filter(b => b.k === 'check').every(b => b.done);
 const canBeMarkedDone = t => isTask(t) || !!t.reminder;
-const isDone = t => (isTask(t) ? isComplete(t) : true) && (t.reminder ? t.reminder.done : true) && canBeMarkedDone(t);
-const isOverdue = t => !!t.reminder && !t.reminder.done && new Date(t.reminder.when) < new Date();
+// A repeating reminder is never done (TimeReminder): Done moves it on to its next occurrence.
+const isDone = t => (isTask(t) ? isComplete(t) : true) && (t.reminder ? !repeats(t.reminder) && t.reminder.done : true) && canBeMarkedDone(t);
+// Overdue: a one-off time reminder not done and past. A place, or a repeat, never is.
+const isOverdue = t => isTimeR(t.reminder) && !repeats(t.reminder) && !t.reminder.done && new Date(t.reminder.when) < new Date();
 const typesOf = t => [t.isNote && 'note', isTask(t) && 'task', t.reminder && 'remind', t.isImportant && 'important'].filter(Boolean);
 const textOf = t => t.blocks.map(b => b.k === 'check' ? `- [${b.done ? 'x' : ' '}] ${b.text}` : b.text).join('\n');
 const isBlank = t => !t.blocks.some(b => b.text.trim()) && !isTask(t) && !t.reminder;
@@ -31,15 +33,6 @@ const isBlank = t => !t.blocks.some(b => b.text.trim()) && !isTask(t) && !t.remi
 const noteFloor = t => { if (!t.isNote && !isTask(t) && !t.reminder) t.isNote = true; };
 const irisHtml = (types, obie) => `<span class="iris-shadow"></span>${iris(types, obie)}`;
 
-// "Tomorrow at 09:00", as the iOS reminder line reads, in the viewer's own locale.
-function whenLabel(iso) {
-  const d = new Date(iso), today = new Date(); today.setHours(0, 0, 0, 0);
-  const day = Math.round((new Date(d).setHours(0, 0, 0, 0) - today) / DAY);
-  const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  const name = { '-1': 'Yesterday', 0: 'Today', 1: 'Tomorrow' }[day]
-    ?? d.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' });
-  return `${name} at ${time}`;
-}
 
 // ---------- the timeline card ----------
 function takeCard(t) {
@@ -50,7 +43,7 @@ function takeCard(t) {
     const checks = t.blocks.filter(b => b.k === 'check');
     meta += `<div class="meta">${checks.filter(b => b.done).length} of ${checks.length} completed</div>`;
   }
-  if (t.reminder) meta += `<div class="meta">${ICON_CLOCK}${ICON_BELL}${esc(whenLabel(t.reminder.when))}</div>`;
+  if (t.reminder) meta += reminderMeta(t.reminder);   // reminders.js
   if (settings.creationStamp === 'always') meta += `<div class="stamp">${esc(createdLabel(t.at))}</div>`;   // Settings → Creation date
   return `<div class="${cls}${expanded.has(t.id) ? ' expanded' : ''}" data-take="${t.id}"><span class="iris-wrap" data-iris="${t.id}">${irisHtml(typesOf(t), t.obie)}</span><div class="body">${body}</div>${meta}</div>`;
 }
@@ -214,7 +207,7 @@ function paintIris() { $('#take-editor-iris').innerHTML = irisHtml(typesOf(draft
 document.addEventListener('mousedown', e => {
   swallowClick = false;   // a press with no click after it must not leave the flag set
   if (!draft || focusRing) return;
-  if (e.target.closest('#take-editor, #editor-bar, #reminder-pop')) return;
+  if (e.target.closest('#take-editor, #editor-bar, #reminder-sheet')) return;
   if (sidebar.contains(e.target)) { e.preventDefault(); swallowClick = true; }
   commitEdit();
 }, true);
@@ -248,41 +241,16 @@ $('#eb-done').addEventListener('click', () => {
 });
 $('#eb-remind').addEventListener('click', () => { readRows(); openReminder(draft, () => { paintIris(); paintBar(); }); });
 
-// Mark done for the whole Take: every item ticked and the reminder done, or all undone.
+// Mark done for the whole Take: every item ticked and the reminder done, or all undone. A
+// repeating reminder moves on to its next occurrence instead, and the series goes on.
 function toggleDone(t) {
+  if (repeats(t.reminder)) { advanceRepeat(t.reminder); return; }
   const done = !isDone(t);
   t.blocks.forEach(b => { if (b.k === 'check') b.done = done; });
   if (t.reminder) t.reminder.done = done;
 }
 
-// ---------- reminder picker (a plain date-and-time field for this cut) ----------
-let reminderFor = null, reminderAfter = null;
-function openReminder(t, after, onCancel) {
-  reminderFor = t; reminderAfter = after;
-  // A new reminder starts at Settings → Default timing from now, to the minute.
-  const d = t.reminder ? new Date(t.reminder.when) : new Date(Math.round((Date.now() + settings.reminderHours * 36e5) / 6e4) * 6e4);
-  const local = new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 16);
-  $('#reminder-when').value = local;
-  $('#reminder-remove').hidden = !t.reminder;
-  $('#reminder-pop').hidden = false;
-  reminderCancel = onCancel || null;
-}
-let reminderCancel = null;
-function closeReminder() { $('#reminder-pop').hidden = true; reminderFor = reminderAfter = reminderCancel = null; }
-$('#reminder-save').addEventListener('click', () => {
-  const v = $('#reminder-when').value;
-  if (v) reminderFor.reminder = { when: new Date(v).toISOString(), done: false };
-  const after = reminderAfter; closeReminder(); after && after();
-});
-$('#reminder-remove').addEventListener('click', () => {
-  reminderFor.reminder = null;
-  noteFloor(reminderFor);
-  const after = reminderAfter; closeReminder(); after && after();
-});
-const cancelReminder = () => { const c = reminderCancel; closeReminder(); c && c(); };
-$('#reminder-cancel').addEventListener('click', cancelReminder);
-// Escape with the picker open closes the picker only, not the ring or the edit beneath it.
-document.addEventListener('keydown', e => { if (reminderFor && e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); cancelReminder(); } });
+// The reminder picker is in reminders.js.
 
 // ---------- the Focus-ring (FocusRingFanView on iOS) ----------
 // Four Marks fan out to the right of the Iris at R = 68: Note -80°, Task -26.7°,
@@ -594,7 +562,11 @@ function exportMarkdown(list, now = new Date()) {
   for (const t of sorted) {
     const made = day(new Date(t.at));
     let head;
-    if (t.reminder) { const r = new Date(t.reminder.when); head = `Reminder — ${made} · 🔔 ${day(r)} ${pad(r.getHours())}:${pad(r.getMinutes())}`; }
+    if (isTimeR(t.reminder)) {
+      const r = new Date(t.reminder.when), w = t.reminder.weekdays || [];
+      const every = repeats(t.reminder) ? ` · repeats ${REPEAT_LABEL[t.reminder.repeat].toLowerCase()}${w.length ? ` (${w.map(n => new Date(2026, 1, n).toLocaleDateString('en-GB', { weekday: 'short' })).join(', ')})` : ''}` : '';
+      head = `Reminder — ${made} · 🔔 ${day(r)} ${pad(r.getHours())}:${pad(r.getMinutes())}${every}`;
+    }
     else if (isTask(t)) head = `Task — ${made}${isComplete(t) ? ' · ✓ Complete' : ''}`;
     else head = `Note — ${made}`;
     out += `\n## ${head}\n${textOf(t)}\n`;
