@@ -120,7 +120,7 @@ function renderScripts() {
 
 // ---------- markdown: one parser, two faces (source while editing, rendered otherwise) ----------
 // A table is one block: a header row, a separator row of dashes, then body rows.
-const isTable = t => /^\|.*\|[ \t]*\n\|[ \t]*:?-{3,}:?[ \t]*(\|[ \t]*:?-{3,}:?[ \t]*)*\|[ \t]*(\n|$)/.test(t);
+const isTable = t => /^\|.*\|[ \t]*\n\|[ \t]*:?-+:?[ \t]*(\|[ \t]*:?-+:?[ \t]*)*\|[ \t]*(\n|$)/.test(t);   // GFM: one dash is enough
 const cells = line => line.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(c => c.trim());
 function tableHtml(t) {
   const [head, sep, ...body] = t.split('\n');
@@ -471,7 +471,7 @@ function linesToBlocks(text) {
     if (fence !== null) { fence += '\n' + line; if (/^```\s*$/.test(line)) { out.push(fence); fence = null; } }
     else if (/^```/.test(line)) fence = line;
     else if (prev != null && /^\|/.test(line) && (isTable(prev + '\n' + line) || isTable(prev))) out[out.length - 1] = prev + '\n' + line;
-    else if (prev != null && / {2,}$/.test(prev) && !prev.includes('```')) out[out.length - 1] = prev.replace(/ {2,}$/, '') + '\n' + line;
+    else if (prev != null && / {2,}$/.test(prev) && !prev.includes('```') && !isTable(prev)) out[out.length - 1] = prev.replace(/ {2,}$/, '') + '\n' + line;
     else out.push(line);
   }
   if (fence !== null) out.push(fence);
@@ -479,7 +479,7 @@ function linesToBlocks(text) {
 }
 // The other way: a break inside a block becomes markdown's line break, two spaces before the
 // newline, so the block comes back whole. Code and tables keep their lines as they are.
-const blocksToText = blocks => blocks.map(b => /^(```|\|)/.test(b) ? b : b.replace(/\n/g, '  \n')).join('\n');
+const blocksToText = blocks => blocks.map(b => ['code', 'table'].includes(classify(b).type) ? b : b.replace(/\n/g, '  \n')).join('\n');
 function newScript(blocks = ['']) {
   const s = { id: 's' + Date.now(), at: new Date().toISOString().slice(0, 10), mode: newScriptMode(), blocks };
   scripts.push(s); open(s.id); activate(0);
