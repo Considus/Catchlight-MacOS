@@ -57,6 +57,10 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 .lights { display: flex; gap: 8px; margin-right: 14px; }
 .lights i { width: 12px; height: 12px; border-radius: 50%; background: #FF5F57; }
 .lights i:nth-child(2) { background: #FEBC2E; } .lights i:nth-child(3) { background: #28C840; }
+/* In the Mac shell the window's own traffic lights sit over the toolbar's left end (bridge.js
+   adds .in-shell); full screen hides them, so the room goes too. */
+.in-shell .lights { display: none; }
+.in-shell:not(.full-screen) .toolbar { padding-left: 84px; }
 .tb { width: 44px; height: 44px; border-radius: 10px; display: grid; place-items: center; color: var(--text-2); }
 .tb:hover { background: var(--code-bg); color: var(--text); }
 .tb svg { width: 20px; height: 20px; }

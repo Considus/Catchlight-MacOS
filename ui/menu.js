@@ -201,7 +201,7 @@ const ITEMS = {
   quit: { label: PLAT === 'windows' ? 'Exit' : 'Quit Catchlight', keys: { mac: 'Mod+Q', windows: 'Alt+F4', linux: 'Mod+Q' }, role: 'quit' },
   help: { label: 'Catchlight Help', run: () => window.open(supportUrl, '_blank', 'noopener') },
   report: { label: 'Report an Issue…', run: () => window.open(reportUrl(), '_blank', 'noopener') },
-  copyInfo: { label: 'Copy Version and Device Info', run: () => navigator.clipboard?.writeText(supportInfo()) },
+  copyInfo: { label: 'Copy Version and Device Info', run: () => shell.copyText(supportInfo()) },
 };
 
 // The bar itself. The Mac keeps About, Settings and Quit in the app menu, and has Window; Windows

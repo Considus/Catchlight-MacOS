@@ -88,8 +88,29 @@ targets:
         GENERATE_INFOPLIST_FILE: NO
         COMBINE_HIDPI_IMAGES: YES
 
+  # Unit tests. They compile the app's sources directly rather than loading into the app, so
+  # nothing launches, and run unsigned in CI. WKWebView tests serve the repo's own ui/.
+  CatchlightTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: App/Sources
+        excludes:
+          - main.swift
+      - path: App/Tests
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.considus.catchlight.mac.tests
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: "-"
+        DEVELOPMENT_TEAM: ""
+
 schemes:
   Catchlight:
     build:
       targets:
         Catchlight: all
+    test:
+      targets:
+        - CatchlightTests

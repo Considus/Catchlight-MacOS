@@ -37,7 +37,10 @@ const shell = {
   // The OS version and model, for About and Report an issue; a sample of what each shell reports.
   systemInfo: () => `${PLATFORM.osName} ${shell.osVersion()} · ${PLATFORM.sampleModel}`,
   osVersion: () => PLATFORM.sampleOs,
+  copyText: text => navigator.clipboard?.writeText(text),
 };
+// In a shell, the real thing (bridge.js).
+if (window.catchlightBridge) Object.assign(shell, window.catchlightBridge.shell);
 
 const fr = { step: null, storage: null, words: [], positions: [], picked: [], bank: [], basics: 0, folder: null, restore: false };
 const layer = $('#first-run');

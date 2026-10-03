@@ -16,8 +16,8 @@
 </defs></svg>
 <div class="app" id="app">
 
-  <!-- Window toolbar. In the native shell the traffic lights belong to the OS;
-       here they are drawn so the prototype reads as a Mac window. -->
+  <!-- Window toolbar. In a browser the traffic lights are drawn so the prototype reads as a
+       Mac window; in the Mac shell they are the OS's own (.in-shell in app.css). -->
   <header class="toolbar">
     <div class="lights" aria-hidden="true"><i></i><i></i><i></i></div>
     <button class="tb" id="tb-layout" title="Layout: where each section sits (⌃⌘S hides Dailies, ⌃⌘L Scripts)" aria-label="Layout" aria-expanded="false">
@@ -113,6 +113,7 @@
 <script src="takes.js"></script>
 <script src="gestures.js"></script>
 <script src="shot-list.js"></script>
+<script src="bridge.js"></script>
 <script src="first-run.js"></script>
 <script src="menu.js"></script>
 </body>

@@ -2,12 +2,12 @@
 
 The interface shared by every desktop build (Mac, Windows, Linux) and later iPad: plain HTML, CSS and JavaScript loaded by a thin native shell (WKWebView, WebView2, WebKitGTK). See D-267, D-318 and `Desktop_App_Scope` in the workspace.
 
-**Status: first-cut prototype.** Placeholder data and no sync. The Mac shell (`App/`) loads it in a native window as it is, with no bridge yet. It exists to settle the look and the feel of typing before any platform code is written.
+**Status: first-cut prototype.** Placeholder data and no sync. The Mac shell (`App/`) loads it in a native window, with a bridge for the menu bar, system info, the clipboard and links (`bridge.js`, below). It exists to settle the look and the feel of typing before any platform code is written.
 
 ## Rules that keep it portable
 
 - No framework, no bundler, no build step. Files load as they are.
-- No platform-only web features. If something needs the OS (menus, drag to Finder, the folder picker, the keychain), it goes through the shell bridge, which does not exist yet.
+- No platform-only web features. If something needs the OS (menus, drag to Finder, the folder picker, the keychain), it goes through the shell bridge (`bridge.js`, and on the Mac `App/Sources/ShellBridge.swift`).
 - Design tokens mirror `Catchlight-iOS/Catchlight/UI/Theme/CatchlightTheme.swift`. As-Built wins (D-274): if this file and the iOS code disagree, the iOS code is right.
 - `localStorage` here is a prototype convenience only. Real data goes through `CatchlightCore`.
 - Touch-ready (D-320): every control has a hit area of at least 44 × 44, extended invisibly with `::after` where it should look smaller; a long press does what a right-click does; checklist rows are 44 tall under a coarse pointer. A new control must pass the 44px hit probe before it merges.
@@ -16,7 +16,7 @@ The interface shared by every desktop build (Mac, Windows, Linux) and later iPad
 
 `menu.js` holds every menu command once: its label, its shortcut on each desktop, when it is available, and what it runs. The shells build their native menus from it rather than each keeping a copy.
 
-- **The bridge.** `catchlightMenu.model()` returns the bar for the current platform: menus, items, separators and submenus, each item with `id`, `label`, `shortcut`, `shortcutLabel`, `enabled`, `checked` and `role`. A shell calls it again just before a menu opens, so labels such as Mark Done / Mark Not Done, ticks and greyed items are current. Choosing an item calls `catchlightMenu.run(id)`. An item with a `role` (Cut, Copy, Paste, Hide, Quit, Minimize, Full Screen…) is the platform's own: the shell wires it to the OS and never calls `run`.
+- **The bridge.** `catchlightMenu.model()` returns the bar for the current platform: menus, items, separators and submenus, each item with `id`, `label`, `shortcut`, `shortcutLabel`, `enabled`, `checked` and `role`. Labels such as Mark Done / Mark Not Done, ticks and greyed items have to be current when a menu opens or its key is pressed, and a native menu checks them synchronously, so in a shell `bridge.js` pushes the model whenever it may have changed (after focus, selection, input and key or mouse changes, and on a 250 ms poll), sending only a model that differs, and the shell reads the latest push. Choosing an item calls `catchlightMenu.run(id)`. An item with a `role` (Cut, Copy, Paste, Hide, Quit, Minimize, Full Screen…) is the platform's own: the shell wires it to the OS and never calls `run`.
 - **The menus.** On the Mac: Catchlight, File, Edit, Take, Format, View, Window, Help, with About, Settings and Quit in the app menu. On Windows and Linux there's no app menu or Window menu, as in their own apps: Settings and Exit (Windows) or Quit (Linux) sit under File, and About under Help. Linux calls Settings "Preferences".
 - **Shortcuts** follow each platform's own apps: Notes and Reminders on the Mac (⇧⌘C Mark Done, ⇧⌘L Checklist, ⇧⌘7 and ⇧⌘9 lists, ⌥⌘0–3 block styles), Ctrl in place of ⌘ elsewhere, and Ctrl+Y for redo on Windows. **Never Ctrl+Alt on Windows or Linux:** it is AltGr on European keyboards, so Ctrl+Alt+0 would stop someone typing `}`, and Ctrl+Alt+Backspace can end a Linux session. That is why the table's column keys (⌥⌘→, ⌥⌘⌫) are the Mac's only, and elsewhere the Format menu adds and removes columns. `catchlightMenu.collisions()` reports two items sharing a key on any desktop and runs at load; it must stay empty.
 - **What a command acts on.** A Take command acts on the Take being edited, unsaved changes included, else on the focused card, and focus stays on that card afterwards. A Format command acts on the Script block being edited, never a code block or a rule. Commands wait while something that owns the keyboard is open (the Focus-ring, the reminder picker, the Shot List, Settings), as those overlays' own keys already do. Delete Take (⌘⌫, or Delete on Windows and Linux) is available only on a focused card, never while text is being edited, so the key still deletes text in a field.
@@ -32,6 +32,20 @@ The copy promises things only the shell can make true. Each platform's shell own
   - **Linux:** keep the data under `$XDG_DATA_HOME` and write a `.deja-dup-ignore` file in its folder. Déjà Dup, the default backup tool on GNOME and Ubuntu, backs up the whole home folder unless a folder holds that marker. Don't use `CACHEDIR.TAG` instead: it marks the folder as a disposable cache, and cleaners may delete it.
 - Build the native menu bar from `catchlightMenu.model()` and route choices to `catchlightMenu.run(id)` (The menu bar, above).
 - Name the platform, so the copy reads Mac, PC or computer (`PLATFORMS` in `first-run.js`; `?platform=windows|linux` previews them).
+
+## The shell bridge
+
+`bridge.js` loads before `first-run.js` and does nothing in a plain browser, where the `shell` stand-ins stay. A shell is present when it has defined both `window.catchlightShell` (values the page reads synchronously, set before any script runs: `platform`, `osName`, `osVersion`, `model`) and the `catchlight` message handler. Then the page:
+
+- replaces `shell.systemInfo`, `shell.osVersion` and `shell.copyText` with the real ones (`copyText` writes through the native clipboard; in a browser it is `navigator.clipboard.writeText`);
+- adds `in-shell` to `<html>`: the drawn traffic lights go and the toolbar leaves room for the real ones, except in full screen, when the shell adds `full-screen`;
+- sends `window.open` to the shell, which opens http(s) and mailto addresses in the default app. A link clicked in the page (`target="_blank"`) goes the same way, decided by the shell;
+- lets the toolbar stand in for the title bar: a press on its empty space drags the window, and a double-click does what the system setting says. Its controls keep their clicks;
+- pushes the menu model (The menu bar, above).
+
+Messages are `{cmd, ...}`: `menu {model}`, `copy {text}`, `openURL {url}`, `dragWindow`, `titlebarDoubleClick`. Each answers with a promise.
+
+**The Mac shell blocks every web address.** A content rule list blocks any load (fetch, images, fonts, WebSockets) that isn't the app's own `catchlight://`, and navigation off `catchlight://` is cancelled; a link the user follows opens in the browser instead. So nothing in `ui/` may rely on the network inside the app: a font, image or script has to be in the folder.
 
 ## Running it
 
