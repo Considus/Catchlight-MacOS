@@ -102,6 +102,14 @@ In the Claude desktop app the preview config is `catchlight-macos-ui`.
   - **Privacy phrase:** Space or Return reveals the phrase and hides it again, and the words are hidden from a screen reader until shown.
   - **First run:** a wrong word in "Confirm three words" is announced and takes focus.
 - **Turning Remind on in the Focus-ring always asks when**, and Cancel leaves it off, as on iOS, even if the Take had a reminder before.
+- **Smaller iOS matches, 2026-10-03:**
+  - The pinned Obie stands down while any Take is edited, so it never shows twice.
+  - A paste into a Take's line drops line breaks at either end.
+  - The creation stamp uses the locale's short time (09:05 in the UK, 9:05 AM in the US).
+  - Report an issue also sends the OS version.
+  - A custom repeat can lose its last weekday, and the Interval then reads Weekly.
+  - About's credits read "Open Source Licences" and name the BIP-39 wordlist.
+  - In Sequence, Search or a month filter, a "Show all Takes" button (for keyboard and screen reader) returns to Dailies.
 
 ## Known gaps
 

@@ -102,6 +102,7 @@ const reorderHandle = t => !t.obie && canReorder() ? `<button class="thandle" ty
 
 function renderTakes() {
   $('#dailies-heading').textContent = storyboard ? 'Storyboard' : { resting: 'Dailies', filtering: 'Sequence', searching: 'Search' }[dock];
+  $('#show-all').hidden = storyboard || (dock === 'resting' && !filterMonth);   // iOS offers it only away from resting
   $('#sb-close').hidden = !storyboard;
   sidebar.classList.toggle('storyboard', storyboard);
   const list = $('#takes'), pinned = $('#pinned');
@@ -866,3 +867,16 @@ let swallowClick = false;   // set by the saving mousedown above
 document.addEventListener('click', e => { if (swallowClick) { swallowClick = false; e.stopPropagation(); e.preventDefault(); } }, true);
 
 renderTakes();
+
+$('#show-all').addEventListener('click', () => { if (draft) commitEdit(); exitToResting(); $('#dailies-heading').focus(); });   // the heading takes focus, as the button hides
+
+// Paste into a Take's line drops the line breaks at either end, as iOS does
+// (BlockEditorViewController.normalisedPaste): a copied paragraph shouldn't open blank lines.
+rows.addEventListener('paste', e => {
+  const text = e.clipboardData?.getData('text/plain');
+  if (!text) return;
+  const clean = text.replace(/^[\r\n]+|[\r\n]+$/g, '');
+  if (clean === text) return;
+  e.preventDefault();
+  document.execCommand('insertText', false, clean);
+});
