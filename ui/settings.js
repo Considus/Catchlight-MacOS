@@ -198,8 +198,8 @@ const SUB = {
   notices: () => {
     const shown = noticesShown();
     return ['Notice History', shown.length ? `<div class="snotice-bar"><button class="slink" type="button" data-act="clear-notices">Clear</button></div>
-      <div class="sgroup">${shown.map(n => `<div class="srow tall snotice" role="group" aria-label="${NOTICE_KIND[n.category].name}. ${esc(n.message)}" aria-description="${ago(n.at)}">
-        <svg class="srow-icon ${NOTICE_KIND[n.category].tint}" viewBox="0 0 24 24" aria-hidden="true">${NOTICE_KIND[n.category].icon}</svg><span class="srow-label">${esc(n.message)}<small>${ago(n.at)}</small></span></div>`).join('')}</div>`
+      <div class="sgroup">${shown.map(n => `<div class="srow tall snotice" role="group" aria-label="${kindOf(n).name}. ${esc(n.message)}" aria-description="${ago(n.at)}">
+        <svg class="srow-icon ${kindOf(n).tint}" viewBox="0 0 24 24" aria-hidden="true">${kindOf(n).icon}</svg><span class="srow-label">${esc(n.message)}<small>${ago(n.at)}</small></span></div>`).join('')}</div>`
       : `<div class="ssub-col empty-col">${icon('bellOff')}<h2 class="ssub-heading">No notices yet</h2><p class="quiet">Sync, storage and conflict notices will appear here.</p></div>`];
   },
 };
@@ -240,18 +240,22 @@ const NOTICE_KIND = {
   quarantine: { name: 'Quarantine', tint: 'ruby', icon: '<rect x="5.5" y="10.5" width="13" height="10" rx="2"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 6.6-1.6M4 4l16 16"/>' },
   lifecycle: { name: 'App', tint: 'accent', icon: SI.info },
 };
-const noticeList = () => settings.notices.map(n => typeof n === 'string' ? { category: 'sync', message: n, at: 0 } : n);
+const noticeList = () => (settings.notices.length || !SAMPLE_NOTICES ? settings.notices : SAMPLE_NOTICES).map(n => typeof n === 'string' ? { category: 'sync', message: n, at: 0 } : n);
+const kindOf = n => NOTICE_KIND[n.category] || NOTICE_KIND.sync;   // an unknown category still draws
 const noticesShown = () => noticeList().filter(n => n.category !== 'lifecycle');
 const notice = (message, category = 'sync') => { settings.notices = [{ category, message, at: Date.now() }, ...noticeList()]; saveSettings(); };
 // "2 minutes ago", "yesterday": the relative, named style iOS uses.
 function ago(at) {
   if (!at) return '';
   const s = (at - Date.now()) / 1000, rtf = new Intl.RelativeTimeFormat([], { numeric: 'auto' });
-  for (const [unit, n] of [['year', 31536000], ['month', 2592000], ['week', 604800], ['day', 86400], ['hour', 3600], ['minute', 60]]) if (Math.abs(s) >= n) return rtf.format(Math.round(s / n), unit);
+  // The largest unit it is at least 95% of, so 59.6 minutes reads "1 hour ago", not "60 minutes ago".
+  for (const [unit, n] of [['year', 31536000], ['month', 2592000], ['week', 604800], ['day', 86400], ['hour', 3600], ['minute', 60]]) if (Math.abs(s) >= n * 0.95) return rtf.format(Math.round(s / n) || Math.sign(s), unit);
   return rtf.format(0, 'second');
 }
 // ?notices: sample entries, to look at the list before a shell produces real ones.
-if (new URLSearchParams(location.search).has('notices') && !settings.notices.length) settings.notices = [
+// Read in place of the saved list, never written into it, so a setting changed while looking
+// doesn't keep them.
+let SAMPLE_NOTICES = new URLSearchParams(location.search).has('notices') && [
   { category: 'sync', message: 'Synced 3 Takes from your cloud folder.', at: Date.now() - 2 * 60e3 },
   { category: 'conflict', message: 'Two versions of a Take were edited. Both are kept.', at: Date.now() - 26 * 36e5 },
   { category: 'storage', message: "The cloud folder couldn't be reached. Your Takes are safe on this Mac.", at: Date.now() - 4 * 864e5 },
@@ -283,7 +287,7 @@ sheet.addEventListener('click', async e => {
   else if (act === 'sync-now') { e.target.textContent = 'Syncing…'; e.target.disabled = true; setTimeout(() => paintSettings(), 2000); }
   else if (act === 'sd-restore') secondDeviceRestore();
   else if (act === 'reveal-phrase') { subStack.push('phrase-shown'); paintSettings(); }
-  else if (act === 'clear-notices') { settings.notices = noticeList().filter(n => n.category === 'lifecycle'); saveSettings(); paintSettings(); }   // clearUserFacing: the lifecycle breadcrumbs stay
+  else if (act === 'clear-notices') { settings.notices = noticeList().filter(n => n.category === 'lifecycle'); SAMPLE_NOTICES = null; saveSettings(); paintSettings(); }   // clearUserFacing: the lifecycle breadcrumbs stay
   else if (open && SUB[open]) {
     const go = () => { subStack.push(open); paintSettings(); if (open === 'second-device') sheet.querySelector('[data-word="0"]').focus(); };
     if (open !== 'second-device') go();
