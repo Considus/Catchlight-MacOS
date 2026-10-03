@@ -7,7 +7,7 @@
 #   xcodegen generate       # produces Catchlight.xcodeproj
 #
 # Scope and decisions: Mac_Shell_Plan (M0) and D-343 — App Sandbox on, XcodeGen,
-# Core as a pinned package dependency on Catchlight-iOS from M2 (not here yet).
+# Core as a pinned package dependency on Catchlight-Core from M2 (not here yet).
 
 name: Catchlight
 options:

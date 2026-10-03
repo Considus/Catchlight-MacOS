@@ -10,7 +10,7 @@ The native shell is at M0 of `Mac_Shell_Plan` in the workspace: an AppKit app (`
 
 `ui/` holds the first-cut interface prototype (plain HTML/CSS/JS, placeholder data); read `ui/README.md` before touching it. The interface is shared with Windows, Linux and iPad (D-318), so keep it free of framework, build step and platform-only web features.
 
-The macOS app follows `Considus/Catchlight-iOS`, which holds `CatchlightCore` (data model, sync format, crypto). It will consume Core as a Swift package dependency on `Catchlight-iOS` pinned to an exact commit or tag (option A, D-343), from M2; M0 has no Core.
+The macOS app follows the iOS app (`Considus/Catchlight-iOS`). `CatchlightCore` (data model, sync format, crypto) lives in its own public repo, `Considus/Catchlight-Core` (D-344), with the same paths inside it that it had in the iOS repo. The Mac app will consume Core as a Swift package dependency on `Catchlight-Core` pinned to an exact release tag (option A, D-343), from M2; M0 has no Core.
 
 ## Isolate
 
@@ -36,7 +36,7 @@ git config core.hooksPath hooks
 
 The non-negotiables in `README.md` are constraints, not house style: zero knowledge with nothing transmitted off the device, `kSecAttrSynchronizable: false` on every Keychain item, encryption always on, offline-first.
 
-The crypto contract (domain-separation strings, derivation parameters, envelope format) is frozen and owned by `Catchlight-iOS/Sources/CatchlightCore/Crypto/`. A Take written on the Mac must open on the iPhone. Never re-implement or alter those bytes here.
+The crypto contract (domain-separation strings, derivation parameters, envelope format) is frozen and owned by `Catchlight-Core/Sources/CatchlightCore/Crypto/`. A Take written on the Mac must open on the iPhone. Never re-implement or alter those bytes here.
 
 No third-party dependencies without agreeing it first.
 
@@ -63,6 +63,8 @@ open "$APP"
 ```
 
 Look for WebKit process crashes in the log if the window is blank: `log show --last 2m --predicate 'process == "Catchlight"' | grep processDidTerminate`. Debug builds set `isInspectable`, so Safari's Develop menu can inspect the page. The page's `localStorage` lives in the app's container (`~/Library/Containers/com.considus.catchlight.mac/`), separate from the browser's, so the app starts at first run.
+
+`ui/tlds.js` is generated, never edited by hand. After Core's TLD list is regenerated, run `python3 scripts/generate_tlds_js.py [path/to/Catchlight-Core]` (default `../Catchlight-Core`, the sibling checkout) and commit the result. It reads `Sources/CatchlightCore/Text/TLDList.swift` and never contacts IANA.
 
 For `ui/`, serve it (`python3 -m http.server 8851 -d ui`, or the `catchlight-macos-ui` preview config) and prove changes in the browser with a screenshot in Night and Daylight. Clear `cl.*` keys from `localStorage` afterwards so the placeholder data is back to its defaults.
 
