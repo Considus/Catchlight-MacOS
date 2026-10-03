@@ -1,6 +1,7 @@
 'use strict';
-// Two gestures from the iPhone (As-Built, D-274), loaded after takes.js:
+// Three gestures from the iPhone (As-Built, D-274), loaded after takes.js:
 //   • Swipe a Take in Dailies (SwipeActionRow): right for Done or Not done, left for Delete.
+//   • Drag a Take by its ≡ handle when Dailies is arranged by hand (UIKitTimeline, D-195).
 //   • Drag a checklist item by its ≡ handle in the editor (BlockEditorViewController).
 // Both work with a finger, a pen or a mouse; on a trackpad a two-finger horizontal scroll
 // swipes a row too, since that is the gesture a Mac has for it.
@@ -163,6 +164,95 @@ sidebar.addEventListener('click', e => {
 // A repaint rebuilds the cards, so no row stays open across one.
 new MutationObserver(() => { if (swipeOpen && !swipeOpen.card.isConnected) swipeOpen = null; })
   .observe($('#takes'), { childList: true });
+
+// ---------- arrange Takes by hand (Manual, D-195) ----------
+// Hold the ≡ handle for 0.25s, still, and the card lifts (TimelineDragHandle.liftDelay): moving
+// more than 10px first lets the stroke go, as a scroll does on iOS. The lifted card follows the
+// pointer, a gap of its size moves between the others, and the drop writes one Take's
+// manualOrder (commitReorder). Escape puts it back. Dropped where it began, nothing is written.
+const LIFT = { delay: 250, slack: 10 };
+let arrange = null;
+const takeList = $('#takes');
+takeList.addEventListener('pointerdown', e => {
+  const handle = e.target.closest('.thandle');
+  if (!handle || e.button !== 0 || !canReorder() || draft) return;
+  e.stopPropagation();   // a press on the handle is not a swipe, a long press or a tap on the card
+  e.preventDefault();
+  const card = handle.closest('.card');
+  try { handle.setPointerCapture(e.pointerId); } catch {}
+  arrange = { card, x: e.clientX, y: e.clientY, id: e.pointerId, lifted: false };
+  arrange.t = setTimeout(() => liftCard(arrange), LIFT.delay);
+});
+function liftCard(a) {
+  if (!a || a !== arrange) return;
+  const { card } = a, cs = getComputedStyle(card);
+  a.lifted = true;
+  a.gap = document.createElement('div');
+  a.gap.className = 'card-gap';
+  a.gap.style.height = card.offsetHeight + 'px';
+  a.gap.style.marginBottom = cs.marginBottom;
+  a.top = card.offsetTop; a.scroll = takeList.scrollTop;
+  card.before(a.gap);
+  Object.assign(card.style, { position: 'absolute', left: card.offsetLeft + 'px', width: card.offsetWidth + 'px', top: a.top + 'px', margin: '0' });
+  card.classList.add('arranging');
+  takeList.classList.add('arranging');
+}
+takeList.addEventListener('pointermove', e => {
+  const a = arrange;
+  if (!a || e.pointerId !== a.id) return;
+  if (!a.lifted) {
+    if (Math.hypot(e.clientX - a.x, e.clientY - a.y) > LIFT.slack) { clearTimeout(a.t); arrange = null; }
+    return;
+  }
+  a.py = e.clientY;
+  followPointer(a);
+  // Near the top or bottom of the list it scrolls, as the iOS timeline does under a held card.
+  const box = takeList.getBoundingClientRect(), edge = 48;
+  a.speed = a.py < box.top + edge ? -1 : a.py > box.bottom - edge ? 1 : 0;
+  if (a.speed && !a.scroller) a.scroller = setInterval(() => {
+    if (!a.speed || arrange !== a) { clearInterval(a.scroller); a.scroller = null; return; }
+    takeList.scrollTop += a.speed * 12; followPointer(a);
+  }, 16);
+});
+takeList.addEventListener('scroll', () => { if (arrange?.lifted) followPointer(arrange); });
+// The card sits under the pointer in the list's content, scrolled or not; the gap moves to the
+// slot its centre is over.
+function followPointer(a) {
+  const top = a.top + (a.py ?? a.y) - a.y + takeList.scrollTop - a.scroll;
+  a.card.style.top = top + 'px';
+  const centre = top + a.card.offsetHeight / 2;
+  const others = [...takeList.querySelectorAll('.card')].filter(c => c !== a.card);
+  const target = others.filter(c => c.offsetTop + c.offsetHeight / 2 < centre).length;
+  const current = others.filter(c => c.compareDocumentPosition(a.gap) & Node.DOCUMENT_POSITION_FOLLOWING).length;
+  if (current !== target) flip(others, () => { if (others[target]) others[target].before(a.gap); else takeList.append(a.gap); });
+}
+function dropCard(e, cancel) {
+  const a = arrange;
+  if (!a || (e && e.pointerId !== a.id)) return;
+  clearTimeout(a.t); clearInterval(a.scroller); arrange = null;
+  if (!a.lifted) return;
+  const id = a.card.dataset.take;
+  a.gap.replaceWith(a.card);
+  a.card.style.cssText = ''; a.card.classList.remove('arranging'); takeList.classList.remove('arranging');
+  if (cancel) { renderTakes(); return; }
+  commitReorder(id, [...takeList.querySelectorAll('.card')].map(c => c.dataset.take));
+}
+takeList.addEventListener('pointerup', e => dropCard(e, false));
+takeList.addEventListener('pointercancel', e => dropCard(e, true));
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && arrange?.lifted) { e.stopPropagation(); dropCard(null, true); } }, true);
+// The keyboard route: ⌥↑ and ⌥↓ on a focused handle move the Take one place, as VoiceOver's
+// Move up and Move down do on iOS, and keep focus on it.
+takeList.addEventListener('keydown', e => {
+  const handle = e.target.closest('.thandle');
+  if (!handle || !e.altKey || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+  e.preventDefault();
+  const ids = [...takeList.querySelectorAll('.card')].map(c => c.dataset.take);
+  const id = handle.closest('.card').dataset.take, from = ids.indexOf(id), to = from + (e.key === 'ArrowUp' ? -1 : 1);
+  if (to < 0 || to >= ids.length) return;   // already at an end
+  ids.splice(from, 1); ids.splice(to, 0, id);
+  commitReorder(id, ids);
+  takeList.querySelector(`[data-take="${id}"] .thandle`)?.focus();
+});
 
 // ---------- drag a checklist item ----------
 // The handle starts the drag on the first movement, with no hold. The row lifts to 1.02 with

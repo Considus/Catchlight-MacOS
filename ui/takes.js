@@ -36,6 +36,48 @@ const noteFloor = t => { if (!t.isNote && !isTask(t) && !t.reminder) t.isNote = 
 const irisHtml = (types, obie) => `<span class="iris-shadow"></span>${iris(types, obie)}`;
 
 
+// ---------- manual arrangement (ManualOrder.swift, D-195) ----------
+// `manualOrder` is a sparse fractional index. A Take never dragged has none and sits at its
+// creation time in epoch seconds, so turning Manual on changes nothing until a card moves, and
+// a new Take lands at the now end. The canonical order is oldest first; Order (oldest or
+// newest) reverses what is shown, never the stored values.
+const ORDER_STEP = 0.001;   // one millisecond, the resolution of every stored time
+const effectiveOrder = t => t.manualOrder ?? Date.parse(t.at) / 1000;
+const arranged = list => [...list].sort((a, b) => effectiveOrder(a) - effectiveOrder(b) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+// The values to store so `id` comes to rest at `destination` (an index into the canonical
+// order without it). Normally one Take; nothing when it lands where it started; every Take,
+// renumbered 1, 2, 3…, only when halving a gap has run out of precision.
+function reorderValues(list, id, destination) {
+  const canonical = arranged(list), from = canonical.findIndex(t => t.id === id);
+  if (from < 0) return {};
+  const others = canonical.filter(t => t.id !== id), index = Math.max(0, Math.min(destination, others.length));
+  if (index === from) return {};
+  const below = index > 0 ? effectiveOrder(others[index - 1]) : null;
+  const above = index < others.length ? effectiveOrder(others[index]) : null;
+  if (below === null && above === null) return {};
+  if (below === null) return { [id]: above - ORDER_STEP };
+  if (above === null) return { [id]: below + ORDER_STEP };
+  const mid = below + (above - below) / 2;
+  if (mid > below && mid < above) return { [id]: mid };
+  const seq = [...others]; seq.splice(index, 0, canonical[from]);
+  return Object.fromEntries(seq.map((t, i) => [t.id, i + 1]));
+}
+// Dragging is offered only on the whole timeline: never under a filter or a search, since a
+// list with its middle hidden can't be honestly arranged.
+const inOrder = canonical => settings.takeSort === 'newest' ? canonical.reverse() : canonical;
+const canReorder = () => settings.takeArrangement === 'manual' && !storyboard && dock === 'resting' && !filterMonth;
+// Write the new order. `displayIds` is the timeline as shown after the move.
+function commitReorder(id, displayIds) {
+  const canonical = settings.takeSort === 'newest' ? [...displayIds].reverse() : displayIds;
+  const values = reorderValues(takes.filter(t => !t.obie), id, canonical.indexOf(id));
+  const now = Date.now();
+  for (const [tid, order] of Object.entries(values)) {
+    const t = takes.find(x => x.id === tid);
+    if (t && t.manualOrder !== order) { t.manualOrder = order; t.modifiedAt = now; }   // the sync pushes on modifiedAt
+  }
+  saveTakes(); renderTakes();
+}
+
 // ---------- the timeline card ----------
 function takeCard(t) {
   // Links are live, as on the card on iOS; with two or more the lines open up so each is easy
@@ -50,8 +92,11 @@ function takeCard(t) {
   }
   if (t.reminder) meta += reminderMeta(t.reminder);   // reminders.js
   if (settings.creationStamp === 'always') meta += `<div class="stamp">${esc(createdLabel(t.at))}</div>`;   // Settings → Creation date
-  return `<div class="${cls}${expanded.has(t.id) ? ' expanded' : ''}" data-take="${t.id}" ${cardA11y(t)}><span class="iris-wrap" data-iris="${t.id}" ${irisA11y(t)}>${irisHtml(typesOf(t), t.obie)}</span><div class="body">${body}</div>${meta}</div>`;
+  return `<div class="${cls}${expanded.has(t.id) ? ' expanded' : ''}" data-take="${t.id}" ${cardA11y(t)}><span class="iris-wrap" data-iris="${t.id}" ${irisA11y(t)}>${irisHtml(typesOf(t), t.obie)}</span><div class="body">${body}</div>${meta}${reorderHandle(t)}</div>`;
 }
+// The ≡ strip on the card's trailing edge in Manual (TimelineDragHandle). It is a button so the
+// keyboard can reach it: ⌥↑ and ⌥↓ stand in for VoiceOver's Move up and Move down.
+const reorderHandle = t => !t.obie && canReorder() ? `<button class="thandle" type="button" aria-label="Move ${esc(t.blocks.find(b => b.text.trim())?.text.slice(0, 40) || 'Take')}" title="Drag to move, or ⌥↑ ⌥↓"></button>` : '';
 
 function renderTakes() {
   $('#dailies-heading').textContent = storyboard ? 'Storyboard' : { resting: 'Dailies', filtering: 'Sequence', searching: 'Search' }[dock];
@@ -65,7 +110,9 @@ function renderTakes() {
   if (storyboard) {
     // Every Take with an unticked item, the Obie among them and not pinned; no month dividers.
     pinned.hidden = true; list.classList.remove('under-obie');
-    const items = takes.filter(t => isTask(t) && !isComplete(t)).sort(order);
+    // A hand-arranged timeline is honoured here too; the Storyboard has no drag of its own.
+    const open = takes.filter(t => isTask(t) && !isComplete(t));
+    const items = settings.takeArrangement === 'manual' ? inOrder(arranged(open)) : open.sort(order);
     list.innerHTML = items.length ? items.map(takeCard).join('')
       : '<div class="empty"><p class="empty-title">Nothing planned yet</p><p>Takes with a task appear here.</p></div>';
   } else {
@@ -74,13 +121,14 @@ function renderTakes() {
     pinned.hidden = !obie;
     pinned.innerHTML = obie ? takeCard(obie) : '';
     list.classList.toggle('under-obie', !!obie);
-    // Order and Arrangement from Settings → Dailies. Manual hides the month rows; arranging
-    // by hand (dragging) is not built yet, so the order stays by date.
-    const items = takes.filter(t => t !== obie && matches(t)).sort(order);
+    // Order and Arrangement from Settings → Dailies. Manual hides the month rows and shows
+    // the hand-made order, which the ≡ handle changes.
+    const shown = takes.filter(t => t !== obie && matches(t));
+    list.classList.toggle('reorderable', canReorder());
     // Nothing at all yet (not a filter that matches nothing): iOS's empty state.
     if (!takes.length) list.innerHTML = '<div class="empty first-take"><p>Your first Take is waiting.</p></div>';
-    else if (settings.takeArrangement === 'manual') list.innerHTML = items.map(takeCard).join('');
-    else timeline(list, items, takeCard);
+    else if (settings.takeArrangement === 'manual') list.innerHTML = inOrder(arranged(shown)).map(takeCard).join('');
+    else timeline(list, shown.sort(order), takeCard);
     const lit = filterMonth && list.querySelector(`.month[data-month="${filterMonth}"]`);
     if (lit) { lit.classList.add('on'); lit.querySelector('.month-label').insertAdjacentHTML('beforeend', ICON_XMARK); }
   }
@@ -438,7 +486,7 @@ sidebar.addEventListener('click', e => {
   }
   if (e.target.closest('.card a.tlink')) return;   // a link opens; anywhere else on the card edits it
   const card = e.target.closest('.timeline .card, #pinned .card');
-  if (card) beginEdit(takes.find(x => x.id === card.dataset.take));
+  if (card && !e.target.closest('.thandle')) beginEdit(takes.find(x => x.id === card.dataset.take));
 });
 $('#take-editor-iris').addEventListener('click', () => openFocusRing(draft, $('#take-editor-iris'), true));
 const newTake = () => beginEdit({ id: 't' + Date.now(), at: new Date().toISOString(), blocks: [{ k: 'text', text: '' }], isNote: true }, true);
