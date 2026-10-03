@@ -243,7 +243,8 @@ const NOTICE_KIND = {
 const noticeList = () => (settings.notices.length || !SAMPLE_NOTICES ? settings.notices : SAMPLE_NOTICES).map(n => typeof n === 'string' ? { category: 'sync', message: n, at: 0 } : n);
 const kindOf = n => NOTICE_KIND[n.category] || NOTICE_KIND.sync;   // an unknown category still draws
 const noticesShown = () => noticeList().filter(n => n.category !== 'lifecycle');
-const notice = (message, category = 'sync') => { settings.notices = [{ category, message, at: Date.now() }, ...noticeList()]; saveSettings(); };
+// Built from the saved list only, so ?notices samples are never written into it.
+const notice = (message, category = 'sync') => { settings.notices = [{ category, message, at: Date.now() }, ...settings.notices]; saveSettings(); };
 // "2 minutes ago", "yesterday": the relative, named style iOS uses.
 function ago(at) {
   if (!at) return '';
