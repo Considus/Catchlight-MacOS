@@ -698,6 +698,7 @@ let glintFrame = 0;
 function turnGlints() {
   glintFrame = 0;
   const h = innerHeight;
+  if (!h) return;   // a window with no height yet (a hidden pane) has nowhere to place the light
   document.querySelectorAll('.iris-wrap').forEach(w => {
     const r = w.getBoundingClientRect();
     const t = Math.min(1, Math.max(0, (r.top + r.height / 2) / h));

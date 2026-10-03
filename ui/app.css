@@ -417,6 +417,9 @@ body.first-running .app { visibility: hidden; }
 .ssub-col { display: flex; flex-direction: column; align-items: center; gap: 14px; padding-top: 12px; text-align: center; }
 .ssub-col p { margin: 0; font-size: 17px; line-height: 1.45; }
 .ssub-col .quiet { font-size: 14px; color: var(--text-2); }
+/* CloudStorageView.finePrint: "tested with", a dated observation rather than a promise (D-064). */
+.ssub-col .sfine { font-size: 12px; color: var(--text-2); }
+.ssub-col .sfine::before { content: "ⓘ"; content: "ⓘ" / ""; margin-right: 6px; }   /* decorative, as the iOS icon is hidden from VoiceOver */
 .ssub-col .small { font-size: 13px; }
 .ssub-col hr { width: 100%; border: 0; border-top: 1px solid color-mix(in srgb, var(--text-2) 18%, transparent); }
 .ssub-col .sgroup { width: 100%; }

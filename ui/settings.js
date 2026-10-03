@@ -142,6 +142,7 @@ const SUB = {
       ${folder ? `<p class="sfolder">✓ ${esc(folder)}</p>` : ''}
       <button class="fr-pill primary" type="button" data-act="pick-folder">Choose folder</button>
       ${folder ? '<button class="slink danger" type="button" data-act="remove-folder">Remove</button>' : ''}
+      <p class="sfine">Tested with iCloud Drive, Dropbox, Internxt, Koofr and Filen. Others may work. You'll need the provider's app installed and signed in.</p>
       <hr>
       <div class="sgroup">${pick('syncMode', 'cloud', 'Sync', [['automatic', 'Automatic'], ['manual', 'Manual'], ['disabled', 'Disabled']], () => settings.syncMode)}</div>
       <p class="quiet">${modes[settings.syncMode]}</p>
