@@ -444,6 +444,16 @@ body.first-running .app { visibility: hidden; }
 #takes .card, #pinned .card { z-index: 1; }
 .take-rows { position: relative; }
 .take-rows.reordering { overflow: hidden; }   /* no scrolling during a drag, as on iOS */
+/* Manual arrangement: the ≡ strip inside the card's trailing edge (TimelineDragHandle: 44 wide,
+   text held clear of it, secondary colour). The card keeps its full width. */
+.reorderable .card .body, .reorderable .card .meta { padding-right: 30px; }
+.thandle { position: absolute; top: 0; right: 0; bottom: 0; width: 44px; border-radius: 0 12px 12px 0; cursor: grab; touch-action: none;
+  background: linear-gradient(var(--text-2), var(--text-2)) center calc(50% - 4.5px) / 15px 1.5px no-repeat, linear-gradient(var(--text-2), var(--text-2)) center 50% / 15px 1.5px no-repeat, linear-gradient(var(--text-2), var(--text-2)) center calc(50% + 4.5px) / 15px 1.5px no-repeat; }
+.thandle:focus-visible { outline: 2px solid var(--accent); outline-offset: -4px; }
+.timeline.arranging { position: relative; }
+.arranging .thandle, .timeline.arranging { cursor: grabbing; }
+.card.arranging { z-index: 3; transform: scale(1.02); transition: transform .15s; }
+.card-gap { pointer-events: none; }
 .erow.lifted { z-index: 2; transform: scale(1.02); transition: transform .15s; background: var(--surface); }
 .erow-gap { flex: none; }
 .ehandle { cursor: grab; touch-action: none; }
