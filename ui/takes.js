@@ -378,6 +378,8 @@ function openFocusRing(t, irisEl, fromEditor) {
     b.style.setProperty('--dx', (68 * Math.cos(rad)).toFixed(1) + 'px');
     b.style.setProperty('--dy', (68 * Math.sin(rad)).toFixed(1) + 'px');
     b.innerHTML = m.icon;
+    // An Obie is always Important, so its Mark stays on and does nothing, with the reason (as iOS).
+    if (m.key === 'important' && t.obie) { b.setAttribute('aria-disabled', 'true'); b.title = 'An Obie is always Important.'; b.setAttribute('aria-description', b.title); }
     ring.append(b);
   }
   focusRing = { t, sel, fromEditor };
@@ -400,6 +402,7 @@ $('#focus-ring').addEventListener('click', e => {
   const mark = e.target.closest('.mark');
   if (!mark) { closeFocusRing(true); return; }
   const { sel, t } = focusRing, k = mark.dataset.key;
+  if (mark.getAttribute('aria-disabled') === 'true') return;   // an Obie's Important Mark
   if (sel.has(k)) sel.delete(k); else sel.add(k);
   if (!sel.has('task') && !sel.has('remind')) sel.add('note');          // never "none"
   if (k === 'remind' && sel.has('remind') && !t.reminder) {
