@@ -2,7 +2,7 @@
 
 The interface shared by every desktop build (Mac, Windows, Linux) and later iPad: plain HTML, CSS and JavaScript loaded by a thin native shell (WKWebView, WebView2, WebKitGTK). See D-267, D-318 and `Desktop_App_Scope` in the workspace.
 
-**Status: first-cut prototype.** Placeholder data, no sync, no native shell. It exists to settle the look and the feel of typing before any platform code is written.
+**Status: first-cut prototype.** Placeholder data and no sync. The Mac shell (`App/`) loads it in a native window as it is, with no bridge yet. It exists to settle the look and the feel of typing before any platform code is written.
 
 ## Rules that keep it portable
 
