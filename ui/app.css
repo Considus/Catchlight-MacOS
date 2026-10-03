@@ -494,3 +494,4 @@ body.first-running .app { visibility: hidden; }
 .timeline.storyboard .iris-wrap { display: none; }
 .timeline.storyboard .card { margin-bottom: max(0px, calc(var(--gap) - 22px)); }
 .empty.first-take { margin-top: 30vh; font: 300 17px "DM Sans", sans-serif; }
+.sidebar.editing .first-take { visibility: hidden; }   /* not while the first Take is being written */
