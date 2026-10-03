@@ -83,7 +83,9 @@ function takeCard(t) {
   // Links are live, as on the card on iOS; with two or more the lines open up so each is easy
   // to hit (TakeRowView.bodyNeedsLinkSpacing).
   const links = t.blocks.reduce((n, b) => n + detectLinks(b.text).length, 0);
-  const cls = ['card', t.obie && 'obie', isOverdue(t) && 'overdue', isDone(t) && 'done', links >= 2 && 'links'].filter(Boolean).join(' ');
+  // Surface and border as TakeCardStyle on iOS: an Important Take sits on the Obie's surface;
+  // the border shows state, and app.css orders the rules so the first that applies wins.
+  const cls = ['card', t.isImportant && 'important', t.reminder && 'remind', isTask(t) && 'task', isDone(t) && 'done', t.obie && 'obie', isOverdue(t) && 'overdue', links >= 2 && 'links'].filter(Boolean).join(' ');
   const body = t.blocks.map(b => `<span class="${b.k === 'check' && b.done ? 'ticked' : ''}">${linkify(b.text)}</span>`).join('\n');
   let meta = '';
   if (isTask(t)) {
@@ -378,6 +380,8 @@ function openFocusRing(t, irisEl, fromEditor) {
     b.style.setProperty('--dx', (68 * Math.cos(rad)).toFixed(1) + 'px');
     b.style.setProperty('--dy', (68 * Math.sin(rad)).toFixed(1) + 'px');
     b.innerHTML = m.icon;
+    // An Obie is always Important, so its Mark stays on and does nothing, with the reason (as iOS).
+    if (m.key === 'important' && t.obie) { b.setAttribute('aria-disabled', 'true'); b.title = 'An Obie is always Important.'; b.setAttribute('aria-description', b.title); }
     ring.append(b);
   }
   focusRing = { t, sel, fromEditor };
@@ -400,6 +404,7 @@ $('#focus-ring').addEventListener('click', e => {
   const mark = e.target.closest('.mark');
   if (!mark) { closeFocusRing(true); return; }
   const { sel, t } = focusRing, k = mark.dataset.key;
+  if (mark.getAttribute('aria-disabled') === 'true') return;   // an Obie's Important Mark
   if (sel.has(k)) sel.delete(k); else sel.add(k);
   if (!sel.has('task') && !sel.has('remind')) sel.add('note');          // never "none"
   if (k === 'remind' && sel.has('remind') && !t.reminder) {
