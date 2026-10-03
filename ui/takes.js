@@ -83,7 +83,9 @@ function takeCard(t) {
   // Links are live, as on the card on iOS; with two or more the lines open up so each is easy
   // to hit (TakeRowView.bodyNeedsLinkSpacing).
   const links = t.blocks.reduce((n, b) => n + detectLinks(b.text).length, 0);
-  const cls = ['card', t.obie && 'obie', isOverdue(t) && 'overdue', isDone(t) && 'done', links >= 2 && 'links'].filter(Boolean).join(' ');
+  // Surface and border as TakeCardStyle on iOS: an Important Take sits on the Obie's surface;
+  // the border shows state, and app.css orders the rules so the first that applies wins.
+  const cls = ['card', t.isImportant && 'important', t.reminder && 'remind', isTask(t) && 'task', isDone(t) && 'done', t.obie && 'obie', isOverdue(t) && 'overdue', links >= 2 && 'links'].filter(Boolean).join(' ');
   const body = t.blocks.map(b => `<span class="${b.k === 'check' && b.done ? 'ticked' : ''}">${linkify(b.text)}</span>`).join('\n');
   let meta = '';
   if (isTask(t)) {

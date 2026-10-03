@@ -138,6 +138,12 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 .card .body { white-space: pre-wrap; overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: var(--lines); overflow: hidden; }
 .card .meta { margin-top: 4px; font-size: 11px; color: var(--text-2); display: flex; gap: 5px; align-items: center; }
 .card .meta svg { width: 11px; height: 11px; stroke-width: 1.8; }
+/* TakeCardStyle: SURFACE is emphasis, BORDER is state. Same specificity throughout, so a later
+   rule wins: overdue, then Obie, then done, then an active task, then a reminder, else none. */
+.card.important { background: var(--obie-surface); }
+.card.remind { border-color: var(--iris-remind); }
+.card.task { border-color: var(--iris-task); }
+.card.done { border-color: var(--text-done); }   /* the done-text grey: done recedes the edge and the words alike */
 .card.obie { background: var(--obie-surface); border-color: var(--obie-border); }
 .card.obie .body { color: var(--obie-text); }
 .card.overdue { border-color: var(--ruby); }
