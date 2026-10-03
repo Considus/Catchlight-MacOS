@@ -539,3 +539,10 @@ body.first-running .app { visibility: hidden; }
 /* Links in a Take (LinkDetector): accent and underlined, on the cards and in the Shot List. */
 a.tlink { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
 .card.links .body { line-height: calc(1.4em + 8px); }
+
+/* Keyboard focus on the timeline (a11y.js). */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.card[data-take]:focus { outline: none; }
+.card[data-take]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.iris-wrap[data-iris]:focus { outline: none; }
+.iris-wrap[data-iris]:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-radius: 50%; }

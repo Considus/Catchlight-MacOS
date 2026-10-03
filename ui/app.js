@@ -542,7 +542,7 @@ function openCtx(target, x, y) {
         else if (settings.confirmDelete) askDelete(t);
         else deleteTake(t.id);
       });
-    } else b.addEventListener('click', () => { ctx.hidden = true; act(); });
+    } else b.addEventListener('click', () => { ctx.hidden = true; act(); refocus(); });   // refocus: a11y.js
     li.append(b); ctx.append(li);
   }
   ctx.hidden = false;
