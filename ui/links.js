@@ -8,7 +8,8 @@
 //      the four endings that are mostly file extensions are not in the list, and the ending
 //      must be lower case ("home.It" is a missing space, not Italy), unless the whole match
 //      is in capitals ("SQUOOSH.APP").
-// The real app gets this from CatchlightCore; this is the prototype's copy of the same rules.
+// The real app gets this from CatchlightCore (Catchlight-Core repo); this is the prototype's copy
+// of the same rules.
 
 const SCHEMED = /\b(?:https?|ftp):\/\/[^\s<>"]+|\bwww\.[^\s<>"]+|\b[\w.+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+/gi;
 const BARE_DOMAIN = /(?<![@./\w-])((?:[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+([a-zA-Z]{2,24}))(\/[^\s]*)?/g;

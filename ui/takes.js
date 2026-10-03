@@ -1,7 +1,7 @@
 'use strict';
 // Dailies: Takes, in-place editing and the Focus-ring, as the iOS app does them (As-Built,
-// D-274). Loaded after app.js and uses its helpers. The model mirrors CatchlightCore's
-// Take: ordered blocks of text and checklist items; a Take is a Task when it has a
+// D-274). Loaded after app.js and uses its helpers. The model mirrors the Take in
+// Catchlight-Core: ordered blocks of text and checklist items; a Take is a Task when it has a
 // checklist item and complete when every item is ticked. Placeholder data, no sync.
 
 const DAY = 864e5;
@@ -40,7 +40,7 @@ function runAutoCleanup(now = Date.now()) {
 takes.forEach(t => { if (t.obie) t.isImportant = true; });
 const saveTakes = () => store.set('takes2', takes);
 
-// ---------- what a Take is (CatchlightCore's derived properties) ----------
+// ---------- what a Take is (CatchlightCore's derived properties, Catchlight-Core) ----------
 const isTask = t => t.blocks.some(b => b.k === 'check');
 const isComplete = t => isTask(t) && t.blocks.filter(b => b.k === 'check').every(b => b.done);
 const canBeMarkedDone = t => isTask(t) || !!t.reminder;

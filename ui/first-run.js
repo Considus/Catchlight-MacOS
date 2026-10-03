@@ -161,7 +161,7 @@ function doRestore() {
 
 // iOS's Take.init leaves isNote on, so every seed lights the Note blade too.
 // The five starter Takes a new account opens with, in lesson order, oldest first (SeedTakes in
-// CatchlightCore, the owner's words). Three phrases are the desktop's: clicking the Iris rather
+// Catchlight-Core, the owner's words). Three phrases are the desktop's: clicking the Iris rather
 // than touching it, right-click beside swiping, and the Settings shortcut in place of a swipe
 // up. A restored account gets none: its Takes come from the cloud folder.
 function seedTakes() {
