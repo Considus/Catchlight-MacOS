@@ -48,7 +48,7 @@ function takeCard(t) {
   }
   if (t.reminder) meta += reminderMeta(t.reminder);   // reminders.js
   if (settings.creationStamp === 'always') meta += `<div class="stamp">${esc(createdLabel(t.at))}</div>`;   // Settings → Creation date
-  return `<div class="${cls}${expanded.has(t.id) ? ' expanded' : ''}" data-take="${t.id}"><span class="iris-wrap" data-iris="${t.id}">${irisHtml(typesOf(t), t.obie)}</span><div class="body">${body}</div>${meta}</div>`;
+  return `<div class="${cls}${expanded.has(t.id) ? ' expanded' : ''}" data-take="${t.id}" ${cardA11y(t)}><span class="iris-wrap" data-iris="${t.id}" ${irisA11y(t)}>${irisHtml(typesOf(t), t.obie)}</span><div class="body">${body}</div>${meta}</div>`;
 }
 
 function renderTakes() {
@@ -171,6 +171,7 @@ function endEdit() {
   rows.innerHTML = '';   // nothing of an edit outlives it, discarded or not
   sidebar.classList.remove('editing');
   saveTakes(); renderTakes();
+  refocus();   // a11y.js: back to the card the keyboard edited
 }
 
 // Keys inside the editor, as BlockEditor.swift handles them.
@@ -303,6 +304,7 @@ function openFocusRing(t, irisEl, fromEditor) {
     lift.classList.add('lifted');
     Object.assign(lift.style, { left: r.left - host.left + 'px', top: r.top - host.top + 'px', width: r.width + 'px', margin: 0 });
     lift.querySelector('.iris-wrap')?.remove();
+    lift.inert = true; lift.removeAttribute('tabindex');   // a picture of the card, not a second one to Tab to
     ring.append(lift);
   }
   const hub = document.createElement('div');
@@ -379,6 +381,7 @@ function closeFocusRing(apply) {
     // Turning Task on from the timeline opens the editor on the new empty item, as on iOS.
     const target = takes.find(x => x.id === t.id);
     if (apply && sel.has('task') && target && target.blocks.at(-1)?.k === 'check' && !target.blocks.at(-1).text) beginEdit(target);
+    else refocus();
   }
 }
 document.addEventListener('keydown', e => { if (focusRing && !reminderFor && e.key === 'Escape') { e.preventDefault(); closeFocusRing(true); } });
@@ -466,6 +469,7 @@ const ICON = {
 
 function paintDock() {
   const bar = $('#takes-dock');
+  announceDock();   // a11y.js
   bar.hidden = storyboard;   // the Storyboard covers Dailies and carries only its ×
   bar.dataset.mode = dock;
   const btn = (act, icon, label, extra = '') => `<button class="dock-btn${extra}" type="button" data-act="${act}" aria-label="${label}" title="${label}">${icon}</button>`;
@@ -685,7 +689,9 @@ alertBox.addEventListener('click', e => {
   alertActions = []; alertBox.close();
   run && run();
 });
-alertBox.addEventListener('close', () => { alertActions = []; });
+// 'close' is queued after the action has run and repainted, so refocus() (a11y.js), which an
+// open alert defers, now finds the new card or Iris (Make Obie, Delete This Occurrence).
+alertBox.addEventListener('close', () => { alertActions = []; refocus(); });
 
 // A Script made back into a Take: "- [ ]" lines become checklist items, the rest text.
 function takeFromScript(s) {
