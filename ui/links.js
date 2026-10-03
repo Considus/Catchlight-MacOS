@@ -54,7 +54,7 @@ function linkify(text) {
   let html = '', at = 0;
   for (const l of detectLinks(text)) {
     html += esc(text.slice(at, l.start))
-      + `<a class="tlink" href="${esc(l.url)}" target="_blank" rel="noopener">${esc(text.slice(l.start, l.end))}</a>`;
+      + `<a class="tlink" href="${esc(l.url)}" target="_blank" rel="noopener" draggable="false">${esc(text.slice(l.start, l.end))}</a>`;
     at = l.end;
   }
   return html + esc(text.slice(at));

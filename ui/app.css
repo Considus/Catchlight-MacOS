@@ -537,5 +537,5 @@ body.first-running .app { visibility: hidden; }
 .reset-done p { margin: 0; max-width: 420px; font-size: 15px; line-height: 1.45; color: var(--text-2); }
 
 /* Links in a Take (LinkDetector): accent and underlined, on the cards and in the Shot List. */
-a.tlink { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+a.tlink { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; -webkit-user-drag: none; }   /* a swipe that starts on a link swipes */
 .card.links .body { line-height: calc(1.4em + 8px); }
