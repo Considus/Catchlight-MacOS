@@ -83,12 +83,14 @@ function renderTakes() {
 // (KeyboardTakeEditor on iOS). Clicking outside, Escape and ⌘S save; only × discards.
 const sidebar = $('#sidebar'), editorCard = $('#take-editor'), rows = $('#take-rows');
 let draft = null, original = null, focusRing = null;
+let draftComplete = false;   // was every item ticked at the last change? (All tasks done)
 
 function beginEdit(t, isNew = false) {
   if (draft) commitEdit();
   if (dock === 'searching') exitToResting();   // opening a Take leaves search first (UIState)
   original = isNew ? null : t;
   draft = structuredClone(t);
+  draftComplete = isComplete(draft);
   if (!draft.blocks.length) draft.blocks.push({ k: 'text', text: '' });
   sidebar.classList.add('editing');
   editorCard.hidden = false;
@@ -207,12 +209,12 @@ function paintIris() { $('#take-editor-iris').innerHTML = irisHtml(typesOf(draft
 document.addEventListener('mousedown', e => {
   swallowClick = false;   // a press with no click after it must not leave the flag set
   if (!draft || focusRing) return;
-  if (e.target.closest('#take-editor, #editor-bar, #reminder-sheet')) return;
+  if (e.target.closest('#take-editor, #editor-bar, #reminder-sheet, #shot-list, dialog.alert')) return;
   if (sidebar.contains(e.target)) { e.preventDefault(); swallowClick = true; }
   commitEdit();
 }, true);
 document.addEventListener('keydown', e => {
-  if (!draft || focusRing || reminderFor) return;
+  if (!draft || focusRing || reminderFor || alertBox.open || shotListOpen()) return;   // each closes itself
   if (e.key === 'Escape' || ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's')) {
     e.preventDefault();
     commitEdit();
@@ -223,13 +225,31 @@ document.addEventListener('keydown', e => {
 function paintBar() {
   const task = isTask(draft);
   $('#eb-third').innerHTML = task ? ICON_CHECKLIST : ICON_IMPORTANT;
-  $('#eb-third').setAttribute('aria-label', task ? 'Shot List (not built yet)' : (draft.isImportant ? 'Remove Important' : 'Make Important'));
+  $('#eb-third').setAttribute('aria-label', task ? 'Open Shot List' : (draft.isImportant ? 'Remove Important' : 'Make Important'));
   $('#eb-done').disabled = !canBeMarkedDone(draft);
+  noteTicks();
+}
+
+// "All tasks done." (owner 2026-08-11): ticking the last item, in the editor or the Shot List,
+// asks whether to stop the Take's reminder. Only in Dailies, only when the reminder would still
+// fire: on, not done, and not one ReminderScheduler would skip anyway (a one-off on a Take that
+// is nothing but a finished checklist). Stop removes the reminder; the Take stays.
+function noteTicks() {
+  const now = isComplete(draft), was = draftComplete;
+  draftComplete = now;
+  if (was || !now || storyboard) return;
+  const r = draft.reminder;
+  if (!isTimeR(r) || r.notify === false || r.done) return;
+  if (!repeats(r) && draft.blocks.every(b => b.k === 'check')) return;
+  ask('All tasks done.', 'Every task on this Take is ticked. Stop its reminder?', [
+    ['Stop', () => { if (!draft) return; delete draft.reminder; noteFloor(draft); paintIris(); paintBar(); }],
+    ['Ignore', null, 'cancel'],
+  ]);
 }
 $('#eb-discard').addEventListener('click', discardEdit);
 $('#eb-third').addEventListener('click', () => {
   readRows();
-  if (isTask(draft)) return;                                            // the Shot List Angle is not built yet
+  if (isTask(draft)) { openShotList(); return; }                        // shot-list.js
   draft.isImportant = !draft.isImportant;
   if (!draft.isImportant) noteFloor(draft);
   paintIris(); paintBar();
@@ -622,32 +642,39 @@ function deleteTake(id) {
 // It replaces Confirm before deleting, since it already asks. The Storyboard's menu has no
 // such dialog on iOS, so there a repeating Take deletes like any other.
 const asksWhichToDelete = t => !storyboard && repeats(t.reminder);
-const repeatAlert = document.createElement('dialog');
-repeatAlert.className = 'alert';
-repeatAlert.innerHTML = `<h2>This is a repeating reminder.</h2>
-  <p>Delete only the next occurrence, or the whole repeating series?</p>
-  <div class="alert-actions"><button type="button" data-a="one">Delete This Occurrence</button>
-  <button type="button" class="danger" data-a="all">Delete Series</button>
-  <button type="button" data-a="cancel">Cancel</button></div>`;
-document.body.append(repeatAlert);
-let repeatFor = null;
 function askWhichToDelete(t) {
-  repeatFor = t;
-  repeatAlert.showModal();
-  repeatAlert.querySelector('[data-a="cancel"]').focus();
+  ask('This is a repeating reminder.', 'Delete only the next occurrence, or the whole repeating series?', [
+    ['Delete This Occurrence', () => {
+      // Leave the editor first if this Take is open, or saving the draft would undo the skip.
+      if (draft && original?.id === t.id) discardEdit();
+      advanceRepeat(t.reminder); touch(t);
+    }],
+    ['Delete Series', () => deleteTake(t.id), 'danger'],
+    ['Cancel', null, 'cancel'],
+  ]);
 }
-repeatAlert.addEventListener('click', e => {
-  const a = e.target.closest('button')?.dataset.a;
-  if (!a) return;
-  const t = repeatFor;
-  repeatFor = null; repeatAlert.close();
-  if (a === 'one') {
-    // Leave the editor first if this Take is open, or saving the draft would undo the skip.
-    if (draft && original?.id === t.id) discardEdit();
-    advanceRepeat(t.reminder); touch(t);
-  } else if (a === 'all') deleteTake(t.id);
+
+// The alert (NSAlert on the Mac, .alert or .confirmationDialog on iOS; each shell draws its
+// own). `actions` are [label, run, kind]; kind 'cancel' takes focus and Escape, 'danger' is red.
+const alertBox = document.createElement('dialog');
+alertBox.className = 'alert';
+document.body.append(alertBox);
+let alertActions = [];
+function ask(title, message, actions) {
+  alertActions = actions;
+  alertBox.innerHTML = `<h2>${esc(title)}</h2><p>${esc(message)}</p><div class="alert-actions">${
+    actions.map(([label, , kind], i) => `<button type="button" data-i="${i}"${kind ? ` class="${kind}"` : ''}>${esc(label)}</button>`).join('')}</div>`;
+  alertBox.showModal();
+  (alertBox.querySelector('.cancel') || alertBox.querySelector('button')).focus();
+}
+alertBox.addEventListener('click', e => {
+  const b = e.target.closest('button[data-i]');
+  if (!b) return;
+  const run = alertActions[b.dataset.i][1];
+  alertActions = []; alertBox.close();
+  run && run();
 });
-repeatAlert.addEventListener('close', () => { repeatFor = null; });
+alertBox.addEventListener('close', () => { alertActions = []; });
 
 // A Script made back into a Take: "- [ ]" lines become checklist items, the rest text.
 function takeFromScript(s) {
