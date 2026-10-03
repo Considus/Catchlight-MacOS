@@ -3,7 +3,7 @@
 // work through. Loaded after gestures.js. It opens from the editor bar's checklist button, only
 // for a Take with a checklist item, and × is the only way out (Escape too, since a Mac has the
 // key): closing saves the edit and ends it. There is no text editing, no adding and no counts;
-// renaming and adding stay in the editor.
+// renaming and adding stay in the editor. Links in the text are live, as on the cards.
 //   • Tick an item by its checkbox (the row itself does nothing).
 //   • Swipe an item: right for Done or Not done, left for Delete, which doesn't ask.
 //   • Drag an item by its ≡ handle; prose rows can be passed but not dragged.
@@ -43,11 +43,12 @@ function paintShotList(focusIndex) {
   slOpen = null;
   slRows.innerHTML = draft.blocks.map((b, i) => b.k === 'check'
     ? `<div class="sl-item" data-i="${i}"><div class="sl-row${b.done ? ' ticked' : ''}">
-        <button class="sl-box" type="button" role="checkbox" aria-checked="${!!b.done}" aria-label="${esc(b.text.trim() || 'Item')}"
+        <button class="sl-box" type="button" role="checkbox" aria-checked="${!!b.done}"
+          ${b.text.trim() ? `aria-labelledby="sl-text-${i}"` : 'aria-label="Item"'}
           title="${b.done ? 'Untick' : 'Tick'} · ⌥↑ ⌥↓ to move · ⌫ to delete"></button>
-        <span class="sl-text" aria-hidden="true">${esc(b.text)}</span>
+        <span class="sl-text" id="sl-text-${i}">${linkify(b.text)}</span>
         <span class="sl-handle" aria-label="Reorder item" role="img"></span></div></div>`
-    : `<div class="sl-prose" data-i="${i}">${esc(b.text)}</div>`).join('');
+    : `<div class="sl-prose" data-i="${i}">${linkify(b.text)}</div>`).join('');
   if (focusIndex != null) slRows.querySelector(`.sl-item[data-i="${focusIndex}"] .sl-box`)?.focus();
 }
 
@@ -69,11 +70,11 @@ function moveBlock(i, to) {
 
 let slSuppress = false;   // the click that ends a swipe is not a click
 slRows.addEventListener('click', e => {
-  if (slSuppress) { slSuppress = false; return; }
+  if (slSuppress) { slSuppress = false; e.preventDefault(); return; }   // nor does it follow a link it started on
   const fill = e.target.closest('.sl-fill');
   if (fill) { commitShotSwipe(fill.closest('.sl-item'), fill.dataset.side); return; }
   const box = e.target.closest('.sl-box');
-  if (slOpen) { closeShotSwipe(); return; }   // a click on an open row closes it
+  if (slOpen) { e.preventDefault(); closeShotSwipe(); return; }   // a click on an open row closes it, and follows no link
   if (box) tick(+box.closest('.sl-item').dataset.i);
 });
 slRows.addEventListener('keydown', e => {

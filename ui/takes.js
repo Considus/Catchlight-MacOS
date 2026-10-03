@@ -36,8 +36,11 @@ const irisHtml = (types, obie) => `<span class="iris-shadow"></span>${iris(types
 
 // ---------- the timeline card ----------
 function takeCard(t) {
-  const cls = ['card', t.obie && 'obie', isOverdue(t) && 'overdue', isDone(t) && 'done'].filter(Boolean).join(' ');
-  const body = t.blocks.map(b => `<span class="${b.k === 'check' && b.done ? 'ticked' : ''}">${esc(b.text)}</span>`).join('\n');
+  // Links are live, as on the card on iOS; with two or more the lines open up so each is easy
+  // to hit (TakeRowView.bodyNeedsLinkSpacing).
+  const links = t.blocks.reduce((n, b) => n + detectLinks(b.text).length, 0);
+  const cls = ['card', t.obie && 'obie', isOverdue(t) && 'overdue', isDone(t) && 'done', links >= 2 && 'links'].filter(Boolean).join(' ');
+  const body = t.blocks.map(b => `<span class="${b.k === 'check' && b.done ? 'ticked' : ''}">${linkify(b.text)}</span>`).join('\n');
   let meta = '';
   if (isTask(t)) {
     const checks = t.blocks.filter(b => b.k === 'check');
@@ -418,6 +421,7 @@ sidebar.addEventListener('click', e => {
     openFocusRing(takes.find(x => x.id === ir.dataset.iris), ir, false);
     return;
   }
+  if (e.target.closest('.card a.tlink')) return;   // a link opens; anywhere else on the card edits it
   const card = e.target.closest('.timeline .card, #pinned .card');
   if (card) beginEdit(takes.find(x => x.id === card.dataset.take));
 });
