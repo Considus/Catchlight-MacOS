@@ -497,6 +497,14 @@ body.first-running .app { visibility: hidden; }
 .rname { width: 50%; text-align: right; border: 0; background: none; color: var(--text); font: 400 15px "DM Sans", sans-serif; outline: none; }
 .srow-icon svg { width: 22px; height: 22px; }
 
+/* The Storyboard: the same cards with no spine and no Iris, and the Iris's radius taken out of
+   every gap so the rhythm matches Dailies (StoryboardView.storyboardGap). */
+.timeline.storyboard { background: none; }
+.timeline.storyboard .iris-wrap, .timeline.storyboard .card::after { display: none; }   /* the Iris and its beam stub */
+.timeline.storyboard .card { margin-bottom: max(0px, calc(var(--gap) - 22px)); }
+.empty.first-take { margin-top: 30vh; font: 300 17px "DM Sans", sans-serif; }
+.sidebar.editing .first-take { visibility: hidden; }   /* not while the first Take is being written */
+
 /* The Shot List Angle (ShotListView): full window, in the Take's own card colour. */
 .shot-list { position: fixed; inset: 0; z-index: 35; display: flex; flex-direction: column; background: var(--surface); color: var(--text); }
 .shot-list[hidden] { display: none; }

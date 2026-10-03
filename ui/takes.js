@@ -16,6 +16,8 @@ let takes = store.get('takes2', [
   { id: 't6', at: '2026-07-04T16:00:00Z', blocks: [{ k: 'text', text: 'Before the weekend' }, { k: 'check', text: 'Ask Sam about the second-hand 90mm lens', done: false }, { k: 'check', text: 'Lens cloth', done: false }], isNote: true },
   { id: 't7', at: '2026-07-09T11:00:00Z', blocks: [{ k: 'text', text: 'Paper stock: Hahnemühle Photo Rag 308 for the large prints, Baryta for the small ones.' }], isNote: true, isImportant: true },
 ]);
+// An Obie is always Important (Take.isObie's didSet, and the decoder ORs it back in on load).
+takes.forEach(t => { if (t.obie) t.isImportant = true; });
 const saveTakes = () => store.set('takes2', takes);
 
 // ---------- what a Take is (CatchlightCore's derived properties) ----------
@@ -58,6 +60,8 @@ function renderTakes() {
   const list = $('#takes'), pinned = $('#pinned');
   for (const el of [list, pinned]) { el.dataset.preview = settings.takePreview; el.dataset.spacing = settings.takeSpacing; }
   const order = (a, b) => settings.takeSort === 'newest' ? b.at.localeCompare(a.at) : a.at.localeCompare(b.at);
+  // The Storyboard is not the timeline: plain cards, no spine and no Iris (StoryboardView).
+  list.classList.toggle('storyboard', storyboard);
   if (storyboard) {
     // Every Take with an unticked item, the Obie among them and not pinned; no month dividers.
     pinned.hidden = true; list.classList.remove('under-obie');
@@ -73,7 +77,9 @@ function renderTakes() {
     // Order and Arrangement from Settings → Dailies. Manual hides the month rows; arranging
     // by hand (dragging) is not built yet, so the order stays by date.
     const items = takes.filter(t => t !== obie && matches(t)).sort(order);
-    if (settings.takeArrangement === 'manual') list.innerHTML = items.map(takeCard).join('');
+    // Nothing at all yet (not a filter that matches nothing): iOS's empty state.
+    if (!takes.length) list.innerHTML = '<div class="empty first-take"><p>Your first Take is waiting.</p></div>';
+    else if (settings.takeArrangement === 'manual') list.innerHTML = items.map(takeCard).join('');
     else timeline(list, items, takeCard);
     const lit = filterMonth && list.querySelector(`.month[data-month="${filterMonth}"]`);
     if (lit) { lit.classList.add('on'); lit.querySelector('.month-label').insertAdjacentHTML('beforeend', ICON_XMARK); }
@@ -230,7 +236,10 @@ function paintBar() {
   const task = isTask(draft);
   $('#eb-third').innerHTML = task ? ICON_CHECKLIST : ICON_IMPORTANT;
   $('#eb-third').setAttribute('aria-label', task ? 'Open Shot List' : (draft.isImportant ? 'Remove Important' : 'Make Important'));
+  $('#eb-third').disabled = !task && !!draft.obie;   // an Obie stays Important
   $('#eb-done').disabled = !canBeMarkedDone(draft);
+  const remind = draft.reminder ? 'Edit reminder' : 'Add reminder';   // EditorKeyboardBar's label
+  $('#eb-remind').setAttribute('aria-label', remind); $('#eb-remind').title = remind;
   noteTicks();
 }
 
@@ -254,6 +263,7 @@ $('#eb-discard').addEventListener('click', discardEdit);
 $('#eb-third').addEventListener('click', () => {
   readRows();
   if (isTask(draft)) { openShotList(); return; }                        // shot-list.js
+  if (draft.obie) return;                                               // an Obie stays Important
   draft.isImportant = !draft.isImportant;
   if (!draft.isImportant) noteFloor(draft);
   paintIris(); paintBar();
@@ -364,7 +374,9 @@ function closeFocusRing(apply) {
     const before = JSON.stringify(target);
     // Only what changed is written, so an unchanged ring is a no-op (D-250).
     if (!!target.isNote !== sel.has('note')) target.isNote = sel.has('note');
-    if (!!target.isImportant !== sel.has('important')) target.isImportant = sel.has('important');
+    // An Obie is always Important, so the ring can't take it off one (DailiesViewModel).
+    const important = sel.has('important') || !!target.obie;
+    if (!!target.isImportant !== important) target.isImportant = important;
     if (sel.has('task') && !isTask(target)) target.blocks.push({ k: 'check', text: '', done: false });
     if (!sel.has('task') && isTask(target)) target.blocks = target.blocks.map(b => ({ k: 'text', text: b.text }));
     if (!sel.has('remind')) { if (target.reminder) target.reminder = null; }   // a picked time with Remind off is dropped
@@ -618,7 +630,8 @@ function takeMenu(id) {
   const items = [];
   if (!storyboard) items.push([expanded.has(id) ? 'Collapse Take' : 'Expand Take', () => toggleExpanded(id)]);
   if (canBeMarkedDone(t)) items.push([isDone(t) ? 'Mark Not Done' : 'Mark Done', () => { toggleDone(t); touch(t); }]);
-  items.push([t.isImportant ? 'Remove Important' : 'Make Important', () => {
+  // An Obie stays Important, so its menu has nothing to offer here.
+  if (!t.obie) items.push([t.isImportant ? 'Remove Important' : 'Make Important', () => {
     t.isImportant = !t.isImportant;
     if (!t.isImportant) noteFloor(t);
     touch(t);
