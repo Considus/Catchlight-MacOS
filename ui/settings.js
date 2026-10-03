@@ -334,11 +334,9 @@ function eraseEverything() {
   document.body.append(done);
 }
 
+// ⌘, (Ctrl+, elsewhere) is the menu's Settings item, menu.js.
 document.addEventListener('keydown', e => {
-  if ((e.metaKey || e.ctrlKey) && e.key === ',' && !document.body.classList.contains('first-running')) {
-    e.preventDefault();
-    if (sheet.hidden) openSettings(); else closeSettings();
-  } else if (e.key === 'Escape' && !sheet.hidden && !alertBox.open) {   // an alert over the sheet takes Escape first
+  if (e.key === 'Escape' && !sheet.hidden && !alertBox.open) {   // an alert over the sheet takes Escape first
     e.preventDefault(); e.stopImmediatePropagation();
     if (subStack.length) { subStack.pop(); paintSettings(); } else closeSettings();
   }

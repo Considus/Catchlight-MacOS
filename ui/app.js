@@ -827,12 +827,7 @@ document.addEventListener('mousedown', e => {
   if (!e.target.closest('#layout-pop, #tb-layout')) { $('#layout-pop').hidden = true; $('#tb-layout').setAttribute('aria-expanded', 'false'); }
   if (!e.target.closest('#page-pop, #tb-page')) { $('#page-pop').hidden = true; $('#tb-page').setAttribute('aria-expanded', 'false'); }
 });
-document.addEventListener('keydown', e => {
-  // Not while first run covers the window: the change would land unseen.
-  if (!(e.metaKey && e.ctrlKey) || document.body.classList.contains('first-running')) return;
-  if (e.key.toLowerCase() === 's') { e.preventDefault(); toggleHide('dailies'); }
-  if (e.key.toLowerCase() === 'l') { e.preventDefault(); toggleHide('scripts'); }
-});
+// ⌃⌘S and ⌃⌘L show and hide Dailies and Scripts from the View menu, menu.js.
 addEventListener('resize', debounce(paginate, 100));
 
 // ---------- Scene: follows the system unless chosen ----------

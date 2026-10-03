@@ -269,13 +269,14 @@ function paintIris() { $('#take-editor-iris').innerHTML = irisHtml(typesOf(draft
 document.addEventListener('mousedown', e => {
   swallowClick = false;   // a press with no click after it must not leave the flag set
   if (!draft || focusRing) return;
-  if (e.target.closest('#take-editor, #editor-bar, #reminder-sheet, #shot-list, dialog.alert')) return;
+  if (e.target.closest('#take-editor, #editor-bar, #reminder-sheet, #shot-list, dialog.alert, .menu-bar')) return;   // .menu-bar: menu.js's ?menu preview
   if (sidebar.contains(e.target)) { e.preventDefault(); swallowClick = true; }
   commitEdit();
 }, true);
 document.addEventListener('keydown', e => {
   if (!draft || focusRing || reminderFor || alertBox.open || shotListOpen()) return;   // each closes itself
-  if (e.key === 'Escape' || ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's')) {
+  // ⌘S (Ctrl+S) alone saves; ⌃⌘S is View › Hide Dailies (menu.js), so it isn't claimed here.
+  if (e.key === 'Escape' || ((e.metaKey !== e.ctrlKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 's')) {
     e.preventDefault();
     commitEdit();
   }
