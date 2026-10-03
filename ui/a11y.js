@@ -104,6 +104,11 @@ ctx.addEventListener('keydown', e => {
   if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); items[(i + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length]?.focus(); }
   else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); ctx.hidden = true; refocus(); }
 });
+// Tab out of the menu closes it, as a native menu does; focus goes where Tab sent it. An item's
+// click or a press elsewhere hides the menu first, so this only sees focus leaving an open one.
+ctx.addEventListener('focusout', e => {
+  if (!ctx.hidden && !ctx.contains(e.relatedTarget)) { ctx.hidden = true; returnFocusTo = null; }
+});
 // After a repaint the old card is gone; focus its replacement.
 function refocus() {
   const f = returnFocusTo;

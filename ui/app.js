@@ -541,6 +541,7 @@ function openCtx(target, x, y) {
         if (asksWhichToDelete(t)) askWhichToDelete(t);
         else if (settings.confirmDelete) askDelete(t);
         else deleteTake(t.id);
+        refocus();   // a11y.js: deferred while an alert is open; otherwise the card is gone and it just clears
       });
     } else b.addEventListener('click', () => { ctx.hidden = true; act(); refocus(); });   // refocus: a11y.js
     li.append(b); ctx.append(li);
