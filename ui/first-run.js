@@ -9,11 +9,11 @@
 // ?platform=linux previews the others. The backup lines are only true because each shell keeps
 // the Takes out of that platform's backup (ui/README.md, "What each shell must do").
 const PLATFORMS = {
-  mac: { device: 'Mac', noBackup: "Time Machine won't contain them", keptOut: 'because we deliberately keep them out of it' },
-  windows: { device: 'PC', noBackup: "Windows Backup and File History won't contain them", keptOut: 'because we deliberately keep them out of both' },
+  mac: { device: 'Mac', search: 'Spotlight & Siri', writingTools: true, noBackup: "Time Machine won't contain them", keptOut: 'because we deliberately keep them out of it' },
+  windows: { device: 'PC', search: 'Windows Search', noBackup: "Windows Backup and File History won't contain them", keptOut: 'because we deliberately keep them out of both' },
   // Named, as Time Machine is: only Déjà Dup honours the marker the shell writes, and a general
   // "your backups" would be untrue for rsync or Borg.
-  linux: { device: 'computer', noBackup: "Déjà Dup won't contain them", keptOut: 'because we deliberately keep them out of it' },
+  linux: { device: 'computer', search: 'Desktop search', noBackup: "Déjà Dup won't contain them", keptOut: 'because we deliberately keep them out of it' },
 };
 const PLATFORM = PLATFORMS[new URLSearchParams(location.search).get('platform')] || PLATFORMS.mac;
 
