@@ -1,7 +1,7 @@
 name: Build
 
 # Generates the Xcode project from project.yml and builds the Mac app in the
-# Debug configuration, unsigned. A compile check: there are no tests yet.
+# Debug configuration, unsigned, then runs the unit tests (CatchlightTests), unsigned too.
 
 on:
   push:
@@ -51,3 +51,15 @@ jobs:
           BIN="$RUNNER_TEMP/DerivedData/Build/Products/Debug/Catchlight.app/Contents/MacOS/Catchlight"
           lipo -info "$BIN"
           lipo "$BIN" -verify_arch x86_64 arm64
+
+      # The tests compile the app's sources into their own bundle, so nothing launches and
+      # nothing needs signing. Some load the real ui/ in a WKWebView.
+      - name: xcodebuild test (Debug)
+        run: |
+          xcodebuild test \
+            -project Catchlight.xcodeproj \
+            -scheme Catchlight \
+            -configuration Debug \
+            -destination 'platform=macOS' \
+            -derivedDataPath "$RUNNER_TEMP/DerivedData" \
+            CODE_SIGNING_ALLOWED=NO

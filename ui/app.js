@@ -685,7 +685,7 @@ function openCtx(target, x, y) {
   const take = target.closest('[data-take]'), scr = target.closest('[data-script]'), info = target.closest('[data-copy-info]');
   if (!take && !scr && !info) return false;
   // The copy goes back to the version line, so a keyboard user keeps their place.
-  const items = info ? [['Copy version and device info', () => { navigator.clipboard?.writeText(supportInfo()); info.focus(); }]]   // settings.js
+  const items = info ? [['Copy version and device info', () => { shell.copyText(supportInfo()); info.focus(); }]]   // settings.js
     : take ? takeMenu(take.dataset.take)
     : isBlank(takeFromScript(scripts.find(x => x.id === scr.dataset.script))) ? []   // a blank Take is never kept
     : [['Make this a Take', () => scriptToTake(scr.dataset.script)]];
