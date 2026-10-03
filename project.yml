@@ -1,0 +1,95 @@
+# project.yml — XcodeGen specification for the Catchlight Mac app.
+#
+# The .xcodeproj is generated from this file and is not checked in (.gitignore),
+# as in Catchlight-iOS:
+#
+#   brew install xcodegen   # one-time
+#   xcodegen generate       # produces Catchlight.xcodeproj
+#
+# Scope and decisions: Mac_Shell_Plan (M0) and D-343 — App Sandbox on, XcodeGen,
+# Core as a pinned package dependency on Catchlight-iOS from M2 (not here yet).
+
+name: Catchlight
+options:
+  bundleIdPrefix: com.considus
+  deploymentTarget:
+    macOS: "13.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+  configs:
+    # D-317: development builds are universal so they run on the Intel Mac;
+    # release builds are Apple Silicon only.
+    Debug:
+      ARCHS: "$(ARCHS_STANDARD)"
+      ONLY_ACTIVE_ARCH: NO
+    Release:
+      ARCHS: arm64
+
+targets:
+  Catchlight:
+    type: application
+    platform: macOS
+    sources:
+      - path: App/Sources
+      # The shared interface, copied into the bundle as Contents/Resources/ui on
+      # every build. A folder reference rather than a group, so a file added to
+      # ui/ is picked up without regenerating the project and the bundle always
+      # matches the repo. Never copy it by hand.
+      - path: ui
+        type: folder
+        buildPhase: resources
+    info:
+      # XcodeGen rewrites this file from the properties below on every
+      # `generate`. Edit them here, not the plist.
+      path: App/Resources/Info.plist
+      properties:
+        CFBundleDisplayName: Catchlight
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+        LSMinimumSystemVersion: "$(MACOSX_DEPLOYMENT_TARGET)"
+        LSApplicationCategoryType: public.app-category.productivity
+        NSPrincipalClass: NSApplication
+    entitlements:
+      # Rewritten by XcodeGen from these properties too.
+      path: App/Resources/Catchlight.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        # WebKit needs this even though the page loads nothing off the device.
+        # Its Networking, GPU and WebContent helpers run under the host app's
+        # sandbox, and without the network client entitlement they crash at
+        # launch and the window stays blank (measured 2026-10-03, macOS 15.8:
+        # four process terminations without it, none with it). It is an OS
+        # permission, not traffic: ui/ is served from the bundle through the
+        # catchlight:// scheme, and MainWindowController refuses navigation to
+        # any other scheme.
+        com.apple.security.network.client: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.considus.catchlight.mac
+        PRODUCT_NAME: Catchlight
+        CODE_SIGN_ENTITLEMENTS: App/Resources/Catchlight.entitlements
+        ENABLE_HARDENED_RUNTIME: YES
+        # Ad-hoc ("Sign to Run Locally") until Developer ID signing in M5, so a
+        # build runs on this Mac with the sandbox and hardened runtime applied
+        # and needs no team or certificate. CI passes CODE_SIGNING_ALLOWED=NO.
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: "-"
+        DEVELOPMENT_TEAM: ""
+        # Xcode leaves the hardened runtime off an ad-hoc signature even with
+        # ENABLE_HARDENED_RUNTIME on, so ask codesign for it directly; otherwise
+        # local builds would run without the restrictions a release runs under.
+        OTHER_CODE_SIGN_FLAGS: "--options=runtime"
+        GENERATE_INFOPLIST_FILE: NO
+        COMBINE_HIDPI_IMAGES: YES
+
+schemes:
+  Catchlight:
+    build:
+      targets:
+        Catchlight: all

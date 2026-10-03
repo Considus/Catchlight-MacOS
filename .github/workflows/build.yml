@@ -1,0 +1,53 @@
+name: Build
+
+# Generates the Xcode project from project.yml and builds the Mac app in the
+# Debug configuration, unsigned. A compile check: there are no tests yet.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Nothing here writes to the repo; a job that needs more asks at job level.
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    # ⚠️ This name is the status check. If it becomes a required check on
+    # main, renaming it leaves the old name required and never reporting.
+    name: macOS (Debug build)
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: xcodebuild build (Debug)
+        run: |
+          xcodebuild build \
+            -project Catchlight.xcodeproj \
+            -scheme Catchlight \
+            -configuration Debug \
+            -destination 'generic/platform=macOS' \
+            -derivedDataPath "$RUNNER_TEMP/DerivedData" \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Check the binary is universal
+        run: |
+          BIN="$RUNNER_TEMP/DerivedData/Build/Products/Debug/Catchlight.app/Contents/MacOS/Catchlight"
+          lipo -info "$BIN"
+          lipo "$BIN" -verify_arch x86_64 arm64

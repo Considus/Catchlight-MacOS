@@ -2,7 +2,7 @@
 
 The Mac version of [Catchlight](https://catchlight.app), the zero-knowledge notes and reminders app. Everything is encrypted on your device, there's no backend, and the whole thing works with the network switched off.
 
-There's no app here yet. The repo exists so the work can happen in the open from the first commit, rather than being tidied up and published afterwards. The iPhone app it follows is at [Considus/Catchlight-iOS](https://github.com/Considus/Catchlight-iOS), and that's the place to look if you want to see how the encryption and the sync format actually work today.
+There's an app here now, though only just. It's a Mac window wrapped round the shared interface in `ui/`, with placeholder data and, for now, none of the encryption or sync, so it isn't somewhere to keep anything real. The repo exists so the work can happen in the open from the first commit, rather than being tidied up and published afterwards. The iPhone app it follows is at [Considus/Catchlight-iOS](https://github.com/Considus/Catchlight-iOS), and that's the place to look if you want to see how the encryption and the sync format actually work today.
 
 ## The non-negotiables
 
