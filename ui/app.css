@@ -294,6 +294,7 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 .focus-ring .mark[data-key="remind"] { --fill: var(--iris-remind); transition-delay: .185s, .185s, 0s, 0s, 0s; }
 .focus-ring .mark[data-key="important"] { --fill: var(--iris-important); transition-delay: .12s, .12s, 0s, 0s, 0s; }
 .focus-ring .mark.on { background: var(--fill); border-color: var(--fill); color: var(--bg); }
+.focus-ring .mark[aria-disabled="true"] { cursor: default; }   /* an Obie's Important Mark: on, and staying on */
 @media (prefers-reduced-motion: reduce) { .focus-ring, .focus-ring * { transition: none !important; } }
 
 .pop-actions { justify-content: flex-end; }
