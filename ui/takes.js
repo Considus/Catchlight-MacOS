@@ -527,7 +527,7 @@ function closeFocusRing(apply) {
     // Turning Task on from the timeline opens the editor on the new empty item, as on iOS.
     const target = takes.find(x => x.id === t.id);
     if (apply && sel.has('task') && target && target.blocks.at(-1)?.k === 'check' && !target.blocks.at(-1).text) beginEdit(target);
-    else refocus();
+    else { returnFocusTo ??= { id: t.id, iris: true }; refocus(); }   // back to the Iris that opened it, however it was opened
   }
 }
 document.addEventListener('keydown', e => { if (focusRing && !reminderFor && e.key === 'Escape') { e.preventDefault(); closeFocusRing(true); } });

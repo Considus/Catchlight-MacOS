@@ -307,7 +307,7 @@ sheet.addEventListener('pointerdown', e => {
   if (!b) return;
   const words = sheet.querySelector('[data-phrase]');
   sheet.classList.add('revealing'); b.textContent = 'Release to hide'; words?.setAttribute('aria-hidden', 'false');
-  const end = () => { sheet.classList.remove('revealing'); b.textContent = 'Hold to reveal'; words?.setAttribute('aria-hidden', 'true'); removeEventListener('pointerup', end); removeEventListener('pointercancel', end); };
+  const end = () => { sheet.classList.remove('revealing'); b.textContent = 'Hold to reveal'; b.setAttribute('aria-pressed', 'false'); words?.setAttribute('aria-hidden', 'true'); removeEventListener('pointerup', end); removeEventListener('pointercancel', end); };
   addEventListener('pointerup', end); addEventListener('pointercancel', end);
 });
 

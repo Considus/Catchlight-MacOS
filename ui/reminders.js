@@ -105,10 +105,12 @@ function openReminder(t, after, onCancel) {
 // else to whatever opened the picker, if it is still on the page.
 let reminderReturn = null;
 function closeReminder() {
+  const wasOpen = !!reminderFor;
   rsheet.classList.remove('open');
   rsheet.hidden = true; rsheet.innerHTML = '';
   reminderFor = reminderAfter = reminderCancel = rs = null;
   const back = reminderReturn; reminderReturn = null;
+  if (!wasOpen) return;   // endEdit tidies up a picker that wasn't open: nothing to hand back
   if (focusRing) { if (back?.isConnected) back.focus(); return; }   // back to the Remind Mark
   if (draft) restoreCaret(); else if (back?.isConnected) back.focus();
 }
