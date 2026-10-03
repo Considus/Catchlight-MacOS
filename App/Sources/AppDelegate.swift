@@ -1,4 +1,5 @@
 import AppKit
+import CatchlightAppleStorage
 import os
 
 // The menu bar is built from the page's own model (MenuController), so there is no default
@@ -36,10 +37,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 try vault.start()
                 return vault
             } catch {
-                Self.log.error("unlock failed: \(String(describing: error), privacy: .public)")
+                Self.log.error("start failed: \(String(describing: error), privacy: .public)")
                 let alert = NSAlert()
-                alert.messageText = "Catchlight is locked"
-                alert.informativeText = "Your Takes stay encrypted until you unlock them with Touch ID or your Mac's password."
+                if error is KeychainError {
+                    alert.messageText = "Catchlight is locked"
+                    alert.informativeText = "Your Takes stay encrypted until you unlock them with Touch ID or your Mac's password."
+                } else {
+                    // Unlocked, but the library didn't open: say so, with what to report.
+                    alert.messageText = "Catchlight couldn't open your Takes"
+                    alert.informativeText = "Nothing has been changed or deleted. If trying again doesn't help, report it with this detail: \(error)"
+                }
                 alert.addButton(withTitle: "Try Again")
                 alert.addButton(withTitle: "Quit")
                 if alert.runModal() != .alertFirstButtonReturn { return nil }

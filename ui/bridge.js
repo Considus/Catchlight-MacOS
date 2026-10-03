@@ -46,6 +46,11 @@
   // Saves go in order, one message each, so the last one sent is the one that stands.
   const library = window.catchlightLibrary;
   const save = (kind, list) => post('save', { kind, list }).catch(e => console.error(`Saving ${kind} failed`, e));
+  // The shell couldn't read the library: say so, rather than show an empty Catchlight that
+  // looks as if everything has gone. The shell refuses every save until it can read it.
+  if (library?.loadError) addEventListener('load', () => ask("Catchlight couldn't read your Takes",
+    `Nothing has been changed or deleted, and nothing you do now will be saved. Quit and open Catchlight again, and if this keeps happening, report it with this detail: ${library.loadError}`,
+    [['OK', null, 'cancel']]));
 
   window.catchlightBridge = {
     pushMenu,

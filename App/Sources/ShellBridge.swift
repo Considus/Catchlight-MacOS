@@ -40,6 +40,9 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
     var onMenuModel: (([MenuEntry]) -> Void)?
     var openExternally: (URL) -> Void = { NSWorkspace.shared.open($0) }
     var vault: Vault?
+    /// Set when the library could not be read at launch. The page then holds empty lists, and
+    /// a save from it would be applied as the whole library, so every save is refused.
+    private(set) var libraryUnreadable = false
 
     /// Defines `window.catchlightShell` before any of the page's own scripts run, with the values
     /// baked in, so `shell.systemInfo()` stays synchronous.
@@ -53,7 +56,7 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
     /// `window.catchlightLibrary`: whether there is an account, the decrypted Takes and Scripts,
     /// and on first run a fresh phrase, so the page's synchronous reads keep working. Built once,
     /// before the page loads; the page owns the lists from then on and saves them back.
-    static func injectedLibrary(_ vault: Vault?) -> WKUserScript {
+    func injectedLibrary() -> WKUserScript {
         var value: [String: Any] = ["account": false, "takes": [Any](), "scripts": [Any]()]
         if let vault {
             if let library = vault.library {
@@ -62,8 +65,9 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                     value["takes"] = try library.pageTakes()
                     value["scripts"] = try library.pageScripts()
                 } catch {
-                    log.fault("the library did not load: \(String(describing: error), privacy: .public)")
-                    value["loadError"] = true
+                    Self.log.fault("the library did not load: \(String(describing: error), privacy: .public)")
+                    value = ["account": true, "takes": [Any](), "scripts": [Any](), "loadError": String(describing: error)]
+                    libraryUnreadable = true
                 }
             } else if let words = try? Vault.newPhrase() {
                 value["newPhrase"] = words
@@ -75,7 +79,7 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
 
     func install(in controller: WKUserContentController) {
         controller.addUserScript(Self.injectedValues())
-        if vault != nil { controller.addUserScript(Self.injectedLibrary(vault)) }
+        if vault != nil { controller.addUserScript(injectedLibrary()) }
         controller.addScriptMessageHandler(self, contentWorld: .page, name: Self.name)
     }
 
@@ -141,6 +145,7 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
             switch cmd {
             case "save":
                 guard let library = vault.library else { return reply(nil, "locked") }
+                guard !libraryUnreadable else { return reply(nil, "the library could not be read, so nothing is saved over it") }
                 guard let list = body["list"] as? [[String: Any]] else { return reply(nil, "save needs a list") }
                 switch body["kind"] as? String {
                 case "takes":

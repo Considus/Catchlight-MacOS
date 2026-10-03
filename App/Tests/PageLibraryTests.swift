@@ -73,4 +73,20 @@ final class PageLibraryTests: XCTestCase {
         XCTAssertEqual(seeds.filter(\.isObie).count, 1)
         XCTAssertNotNil(seeds.first { $0.timeReminder != nil })
     }
+
+    func testAnUnreadableLibraryRefusesEverySave() throws {
+        let vault = Vault(secrets: MemorySecrets(), directory: dir)
+        try vault.createAccount(words: try Vault.newPhrase(), restored: true)
+        try vault.library!.saveScripts([["id": UUID().uuidString, "at": "2026-06-12", "mode": "a4", "blocks": ["Kept"]]])
+        try Data("not a sealed box".utf8).write(to: vault.library!.scripts.directory.appendingPathComponent("\(UUID().uuidString.lowercased()).sealed"))
+        let (harness, bridge) = page(with: vault)
+
+        XCTAssertTrue(bridge.libraryUnreadable)
+        let result = try harness.run("""
+            try { await window.webkit.messageHandlers.catchlight.postMessage({cmd: 'save', kind: 'scripts', list: []}); return 'saved'; }
+            catch (e) { return 'refused'; }
+            """, in: self) as? String
+        XCTAssertEqual(result, "refused")
+        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: vault.library!.scripts.directory.path).count, 2, "nothing was deleted")
+    }
 }

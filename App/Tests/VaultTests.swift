@@ -198,12 +198,10 @@ final class LibraryTests: XCTestCase {
         XCTAssertEqual(try library.pageTakes().count, 1)
     }
 
-    func testAnEmptySaveIsRefused() throws {
+    func testDeletingTheLastTakeIsSaved() throws {
         _ = try library.saveTakes([page("A")])
-        XCTAssertThrowsError(try library.saveTakes([])) {
-            XCTAssertEqual($0 as? Library.Failure, .refusedToEmpty(stored: 1))
-        }
-        XCTAssertEqual(try library.pageTakes().count, 1)
+        XCTAssertEqual(try library.saveTakes([]), Library.SaveReport(deleted: 1))
+        XCTAssertEqual(try library.pageTakes().count, 0)
     }
 
     func testARejectedTakeKeepsItsStoredVersion() throws {

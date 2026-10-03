@@ -5,7 +5,9 @@ import os
 /// The open library: Takes in Core's `TakeStore`, Scripts in the `ScriptVault`. The page saves its
 /// whole Take list at once (`saveTakes()` in `ui/takes.js`), so a save is a diff against the
 /// store: a Take whose content changed is upserted, a Take the page no longer holds is deleted,
-/// which leaves the tombstone sync needs (M3).
+/// which leaves the tombstone sync needs (M3). An empty list is a real answer (the last Take
+/// deleted); the protection against saving over a library the page never saw is the bridge's,
+/// which refuses saves when the library failed to load.
 final class Library {
     struct SaveReport: Equatable {
         var upserted = 0
@@ -13,12 +15,6 @@ final class Library {
         var unchanged = 0
         /// Takes the page sent that could not be translated; the stored version is left alone.
         var rejected: [String] = []
-    }
-
-    enum Failure: Error, Equatable {
-        /// An empty list against a non-empty store. The page has no "delete everything" except
-        /// Erase, which goes through the Vault, so this is a bug and nothing is deleted.
-        case refusedToEmpty(stored: Int)
     }
 
     private static let log = Logger(subsystem: "com.considus.catchlight.mac", category: "library")
@@ -38,7 +34,6 @@ final class Library {
 
     func saveTakes(_ page: [[String: Any]], now: Date = Date()) throws -> SaveReport {
         let stored = Dictionary(uniqueKeysWithValues: try store.allTakes().map { ($0.id, $0) })
-        if page.isEmpty, !stored.isEmpty { throw Failure.refusedToEmpty(stored: stored.count) }
 
         var report = SaveReport()
         var seen = Set<UUID>()

@@ -295,7 +295,7 @@ sheet.addEventListener('click', async e => {
   else if (act === 'sd-restore') secondDeviceRestore();
   else if (act === 'reveal-phrase') {
     // In the Mac app the words come from the Keychain, which asks for Touch ID or the password.
-    if (window.catchlightBridge?.library) shell.revealPhrase().then(w => { shownPhrase = w; subStack.push('phrase-shown'); paintSettings(); }).catch(() => {});
+    if (window.catchlightBridge?.library) shell.revealPhrase().then(w => { if (!w) return; shownPhrase = w; subStack.push('phrase-shown'); paintSettings(); }).catch(() => {});   // no words: the prompt was cancelled
     else { subStack.push('phrase-shown'); paintSettings(); }
   }
   else if (act === 'clear-notices') { settings.notices = noticeList().filter(n => n.category === 'lifecycle'); SAMPLE_NOTICES = null; saveSettings(); paintSettings(); }   // clearUserFacing: the lifecycle breadcrumbs stay

@@ -20,7 +20,7 @@ What M2 added, in `App/Sources/Vault/`:
 
 - `Vault.swift`: the account. At launch `AppDelegate` opens it before the window loads (Touch ID or the login password; a cancelled unlock offers Try Again or Quit). First run stores the phrase, then the key (D-253, as the iPhone), then opens the library. A new phrase moves an existing library aside (`Catchlight-before-<date>`), never deletes it. The library folder is Application Support/Catchlight in the container, excluded from Time Machine (D-340).
 - `Secrets.swift`: `KeychainSecrets` (the shared Keychain code) and `MemorySecrets` (tests, `-CLDebugAccount`).
-- `Library.swift`: the page saves its whole Take list; the library diffs it against the store, upserts what changed, deletes what is gone (leaving tombstones for M3), and refuses an empty list against a non-empty store.
+- `Library.swift`: the page saves its whole Take list; the library diffs it against the store, upserts what changed and deletes what is gone (leaving tombstones for M3). If the library can't be read at launch, the bridge refuses every save and the page says so, so an empty page is never saved over a library it never saw.
 - `TakeTranslation.swift`: the page's Take ⇄ Core's. The page's edit is laid over the stored Take through Core's own JSON coder, so fields the page doesn't model (block ids, delivery state, notification id, `anchorDay`, a place reminder's coordinates) survive. A content change the page didn't stamp gets a new `modifiedAt`, because sync settles conflicts by it. Ids are UUIDs (`newId()` in `ui/app.js`); anything else is refused.
 - `ScriptVault.swift`: Scripts, one AES-256-GCM sealed file each under Core's per-item key for the Script's id. Mac-only and provisional until M3 settles how a Script travels (D-315).
 
@@ -84,10 +84,10 @@ codesign -dv --entitlements - "$APP"                 # flags include runtime
 open "$APP"
 ```
 
-Run the unit tests. Read the count, not the word. There are 71 at M2:
+Run the unit tests. Read the count, not the word. There are 72 at M2:
 
 - 17 from M1: the shortcut parser, the navigation rule, the menu builder on a fixture and on the real `ui/` model with `collisions()` empty, and the rule list measured in a WKWebView against a local server that counts what reaches it.
-- 23 for the library: translation round trips of every shape the page produces, the save diff, sealed Scripts, the Vault's first run, relaunch, restore and erase, and the real `ui/` saving through the bridge into the encrypted store.
+- 24 for the library: translation round trips of every shape the page produces, the save diff, sealed Scripts, the Vault's first run, relaunch, restore and erase, and the real `ui/` saving through the bridge into the encrypted store, and the bridge refusing every save when the library could not be read.
 - 31 from Core's `TakeStoreContractTests`, which `CatchlightCoreTestSupport` brings in.
 
 ```bash
