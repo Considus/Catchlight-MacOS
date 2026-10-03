@@ -330,7 +330,8 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
   color: var(--text); font: 14px "DM Sans", sans-serif; outline: none;
 }
 .dock-search::placeholder { color: var(--text-2); }
-.sidebar .month-label { cursor: pointer; }
+.sidebar .month-label { cursor: pointer; padding: 0; text-transform: inherit; letter-spacing: inherit; text-align: left; }   /* a button since it filters (UIKitTimeline) */
+.sidebar .month-label:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px; }
 .month.on .month-label { color: var(--obie-text); display: inline-flex; gap: 6px; align-items: center; }
 .month .xmark { width: 14px; height: 14px; stroke-width: 1.6; }
 .sheet-close { position: absolute; z-index: 4; top: 6px; right: 12px; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; color: var(--accent); }

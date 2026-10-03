@@ -182,7 +182,7 @@ const SUB = {
     if (!words) return ['Privacy phrase', `<div class="ssub-col"><h2 class="ssub-heading">Phrase isn't on this device</h2>
       <p>Catchlight stores the Privacy phrase only on the device where you set it up. If you onboarded on a different device, use that one to view it.</p></div>`];
     return ['Privacy phrase', `<div class="ssub-col">
-      <ol class="fr-words">${words.map((w, i) => `<li><span>${i + 1}</span><b class="held">${esc(w)}</b></li>`).join('')}</ol>
+      <ol class="fr-words" data-phrase aria-label="Privacy phrase" aria-hidden="true">${words.map((w, i) => `<li><span>${i + 1}</span><b class="held">${esc(w)}</b></li>`).join('')}</ol>
       <p>Write these 12 words down somewhere safe, on paper. They're the only way back into your Takes on a new device.</p>
       <button class="fr-pill primary hold" type="button" data-hold>Hold to reveal</button></div>`];
   },
@@ -201,6 +201,7 @@ const SUB = {
 const sheet = $('#settings');
 let subStack = [];
 function paintSettings(keepScroll = true) {
+  sheet.classList.remove('revealing');   // the phrase never stays revealed past its own page
   const scroll = sheet.querySelector('.sheet-scroll')?.scrollTop || 0;
   const top = subStack.at(-1);
   const [title, body] = top ? SUB[top]() : [null, settingsPage()];
@@ -219,6 +220,7 @@ function openSettings(section) {
   sheet.querySelector('.sheet-x').focus();
 }
 function closeSettings() {
+  sheet.classList.remove('revealing');
   sheet.classList.remove('open');
   ctx.hidden = true;   // About's menu sits over the sheet
   setTimeout(() => { if (!sheet.classList.contains('open')) { sheet.hidden = true; sheet.innerHTML = ''; } }, still.matches ? 0 : 300);
@@ -288,12 +290,25 @@ function secondDeviceRestore() {
 // Wired once first-run.js, which owns the grid, has loaded.
 addEventListener('DOMContentLoaded', () => wirePhraseEntry(sheet, () => paintSecondDevice(), secondDeviceRestore));
 
-// Hold to reveal: the words show only while the button is held.
+// Hold to reveal: the words show only while the button is held. From the keyboard, Space or
+// Return shows them and a second press hides them, as iOS offers Reveal and Hide as actions.
+sheet.addEventListener('keydown', e => {
+  const b = e.target.closest('[data-hold]');
+  if (!b || (e.key !== ' ' && e.key !== 'Enter')) return;
+  e.preventDefault();
+  if (e.repeat) return;   // a held key is one press
+  const on = !sheet.classList.contains('revealing');
+  sheet.classList.toggle('revealing', on);
+  b.textContent = on ? 'Hide phrase' : 'Hold to reveal';
+  b.setAttribute('aria-pressed', String(on));
+  sheet.querySelector('[data-phrase]')?.setAttribute('aria-hidden', String(!on));   // the words are read only while shown
+});
 sheet.addEventListener('pointerdown', e => {
   const b = e.target.closest('[data-hold]');
   if (!b) return;
-  sheet.classList.add('revealing'); b.textContent = 'Release to hide';
-  const end = () => { sheet.classList.remove('revealing'); b.textContent = 'Hold to reveal'; removeEventListener('pointerup', end); removeEventListener('pointercancel', end); };
+  const words = sheet.querySelector('[data-phrase]');
+  sheet.classList.add('revealing'); b.textContent = 'Release to hide'; words?.setAttribute('aria-hidden', 'false');
+  const end = () => { sheet.classList.remove('revealing'); b.textContent = 'Hold to reveal'; b.setAttribute('aria-pressed', 'false'); words?.setAttribute('aria-hidden', 'true'); removeEventListener('pointerup', end); removeEventListener('pointercancel', end); };
   addEventListener('pointerup', end); addEventListener('pointercancel', end);
 });
 
