@@ -533,13 +533,17 @@ function openCtx(target, x, y) {
     const li = document.createElement('li'), b = document.createElement('button');
     b.textContent = label; b.type = 'button';
     if (kind === 'danger') {
-      // Delete asks twice in place rather than through a dialog the shells would each draw.
+      // Delete asks through the same alert as everywhere else (DeleteConfirmation on iOS).
       b.className = 'danger';
       b.addEventListener('click', () => {
-        if (b.dataset.armed || !settings.confirmDelete) { ctx.hidden = true; deleteTake(take.dataset.take); return; }
-        b.dataset.armed = '1'; b.textContent = 'Delete? Click again';
+        const t = takes.find(x => x.id === take.dataset.take);
+        ctx.hidden = true;
+        if (asksWhichToDelete(t)) askWhichToDelete(t);
+        else if (settings.confirmDelete) askDelete(t);
+        else deleteTake(t.id);
+        refocus();   // a11y.js: deferred while an alert is open; otherwise the card is gone and it just clears
       });
-    } else b.addEventListener('click', () => { ctx.hidden = true; act(); });
+    } else b.addEventListener('click', () => { ctx.hidden = true; act(); refocus(); });   // refocus: a11y.js
     li.append(b); ctx.append(li);
   }
   ctx.hidden = false;

@@ -16,6 +16,8 @@ let takes = store.get('takes2', [
   { id: 't6', at: '2026-07-04T16:00:00Z', blocks: [{ k: 'text', text: 'Before the weekend' }, { k: 'check', text: 'Ask Sam about the second-hand 90mm lens', done: false }, { k: 'check', text: 'Lens cloth', done: false }], isNote: true },
   { id: 't7', at: '2026-07-09T11:00:00Z', blocks: [{ k: 'text', text: 'Paper stock: Hahnemühle Photo Rag 308 for the large prints, Baryta for the small ones.' }], isNote: true, isImportant: true },
 ]);
+// An Obie is always Important (Take.isObie's didSet, and the decoder ORs it back in on load).
+takes.forEach(t => { if (t.obie) t.isImportant = true; });
 const saveTakes = () => store.set('takes2', takes);
 
 // ---------- what a Take is (CatchlightCore's derived properties) ----------
@@ -78,8 +80,11 @@ function commitReorder(id, displayIds) {
 
 // ---------- the timeline card ----------
 function takeCard(t) {
-  const cls = ['card', t.obie && 'obie', isOverdue(t) && 'overdue', isDone(t) && 'done'].filter(Boolean).join(' ');
-  const body = t.blocks.map(b => `<span class="${b.k === 'check' && b.done ? 'ticked' : ''}">${esc(b.text)}</span>`).join('\n');
+  // Links are live, as on the card on iOS; with two or more the lines open up so each is easy
+  // to hit (TakeRowView.bodyNeedsLinkSpacing).
+  const links = t.blocks.reduce((n, b) => n + detectLinks(b.text).length, 0);
+  const cls = ['card', t.obie && 'obie', isOverdue(t) && 'overdue', isDone(t) && 'done', links >= 2 && 'links'].filter(Boolean).join(' ');
+  const body = t.blocks.map(b => `<span class="${b.k === 'check' && b.done ? 'ticked' : ''}">${linkify(b.text)}</span>`).join('\n');
   let meta = '';
   if (isTask(t)) {
     const checks = t.blocks.filter(b => b.k === 'check');
@@ -87,7 +92,7 @@ function takeCard(t) {
   }
   if (t.reminder) meta += reminderMeta(t.reminder);   // reminders.js
   if (settings.creationStamp === 'always') meta += `<div class="stamp">${esc(createdLabel(t.at))}</div>`;   // Settings → Creation date
-  return `<div class="${cls}${expanded.has(t.id) ? ' expanded' : ''}" data-take="${t.id}"><span class="iris-wrap" data-iris="${t.id}">${irisHtml(typesOf(t), t.obie)}</span><div class="body">${body}</div>${meta}${reorderHandle(t)}</div>`;
+  return `<div class="${cls}${expanded.has(t.id) ? ' expanded' : ''}" data-take="${t.id}" ${cardA11y(t)}><span class="iris-wrap" data-iris="${t.id}" ${irisA11y(t)}>${irisHtml(typesOf(t), t.obie)}</span><div class="body">${body}</div>${meta}${reorderHandle(t)}</div>`;
 }
 // The ≡ strip on the card's trailing edge in Manual (TimelineDragHandle). It is a button so the
 // keyboard can reach it: ⌥↑ and ⌥↓ stand in for VoiceOver's Move up and Move down.
@@ -100,6 +105,8 @@ function renderTakes() {
   const list = $('#takes'), pinned = $('#pinned');
   for (const el of [list, pinned]) { el.dataset.preview = settings.takePreview; el.dataset.spacing = settings.takeSpacing; }
   const order = (a, b) => settings.takeSort === 'newest' ? b.at.localeCompare(a.at) : a.at.localeCompare(b.at);
+  // The Storyboard is not the timeline: plain cards, no spine and no Iris (StoryboardView).
+  list.classList.toggle('storyboard', storyboard);
   if (storyboard) {
     // Every Take with an unticked item, the Obie among them and not pinned; no month dividers.
     pinned.hidden = true; list.classList.remove('under-obie');
@@ -118,7 +125,9 @@ function renderTakes() {
     // the hand-made order, which the ≡ handle changes.
     const shown = takes.filter(t => t !== obie && matches(t));
     list.classList.toggle('reorderable', canReorder());
-    if (settings.takeArrangement === 'manual') list.innerHTML = inOrder(arranged(shown)).map(takeCard).join('');
+    // Nothing at all yet (not a filter that matches nothing): iOS's empty state.
+    if (!takes.length) list.innerHTML = '<div class="empty first-take"><p>Your first Take is waiting.</p></div>';
+    else if (settings.takeArrangement === 'manual') list.innerHTML = inOrder(arranged(shown)).map(takeCard).join('');
     else timeline(list, shown.sort(order), takeCard);
     const lit = filterMonth && list.querySelector(`.month[data-month="${filterMonth}"]`);
     if (lit) { lit.classList.add('on'); lit.querySelector('.month-label').insertAdjacentHTML('beforeend', ICON_XMARK); }
@@ -131,12 +140,14 @@ function renderTakes() {
 // (KeyboardTakeEditor on iOS). Clicking outside, Escape and ⌘S save; only × discards.
 const sidebar = $('#sidebar'), editorCard = $('#take-editor'), rows = $('#take-rows');
 let draft = null, original = null, focusRing = null;
+let draftComplete = false;   // was every item ticked at the last change? (All tasks done)
 
 function beginEdit(t, isNew = false) {
   if (draft) commitEdit();
   if (dock === 'searching') exitToResting();   // opening a Take leaves search first (UIState)
   original = isNew ? null : t;
   draft = structuredClone(t);
+  draftComplete = isComplete(draft);
   if (!draft.blocks.length) draft.blocks.push({ k: 'text', text: '' });
   sidebar.classList.add('editing');
   editorCard.hidden = false;
@@ -214,6 +225,7 @@ function endEdit() {
   rows.innerHTML = '';   // nothing of an edit outlives it, discarded or not
   sidebar.classList.remove('editing');
   saveTakes(); renderTakes();
+  refocus();   // a11y.js: back to the card the keyboard edited
 }
 
 // Keys inside the editor, as BlockEditor.swift handles them.
@@ -255,12 +267,12 @@ function paintIris() { $('#take-editor-iris').innerHTML = irisHtml(typesOf(draft
 document.addEventListener('mousedown', e => {
   swallowClick = false;   // a press with no click after it must not leave the flag set
   if (!draft || focusRing) return;
-  if (e.target.closest('#take-editor, #editor-bar, #reminder-sheet')) return;
+  if (e.target.closest('#take-editor, #editor-bar, #reminder-sheet, #shot-list, dialog.alert')) return;
   if (sidebar.contains(e.target)) { e.preventDefault(); swallowClick = true; }
   commitEdit();
 }, true);
 document.addEventListener('keydown', e => {
-  if (!draft || focusRing || reminderFor) return;
+  if (!draft || focusRing || reminderFor || alertBox.open || shotListOpen()) return;   // each closes itself
   if (e.key === 'Escape' || ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's')) {
     e.preventDefault();
     commitEdit();
@@ -271,13 +283,35 @@ document.addEventListener('keydown', e => {
 function paintBar() {
   const task = isTask(draft);
   $('#eb-third').innerHTML = task ? ICON_CHECKLIST : ICON_IMPORTANT;
-  $('#eb-third').setAttribute('aria-label', task ? 'Shot List (not built yet)' : (draft.isImportant ? 'Remove Important' : 'Make Important'));
+  $('#eb-third').setAttribute('aria-label', task ? 'Open Shot List' : (draft.isImportant ? 'Remove Important' : 'Make Important'));
+  $('#eb-third').disabled = !task && !!draft.obie;   // an Obie stays Important
   $('#eb-done').disabled = !canBeMarkedDone(draft);
+  const remind = draft.reminder ? 'Edit reminder' : 'Add reminder';   // EditorKeyboardBar's label
+  $('#eb-remind').setAttribute('aria-label', remind); $('#eb-remind').title = remind;
+  noteTicks();
+}
+
+// "All tasks done." (owner 2026-08-11): ticking the last item, in the editor or the Shot List,
+// asks whether to stop the Take's reminder. Only in Dailies, only when the reminder would still
+// fire: on, not done, and not one ReminderScheduler would skip anyway (a one-off on a Take that
+// is nothing but a finished checklist). Stop removes the reminder; the Take stays.
+function noteTicks() {
+  const now = isComplete(draft), was = draftComplete;
+  draftComplete = now;
+  if (was || !now || storyboard) return;
+  const r = draft.reminder;
+  if (!isTimeR(r) || r.notify === false || r.done) return;
+  if (!repeats(r) && draft.blocks.every(b => b.k === 'check')) return;
+  ask('All tasks done.', 'Every task on this Take is ticked. Stop its reminder?', [
+    ['Stop', () => { if (!draft) return; delete draft.reminder; noteFloor(draft); paintIris(); paintBar(); }],
+    ['Ignore', null, 'cancel'],
+  ]);
 }
 $('#eb-discard').addEventListener('click', discardEdit);
 $('#eb-third').addEventListener('click', () => {
   readRows();
-  if (isTask(draft)) return;                                            // the Shot List Angle is not built yet
+  if (isTask(draft)) { openShotList(); return; }                        // shot-list.js
+  if (draft.obie) return;                                               // an Obie stays Important
   draft.isImportant = !draft.isImportant;
   if (!draft.isImportant) noteFloor(draft);
   paintIris(); paintBar();
@@ -328,6 +362,7 @@ function openFocusRing(t, irisEl, fromEditor) {
     lift.classList.add('lifted');
     Object.assign(lift.style, { left: r.left - host.left + 'px', top: r.top - host.top + 'px', width: r.width + 'px', margin: 0 });
     lift.querySelector('.iris-wrap')?.remove();
+    lift.inert = true; lift.removeAttribute('tabindex');   // a picture of the card, not a second one to Tab to
     ring.append(lift);
   }
   const hub = document.createElement('div');
@@ -387,7 +422,9 @@ function closeFocusRing(apply) {
     const before = JSON.stringify(target);
     // Only what changed is written, so an unchanged ring is a no-op (D-250).
     if (!!target.isNote !== sel.has('note')) target.isNote = sel.has('note');
-    if (!!target.isImportant !== sel.has('important')) target.isImportant = sel.has('important');
+    // An Obie is always Important, so the ring can't take it off one (DailiesViewModel).
+    const important = sel.has('important') || !!target.obie;
+    if (!!target.isImportant !== important) target.isImportant = important;
     if (sel.has('task') && !isTask(target)) target.blocks.push({ k: 'check', text: '', done: false });
     if (!sel.has('task') && isTask(target)) target.blocks = target.blocks.map(b => ({ k: 'text', text: b.text }));
     if (!sel.has('remind')) { if (target.reminder) target.reminder = null; }   // a picked time with Remind off is dropped
@@ -404,6 +441,7 @@ function closeFocusRing(apply) {
     // Turning Task on from the timeline opens the editor on the new empty item, as on iOS.
     const target = takes.find(x => x.id === t.id);
     if (apply && sel.has('task') && target && target.blocks.at(-1)?.k === 'check' && !target.blocks.at(-1).text) beginEdit(target);
+    else refocus();
   }
 }
 document.addEventListener('keydown', e => { if (focusRing && !reminderFor && e.key === 'Escape') { e.preventDefault(); closeFocusRing(true); } });
@@ -418,10 +456,8 @@ sidebar.addEventListener('pointerdown', e => {
   const hold = irisHold = { id: ir.dataset.iris, x: e.clientX, y: e.clientY, fired: false, t: setTimeout(() => {
     hold.fired = true;
     const t = takes.find(x => x.id === hold.id);
-    const make = !t.obie;
-    takes.forEach(x => { x.obie = false; });
-    t.obie = make; if (make) t.isImportant = true;   // becoming the Obie makes it Important; Important can be removed later, as on iOS (Take.isObie)
-    t.modifiedAt = Date.now(); saveTakes(); renderTakes();
+    if (!t.obie) makeObie(t);
+    else { t.obie = false; touch(t); }   // holding the Obie's Iris makes it a standard Take again, without asking
   }, 450) };
 });
 // A hold that moves (a scroll) or is cancelled is not a hold.
@@ -448,6 +484,7 @@ sidebar.addEventListener('click', e => {
     openFocusRing(takes.find(x => x.id === ir.dataset.iris), ir, false);
     return;
   }
+  if (e.target.closest('.card a.tlink')) return;   // a link opens; anywhere else on the card edits it
   const card = e.target.closest('.timeline .card, #pinned .card');
   if (card && !e.target.closest('.thandle')) beginEdit(takes.find(x => x.id === card.dataset.take));
 });
@@ -492,6 +529,7 @@ const ICON = {
 
 function paintDock() {
   const bar = $('#takes-dock');
+  announceDock();   // a11y.js
   bar.hidden = storyboard;   // the Storyboard covers Dailies and carries only its ×
   bar.dataset.mode = dock;
   const btn = (act, icon, label, extra = '') => `<button class="dock-btn${extra}" type="button" data-act="${act}" aria-label="${label}" title="${label}">${icon}</button>`;
@@ -640,13 +678,14 @@ function takeMenu(id) {
   const items = [];
   if (!storyboard) items.push([expanded.has(id) ? 'Collapse Take' : 'Expand Take', () => toggleExpanded(id)]);
   if (canBeMarkedDone(t)) items.push([isDone(t) ? 'Mark Not Done' : 'Mark Done', () => { toggleDone(t); touch(t); }]);
-  items.push([t.isImportant ? 'Remove Important' : 'Make Important', () => {
+  // An Obie stays Important, so its menu has nothing to offer here.
+  if (!t.obie) items.push([t.isImportant ? 'Remove Important' : 'Make Important', () => {
     t.isImportant = !t.isImportant;
     if (!t.isImportant) noteFloor(t);
     touch(t);
   }]);
   if (!storyboard) {
-    if (!t.obie) items.push(['Make Obie', () => { takes.forEach(x => { x.obie = false; }); t.obie = true; t.isImportant = true; touch(t); }]);
+    if (!t.obie) items.push(['Make Obie', () => makeObie(t)]);
     items.push(['Export Take', () => exportTake(t)]);
     items.push(['Expand into a Script', () => {
       takes = takes.filter(x => x !== t);
@@ -657,6 +696,15 @@ function takeMenu(id) {
   items.push(['Delete Take', null, 'danger']);
   return items;
 }
+// Making a Take the Obie when another already is asks first (RootView, owner copy 2026-06-17).
+// Becoming the Obie makes it Important; Important can be taken off later (Take.isObie).
+function makeObie(t) {
+  const make = () => { takes.forEach(x => { x.obie = false; }); t.obie = true; t.isImportant = true; touch(t); };
+  if (!takes.some(x => x.obie && x.id !== t.id)) { make(); return; }
+  ask('Make this your Obie?', 'Your existing Obie returns to the timeline. Only one Take can be your Obie.', [['Make Obie', make], ['Cancel', null, 'cancel']]);
+}
+// Confirm before deleting (DeleteConfirmation): Delete first, then Cancel, as on iOS.
+const askDelete = t => ask('Delete this Take?', 'This cannot be undone.', [['Delete', () => deleteTake(t.id), 'danger'], ['Cancel', null, 'cancel']]);
 function touch(t) { t.modifiedAt = Date.now(); saveTakes(); renderTakes(); }
 function forgetExpanded(id) { if (expanded.delete(id)) store.set('expanded', [...expanded].sort()); }
 function deleteTake(id) {
@@ -664,6 +712,47 @@ function deleteTake(id) {
   forgetExpanded(id);
   saveTakes(); renderTakes();
 }
+
+// Delete on a repeating reminder in Dailies asks which, as on iOS (owner 2026-06-21): Delete
+// This Occurrence skips to the next one and the series goes on; Delete Series deletes the Take.
+// It replaces Confirm before deleting, since it already asks. The Storyboard's menu has no
+// such dialog on iOS, so there a repeating Take deletes like any other.
+const asksWhichToDelete = t => !storyboard && repeats(t.reminder);
+function askWhichToDelete(t) {
+  ask('This is a repeating reminder.', 'Delete only the next occurrence, or the whole repeating series?', [
+    ['Delete This Occurrence', () => {
+      // Leave the editor first if this Take is open, or saving the draft would undo the skip.
+      if (draft && original?.id === t.id) discardEdit();
+      advanceRepeat(t.reminder); touch(t);
+    }],
+    ['Delete Series', () => deleteTake(t.id), 'danger'],
+    ['Cancel', null, 'cancel'],
+  ]);
+}
+
+// The alert (NSAlert on the Mac, .alert or .confirmationDialog on iOS; each shell draws its
+// own). `actions` are [label, run, kind]; kind 'cancel' takes focus and Escape, 'danger' is red.
+const alertBox = document.createElement('dialog');
+alertBox.className = 'alert';
+document.body.append(alertBox);
+let alertActions = [];
+function ask(title, message, actions) {
+  alertActions = actions;
+  alertBox.innerHTML = `<h2>${esc(title)}</h2><p>${esc(message)}</p><div class="alert-actions">${
+    actions.map(([label, , kind], i) => `<button type="button" data-i="${i}"${kind ? ` class="${kind}"` : ''}>${esc(label)}</button>`).join('')}</div>`;
+  alertBox.showModal();
+  (alertBox.querySelector('.cancel') || alertBox.querySelector('button')).focus();
+}
+alertBox.addEventListener('click', e => {
+  const b = e.target.closest('button[data-i]');
+  if (!b) return;
+  const run = alertActions[b.dataset.i][1];
+  alertActions = []; alertBox.close();
+  run && run();
+});
+// 'close' is queued after the action has run and repainted, so refocus() (a11y.js), which an
+// open alert defers, now finds the new card or Iris (Make Obie, Delete This Occurrence).
+alertBox.addEventListener('close', () => { alertActions = []; refocus(); });
 
 // A Script made back into a Take: "- [ ]" lines become checklist items, the rest text.
 function takeFromScript(s) {
