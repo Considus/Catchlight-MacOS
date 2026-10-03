@@ -44,6 +44,7 @@ const SI = {   // row icons, drawn to sit beside the iOS SF Symbols they stand i
   clock: '<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>',
   zzz: '<path d="M5 6h5l-5 6h5M13 11h4l-4 5h4M17 4h3l-3 3h3"/>',
   bell: '<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20.5h4"/>',
+  bellOff: '<path d="M6 16V11a6 6 0 0 1 9.5-4.9M18 11v5l1.5 2H8M10 20.5h4M4 4l16 16"/>',
   lock: '<rect x="5.5" y="10.5" width="13" height="10" rx="2"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/>',
   trash: '<path d="M5 7h14M10 7V5h4v2M7 7l1 13h8l1-13"/>',
   warn: '<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.5"/>',
@@ -192,8 +193,15 @@ const SUB = {
       ${phraseGrid()}
       <p class="fr-status" id="sd-status" aria-live="polite">0 of 12 words</p>
       <button class="fr-pill primary" type="button" data-act="sd-restore" disabled>Restore on this device</button></div>`],
-  notices: () => ['Notice History', settings.notices.length ? `<div class="sgroup">${settings.notices.map(n => `<div class="srow">${icon('info')}<span class="srow-label">${esc(n)}</span></div>`).join('')}</div>`
-    : `<div class="ssub-col empty-col">${icon('bell')}<h2 class="ssub-heading">No notices yet</h2><p class="quiet">Sync, storage and conflict notices will appear here.</p></div>`],
+  // NoticeHistoryView: the user-facing notices, newest first, each with its category's icon and
+  // a relative time; Clear empties them. Lifecycle entries stay in diagnostics, as on iOS.
+  notices: () => {
+    const shown = noticesShown();
+    return ['Notice History', shown.length ? `<div class="snotice-bar"><button class="slink" type="button" data-act="clear-notices">Clear</button></div>
+      <div class="sgroup">${shown.map(n => `<div class="srow tall snotice" role="group" aria-label="${NOTICE_KIND[n.category].name}. ${esc(n.message)}" aria-description="${ago(n.at)}">
+        <svg class="srow-icon ${NOTICE_KIND[n.category].tint}" viewBox="0 0 24 24" aria-hidden="true">${NOTICE_KIND[n.category].icon}</svg><span class="srow-label">${esc(n.message)}<small>${ago(n.at)}</small></span></div>`).join('')}</div>`
+      : `<div class="ssub-col empty-col">${icon('bellOff')}<h2 class="ssub-heading">No notices yet</h2><p class="quiet">Sync, storage and conflict notices will appear here.</p></div>`];
+  },
 };
 
 // ---------- the sheets ----------
@@ -222,7 +230,32 @@ function closeSettings() {
   ctx.hidden = true;   // About's menu sits over the sheet
   setTimeout(() => { if (!sheet.classList.contains('open')) { sheet.hidden = true; sheet.innerHTML = ''; } }, still.matches ? 0 : 300);
 }
-const notice = msg => { settings.notices.unshift(msg); saveSettings(); };
+// A notice is { category, message, at }, as DiagnosticsLog keeps it; `category` is one of
+// NOTICE_KIND. Sync, storage, conflict and quarantine are shown; lifecycle is not (iOS keeps it
+// for Export diagnostics). Older prototype entries were plain strings, read as sync notices.
+const NOTICE_KIND = {
+  sync: { name: 'Sync', tint: 'accent', icon: '<path d="M5 12a7 7 0 0 1 12-5l2 2M19 12a7 7 0 0 1-12 5l-2-2M19 4v5h-5M5 20v-5h5"/>' },
+  storage: { name: 'Storage', tint: 'ruby', icon: '<rect x="4" y="12" width="16" height="7" rx="2"/><path d="M7 15.5h.5M12 4v5M12 10.5v.5"/>' },
+  conflict: { name: 'Conflict', tint: 'accent', icon: '<path d="M7 4v6a4 4 0 0 0 4 4h6M17 14l-3-3M17 14l-3 3M7 20v-6"/>' },
+  quarantine: { name: 'Quarantine', tint: 'ruby', icon: '<rect x="5.5" y="10.5" width="13" height="10" rx="2"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 6.6-1.6M4 4l16 16"/>' },
+  lifecycle: { name: 'App', tint: 'accent', icon: SI.info },
+};
+const noticeList = () => settings.notices.map(n => typeof n === 'string' ? { category: 'sync', message: n, at: 0 } : n);
+const noticesShown = () => noticeList().filter(n => n.category !== 'lifecycle');
+const notice = (message, category = 'sync') => { settings.notices = [{ category, message, at: Date.now() }, ...noticeList()]; saveSettings(); };
+// "2 minutes ago", "yesterday": the relative, named style iOS uses.
+function ago(at) {
+  if (!at) return '';
+  const s = (at - Date.now()) / 1000, rtf = new Intl.RelativeTimeFormat([], { numeric: 'auto' });
+  for (const [unit, n] of [['year', 31536000], ['month', 2592000], ['week', 604800], ['day', 86400], ['hour', 3600], ['minute', 60]]) if (Math.abs(s) >= n) return rtf.format(Math.round(s / n), unit);
+  return rtf.format(0, 'second');
+}
+// ?notices: sample entries, to look at the list before a shell produces real ones.
+if (new URLSearchParams(location.search).has('notices') && !settings.notices.length) settings.notices = [
+  { category: 'sync', message: 'Synced 3 Takes from your cloud folder.', at: Date.now() - 2 * 60e3 },
+  { category: 'conflict', message: 'Two versions of a Take were edited. Both are kept.', at: Date.now() - 26 * 36e5 },
+  { category: 'storage', message: "The cloud folder couldn't be reached. Your Takes are safe on this Mac.", at: Date.now() - 4 * 864e5 },
+];
 
 sheet.addEventListener('change', e => {
   const k = e.target.dataset.set;
@@ -250,6 +283,7 @@ sheet.addEventListener('click', async e => {
   else if (act === 'sync-now') { e.target.textContent = 'Syncing…'; e.target.disabled = true; setTimeout(() => paintSettings(), 2000); }
   else if (act === 'sd-restore') secondDeviceRestore();
   else if (act === 'reveal-phrase') { subStack.push('phrase-shown'); paintSettings(); }
+  else if (act === 'clear-notices') { settings.notices = noticeList().filter(n => n.category === 'lifecycle'); saveSettings(); paintSettings(); }   // clearUserFacing: the lifecycle breadcrumbs stay
   else if (open && SUB[open]) {
     const go = () => { subStack.push(open); paintSettings(); if (open === 'second-device') sheet.querySelector('[data-word="0"]').focus(); };
     if (open !== 'second-device') go();
@@ -259,12 +293,12 @@ sheet.addEventListener('click', async e => {
   else if (open === 'notifications' && settings.notifications !== 'enabled') { settings.notifications = 'enabled'; saveSettings(); paintSettings(); }
   else if (open === 'export') exportTakes(takes);
   else if (open === 'import-notes') ask('Import notes', 'Any items in the folder, that have previously been imported, will be imported again.', [
-    ['Proceed', () => { notice('Import notes: the Import folder is read by the shell, which does not exist yet.'); paintSettings(); }], ['Cancel', null, 'cancel']]);
-  else if (open === 'import-file') notice('Import from a file: the file picker belongs to the shell, which does not exist yet.');
+    ['Proceed', () => ask('Import notes', "The Import folder is read by the shell, which doesn't exist yet.", [['OK', null, 'cancel']])], ['Cancel', null, 'cancel']]);
+  else if (open === 'import-file') ask('Import from a file', "The file picker belongs to the shell, which doesn't exist yet.", [['OK', null, 'cancel']]);
   else if (open === 'report') window.open('https://catchlight.app/support/?platform=macOS&app=0.1', '_blank', 'noopener');
-  else if (open === 'diagnostics') notice('Export diagnostics: the log is written by the shell, which does not exist yet.');
+  else if (open === 'diagnostics') ask('Export diagnostics', "The log is written by the shell, which doesn't exist yet.", [['OK', null, 'cancel']]);
   else if (open === 'start-over') startOver();
-  if (open === 'notices' || ['import-file', 'diagnostics'].includes(open)) paintSettings();
+  if (open === 'notices') paintSettings();
 });
 
 // Second device: the same entry grid as first run. Core checks the words; here, their shape.
@@ -281,7 +315,6 @@ function secondDeviceRestore() {
   // does the phrase kept from first run, which is no longer this account's.
   store.set('account', { ...store.get('account', {}), restored: true, phrase: undefined });
   takes = []; saveTakes(); renderTakes();
-  notice('Restored this device from its Privacy phrase.');
   closeSettings();
 }
 // Wired once first-run.js, which owns the grid, has loaded.

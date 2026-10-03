@@ -90,9 +90,12 @@ In the Claude desktop app the preview config is `catchlight-macos-ui`.
 - Scene follows the system, or Night or Daylight from the toolbar.
 - The open Script's title is the Script area's heading, in the same place, size and face as DAILIES and SCRIPTS; the toolbar carries no title.
 
+- **Auto-Delete runs when Dailies opens**, as iOS's sweep does (`Take+AutoCleanup`). It deletes a Take that is finished, has no note text (checklist text doesn't count), isn't the Obie or a repeating reminder, and hasn't been touched for longer than the Settings window (1, 7, 31 or 365 days). It is off by default.
+- **Notice History** works as iOS's does: sync, storage, conflict and quarantine notices, newest first, each with its category's icon and a relative time ("yesterday"), and a Clear button. App lifecycle entries stay out of it. `?notices` fills in samples to look at. Actions waiting on the shell (Import, Export diagnostics, Sync Now from the menu) say so in an alert, the surface iOS uses for their results, not as notices.
+
 ## Known gaps
 
-the native behind Lock after, Auto-Delete, Snooze, Follow-up reminders, Notifications, Import and Export diagnostics (stored or stubbed until the shell exists), Touch ID before Privacy phrase and Start over, pairing with another device (D-327 makes it a later convenience), notifications themselves and place search, map and location (the shell's), and images in a Script (deferred by decision I).
+the native behind Lock after, Snooze, Follow-up reminders, Notifications, Import and Export diagnostics (stored or stubbed until the shell exists), Touch ID before Privacy phrase and Start over, pairing with another device (D-327 makes it a later convenience), notifications themselves and place search, map and location (the shell's), and images in a Script (deferred by decision I).
 
 ## Fonts
 

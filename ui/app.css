@@ -604,3 +604,8 @@ body.with-menu-bar .app { height: calc(100vh - 26px); }
 .menu-sub > span::after { content: "▸"; margin-left: auto; }
 .menu-sub > .menu-list { display: none; top: -5px; left: 100%; margin: 0; }
 .menu-sub:hover > .menu-list { display: block; }
+
+/* Notice History (NoticeHistoryView): Clear at the top right; each icon in its category's tint. */
+.snotice-bar { display: flex; justify-content: flex-end; margin: -4px 0 6px; }
+.snotice .srow-icon.accent { color: var(--accent); }
+.snotice .srow-icon.ruby { color: var(--ruby); }
