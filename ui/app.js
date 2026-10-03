@@ -116,6 +116,8 @@ function renderScripts() {
     const pages = s.mode === 'continuous' ? 'Continuous' : `${s.mode === 'a4' ? 'A4' : 'US Letter'}${s.pageCount ? ` · ${s.pageCount} page${s.pageCount > 1 ? 's' : ''}` : ''}`;
     return `<div class="card${s.id === current ? ' selected' : ''}" data-script="${s.id}"><span class="iris-wrap"><span class="iris-shadow"></span>${iris(['note'])}</span><div class="body">${esc(body)}</div><div class="pages">${pages}</div></div>`;
   });
+  // No Scripts at all (not a search that matches none): the same quiet line Dailies shows.
+  if (!scripts.length) tl.innerHTML = '<div class="empty first-take"><p>Your first Script is waiting.</p></div>';
 }
 
 // ---------- markdown: one parser, two faces (source while editing, rendered otherwise) ----------

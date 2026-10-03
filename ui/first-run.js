@@ -9,11 +9,11 @@
 // ?platform=linux previews the others. The backup lines are only true because each shell keeps
 // the Takes out of that platform's backup (ui/README.md, "What each shell must do").
 const PLATFORMS = {
-  mac: { device: 'Mac', search: 'Spotlight & Siri', writingTools: true, noBackup: "Time Machine won't contain them", keptOut: 'because we deliberately keep them out of it' },
-  windows: { device: 'PC', search: 'Windows Search', noBackup: "Windows Backup and File History won't contain them", keptOut: 'because we deliberately keep them out of both' },
+  mac: { device: 'Mac', settingsKey: '⌘,', settingsWhere: 'Settings from the Catchlight menu', search: 'Spotlight & Siri', writingTools: true, noBackup: "Time Machine won't contain them", keptOut: 'because we deliberately keep them out of it' },
+  windows: { device: 'PC', settingsKey: 'Ctrl+,', settingsWhere: 'Settings from the File menu', search: 'Windows Search', noBackup: "Windows Backup and File History won't contain them", keptOut: 'because we deliberately keep them out of both' },
   // Named, as Time Machine is: only Déjà Dup honours the marker the shell writes, and a general
   // "your backups" would be untrue for rsync or Borg.
-  linux: { device: 'computer', search: 'Desktop search', noBackup: "Déjà Dup won't contain them", keptOut: 'because we deliberately keep them out of it' },
+  linux: { device: 'computer', settingsKey: 'Ctrl+,', settingsWhere: 'Preferences from the File menu', search: 'Desktop search', noBackup: "Déjà Dup won't contain them", keptOut: 'because we deliberately keep them out of it' },
 };
 const PLATFORM = PLATFORMS[new URLSearchParams(location.search).get('platform')] || PLATFORMS.mac;
 
@@ -154,11 +154,29 @@ function doRestore() {
   else paintRestoreStatus("That doesn't look right. Check the words and try again.");
 }
 
+// The five starter Takes a new account opens with, in lesson order, oldest first (SeedTakes in
+// CatchlightCore, the owner's words). Three phrases are the desktop's: clicking the Iris rather
+// than touching it, right-click beside swiping, and the Settings shortcut in place of a swipe
+// up. A restored account gets none: its Takes come from the cloud folder.
+function seedTakes() {
+  const now = Date.now(), at = s => new Date(now + s * 1000).toISOString();
+  return [
+    { id: 'seed-note', at: at(-50), isNote: true, blocks: [{ k: 'text', text: "A Take is like memory, the place to keep your ideas and it's simply easy. Try clicking the Iris on a Take, you'll see how effortless shaping a Take really is. Make it an Obie, task or add a reminder - do all of them or none of them, you're in control." }] },
+    { id: 'seed-task', at: at(-40), isNote: false, blocks: [{ k: 'text', text: 'Sometimes you need more structure, so when you need a list or plan to work from, add a task to your Take, yes, any Take, and give yourself time.' }, { k: 'check', text: 'Give yourself time to act', done: false }] },
+    { id: 'seed-remind', at: at(-30), isNote: false, reminder: { when: at(86400), done: false }, blocks: [{ k: 'text', text: "When timing is everything, use a reminder. These can be added to any Take; doesn't matter if it's a note, a task or both. When you need to be nudged, poked or pushed, reminders are invaluable." }] },
+    { id: 'seed-obie', at: at(-20), isNote: true, obie: true, isImportant: true, blocks: [{ k: 'text', text: "Only one Take is ever an Obie, that special memory or activity that's above all others. That's because you can only ever have one thought that's your most important and this is where it lives, always." }] },
+    { id: 'seed-farewell', at: at(-10), isNote: true, blocks: [{ k: 'text', text: `Delete these introductory Takes whenever you're ready, easy as swiping left on a Take, or right-clicking it. This is your Catchlight, use it in the way that fits you perfectly. Oh and, if you need to check out customisation and settings, press ${PLATFORM.settingsKey} or choose ${PLATFORM.settingsWhere}.` }] },
+  ];
+}
+
 function finish() {
   // The prototype keeps only its own placeholder words, so Settings → Privacy phrase shows the
   // same ones. Words someone typed in could be a real phrase and are never stored: a restored
   // account shows "Phrase isn't on this device". The real phrase lives only in the Keychain.
   store.set('account', { storage: fr.storage || 'cloud', folder: fr.folder, restored: fr.restore, phrase: fr.restore ? undefined : fr.words });
+  takes = fr.restore ? [] : seedTakes(); saveTakes(); renderTakes();   // AppModel: seeds after setup, none after a restore
+  // A new account has no Scripts yet, and a restored one gets its own from the folder (D-313).
+  scripts = []; current = null; save(); renderScripts(); renderDoc(); $('#script-heading').textContent = '';
   layer.hidden = true; layer.innerHTML = '';
   document.body.classList.remove('first-running');
 }
@@ -232,4 +250,13 @@ if (!store.get('account', null) || new URLSearchParams(location.search).has('fir
   document.body.classList.add('first-running');
   show('splash');
   setTimeout(() => { if (fr.step === 'splash') show('welcome'); }, still.matches ? 0 : 2500);
+}
+
+// Settings → Second device ends as iOS's does: the old folder is let go and the same Welcome
+// back screen as a first-run restore offers to connect this account's folder (RootView).
+function welcomeBack() {
+  Object.assign(fr, { restore: true, storage: 'cloud', folder: null });
+  document.body.classList.add('first-running');
+  layer.hidden = false;
+  show('restored');
 }

@@ -90,6 +90,8 @@ In the Claude desktop app the preview config is `catchlight-macos-ui`.
 - Scene follows the system, or Night or Daylight from the toolbar.
 - The open Script's title is the Script area's heading, in the same place, size and face as DAILIES and SCRIPTS; the toolbar carries no title.
 
+- **A new account opens with iOS's five starter Takes** (`SeedTakes`), in the owner's words with three desktop phrases: clicking the Iris, right-click beside swiping, and the Settings shortcut and menu in place of a swipe up. A restored account starts empty, its Takes coming from the folder, and neither starts with Scripts; an empty Scripts list reads "Your first Script is waiting." **Settings → Second device** ends as iOS's does: the old cloud folder is let go and Welcome back offers Not now or Connect cloud folder.
+
 ## Known gaps
 
 the native behind Lock after, Auto-Delete, Snooze, Follow-up reminders, Notifications, Import and Export diagnostics (stored or stubbed until the shell exists), Touch ID before Privacy phrase and Start over, pairing with another device (D-327 makes it a later convenience), notifications themselves and place search, map and location (the shell's), and images in a Script (deferred by decision I).
