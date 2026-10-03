@@ -297,6 +297,15 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 .ctx button:hover { background: var(--accent-fill); color: var(--on-accent); }
 .ctx button.danger { color: var(--ruby); }
 .ctx button.danger:hover { background: var(--ruby); color: #fff; }
+/* The alert a repeating reminder's Delete raises (NSAlert on the Mac). */
+.alert { width: min(320px, calc(100vw - 32px)); padding: 20px 18px 14px; border: 1px solid var(--card-border); border-radius: 12px; background: var(--surface); color: var(--text); box-shadow: 0 16px 48px rgba(0,0,0,.35); text-align: center; }
+.alert::backdrop { background: rgba(0,0,0,.35); }
+.alert h2 { margin: 0 0 6px; font: 600 15px "DM Sans", sans-serif; }
+.alert p { margin: 0 0 16px; font-size: 13px; line-height: 1.4; }
+.alert-actions { display: grid; gap: 6px; }
+.alert-actions button { min-height: 44px; border-radius: 8px; background: var(--accent-fill); color: var(--on-accent); font: 500 14px "DM Sans", sans-serif; }
+.alert-actions .danger { background: var(--ruby); color: #fff; }
+.alert-actions .cancel { background: transparent; color: var(--text); border: 1px solid var(--card-border); }
 
 /* ---------- the Dailies dock: Sequence, Search and the Storyboard (BottomDockView) ---------- */
 .dock[hidden] { display: none; }
@@ -444,6 +453,16 @@ body.first-running .app { visibility: hidden; }
 #takes .card, #pinned .card { z-index: 1; }
 .take-rows { position: relative; }
 .take-rows.reordering { overflow: hidden; }   /* no scrolling during a drag, as on iOS */
+/* Manual arrangement: the ≡ strip inside the card's trailing edge (TimelineDragHandle: 44 wide,
+   text held clear of it, secondary colour). The card keeps its full width. */
+.reorderable .card .body, .reorderable .card .meta { padding-right: 30px; }
+.thandle { position: absolute; top: 0; right: 0; bottom: 0; width: 44px; border-radius: 0 12px 12px 0; cursor: grab; touch-action: none;
+  background: linear-gradient(var(--text-2), var(--text-2)) center calc(50% - 4.5px) / 15px 1.5px no-repeat, linear-gradient(var(--text-2), var(--text-2)) center 50% / 15px 1.5px no-repeat, linear-gradient(var(--text-2), var(--text-2)) center calc(50% + 4.5px) / 15px 1.5px no-repeat; }
+.thandle:focus-visible { outline: 2px solid var(--accent); outline-offset: -4px; }
+.timeline.arranging { position: relative; }
+.arranging .thandle, .timeline.arranging { cursor: grabbing; }
+.card.arranging { z-index: 3; transform: scale(1.02); transition: transform .15s; }
+.card-gap { pointer-events: none; }
 .erow.lifted { z-index: 2; transform: scale(1.02); transition: transform .15s; background: var(--surface); }
 .erow-gap { flex: none; }
 .ehandle { cursor: grab; touch-action: none; }
@@ -487,6 +506,64 @@ body.first-running .app { visibility: hidden; }
 .rmap svg { width: 100%; height: 100%; display: block; }
 .rname { width: 50%; text-align: right; border: 0; background: none; color: var(--text); font: 400 15px "DM Sans", sans-serif; outline: none; }
 .srow-icon svg { width: 22px; height: 22px; }
+
+/* The Storyboard: the same cards with no spine and no Iris, and the Iris's radius taken out of
+   every gap so the rhythm matches Dailies (StoryboardView.storyboardGap). */
+.timeline.storyboard { background: none; }
+.timeline.storyboard .iris-wrap, .timeline.storyboard .card::after { display: none; }   /* the Iris and its beam stub */
+.timeline.storyboard .card { margin-bottom: max(0px, calc(var(--gap) - 22px)); }
+.empty.first-take { margin-top: 30vh; font: 300 17px "DM Sans", sans-serif; }
+.sidebar.editing .first-take { visibility: hidden; }   /* not while the first Take is being written */
+
+/* The Shot List Angle (ShotListView): full window, in the Take's own card colour. */
+.shot-list { position: fixed; inset: 0; z-index: 35; display: flex; flex-direction: column; background: var(--surface); color: var(--text); }
+.shot-list[hidden] { display: none; }
+.shot-list.dark { background: var(--obie-surface); color: var(--obie-text); }
+.sl-head { position: relative; flex: none; display: flex; align-items: center; justify-content: center; min-height: 64px; padding-top: 20px; background: inherit; }
+.sl-head::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 12px; background: linear-gradient(var(--surface), transparent); pointer-events: none; z-index: 1; }
+.shot-list.dark .sl-head::after { background: linear-gradient(var(--obie-surface), transparent); }
+.sl-head h2 { margin: 0; font: 400 24px/1 "Cormorant Garamond", serif; letter-spacing: 1.6px; text-transform: uppercase; }
+.sl-close { position: absolute; right: 12px; bottom: 0; width: 44px; height: 44px; display: grid; place-items: center; color: var(--text-2); }
+.sl-close svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; }
+.sl-rows { position: relative; flex: 1; overflow-y: auto; scrollbar-width: none; padding: 8px 0 40px; max-width: 720px; width: 100%; margin: 0 auto; box-sizing: border-box; }
+.sl-rows::-webkit-scrollbar { display: none; }
+.sl-prose { padding: 8px 16px; font-size: 17px; color: var(--text-2); white-space: pre-wrap; overflow-wrap: anywhere; }
+.sl-item { position: relative; overflow: hidden; }
+.sl-item .sl-fill { top: 0; bottom: 0; border-radius: 0; }
+.sl-item .sl-fill.leading { left: 0; }
+.sl-item .sl-fill.trailing { right: 0; }
+.sl-row { position: relative; z-index: 1; display: flex; align-items: center; height: 56px; padding: 0 0 0 6px; background: inherit; background: var(--surface); touch-action: pan-y; user-select: none; }
+.shot-list.dark .sl-row { background: var(--obie-surface); }
+.sl-row.swipe-settle { transition: transform .25s cubic-bezier(.2, .9, .3, 1); }
+.sl-row.swipe-off { transition: transform .28s ease-in-out; }
+@media (prefers-reduced-motion: reduce) { .sl-row.swipe-settle, .sl-row.swipe-off, .sl-box::before { transition: none; } }
+.sl-box { position: relative; flex: none; width: 44px; height: 44px; }
+.sl-box::before { content: ""; position: absolute; left: 14.5px; top: 14.5px; width: 15px; height: 15px; border: 1.5px solid var(--text-2); border-radius: 3px; box-sizing: border-box; transition: background .15s, border-radius .15s; }
+.sl-row.ticked .sl-box::before { border: 0; border-radius: 50%; background: var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.4l2.6 2.6L12 5.4' fill='none' stroke='%230F0E0C' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/100% no-repeat; }
+.sl-box:focus-visible { outline: 2px solid var(--accent); outline-offset: -6px; border-radius: 8px; }
+.sl-text { flex: 1; min-width: 0; font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sl-row.ticked .sl-text { color: var(--text-done); }
+.sl-handle { flex: none; width: 44px; height: 44px; cursor: grab; touch-action: none;
+  background: linear-gradient(var(--text-2), var(--text-2)) center calc(50% - 4.5px) / 15px 1.5px no-repeat, linear-gradient(var(--text-2), var(--text-2)) center 50% / 15px 1.5px no-repeat, linear-gradient(var(--text-2), var(--text-2)) center calc(50% + 4.5px) / 15px 1.5px no-repeat; }
+.sl-rows.reordering, .sl-rows.reordering .sl-handle { cursor: grabbing; }
+.sl-item.lifted { z-index: 2; }
+.sl-gap { flex: none; }
+
+/* After Start over: nothing left to show and no way back (ResetCompleteView). */
+.reset-done { position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 0 24px; background: var(--bg); color: var(--text); text-align: center; }
+.reset-done h1 { margin: 0; font: 300 28px/1.2 "Cormorant Garamond", serif; }
+.reset-done p { margin: 0; max-width: 420px; font-size: 15px; line-height: 1.45; color: var(--text-2); }
+
+/* Links in a Take (LinkDetector): accent and underlined, on the cards and in the Shot List. */
+a.tlink { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; -webkit-user-drag: none; }   /* a swipe that starts on a link swipes */
+.card.links .body { line-height: calc(1.4em + 8px); }
+
+/* Keyboard focus on the timeline (a11y.js). */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.card[data-take]:focus { outline: none; }
+.card[data-take]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.iris-wrap[data-iris]:focus { outline: none; }
+.iris-wrap[data-iris]:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-radius: 50%; }
 
 .sversion { cursor: context-menu; }
 .sversion:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }

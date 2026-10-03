@@ -139,9 +139,9 @@ const SUB = {
       <h2 class="ssub-heading">Choose a cloud folder you own</h2>
       <p>Select an empty folder, or create a new one, and we'll take care of the rest.</p>
       <p class="quiet">Catchlight never sees your files. Only you can read them.</p>
-      ${folder
-        ? `<p class="sfolder">✓ ${esc(folder)}</p><button class="slink danger" type="button" data-act="remove-folder">Remove</button>`
-        : '<button class="fr-pill primary" type="button" data-act="pick-folder">Choose folder</button>'}
+      ${folder ? `<p class="sfolder">✓ ${esc(folder)}</p>` : ''}
+      <button class="fr-pill primary" type="button" data-act="pick-folder">Choose folder</button>
+      ${folder ? '<button class="slink danger" type="button" data-act="remove-folder">Remove</button>' : ''}
       <hr>
       <div class="sgroup">${pick('syncMode', 'cloud', 'Sync', [['automatic', 'Automatic'], ['manual', 'Manual'], ['disabled', 'Disabled']], () => settings.syncMode)}</div>
       <p class="quiet">${modes[settings.syncMode]}</p>
@@ -236,18 +236,20 @@ sheet.addEventListener('click', async e => {
   else if (act === 'sd-restore') secondDeviceRestore();
   else if (act === 'reveal-phrase') { subStack.push('phrase-shown'); paintSettings(); }
   else if (open && SUB[open]) {
-    if (open === 'second-device' && !confirm('Add this device to your account?\n\nEnter your Privacy phrase to bring your Takes onto this device. Any Takes stored only on this device will be removed. To keep a copy first, cancel and use Export Takes (Markdown), or make sure they\'re already in your cloud folder.')) return;
-    subStack.push(open); paintSettings();
-    if (open === 'second-device') sheet.querySelector('[data-word="0"]').focus();
+    const go = () => { subStack.push(open); paintSettings(); if (open === 'second-device') sheet.querySelector('[data-word="0"]').focus(); };
+    if (open !== 'second-device') go();
+    else ask('Add this device to your account?', 'Enter your Privacy phrase to bring your Takes onto this device. Any Takes stored only on this device will be removed. To keep a copy first, cancel and use Export Takes (Markdown), or make sure they\'re already in your cloud folder.',
+      [['Cancel', null, 'cancel'], ['Continue', go, 'danger']]);
   }
   else if (open === 'notifications' && settings.notifications !== 'enabled') { settings.notifications = 'enabled'; saveSettings(); paintSettings(); }
   else if (open === 'export') exportTakes(takes);
-  else if (open === 'import-notes') { if (confirm('Import notes\n\nAny items in the folder, that have previously been imported, will be imported again.')) notice('Import notes: the Import folder is read by the shell, which does not exist yet.'); }
+  else if (open === 'import-notes') ask('Import notes', 'Any items in the folder, that have previously been imported, will be imported again.', [
+    ['Proceed', () => { notice('Import notes: the Import folder is read by the shell, which does not exist yet.'); paintSettings(); }], ['Cancel', null, 'cancel']]);
   else if (open === 'import-file') notice('Import from a file: the file picker belongs to the shell, which does not exist yet.');
   else if (open === 'report') window.open('https://catchlight.app/support/?platform=macOS&app=0.1', '_blank', 'noopener');
   else if (open === 'diagnostics') notice('Export diagnostics: the log is written by the shell, which does not exist yet.');
   else if (open === 'start-over') startOver();
-  if (open === 'notices' || ['import-notes', 'import-file', 'diagnostics'].includes(open)) paintSettings();
+  if (open === 'notices' || ['import-file', 'diagnostics'].includes(open)) paintSettings();
 });
 
 // Second device: the same entry grid as first run. Core checks the words; here, their shape.
@@ -291,19 +293,37 @@ sheet.addEventListener('keydown', e => {
   if (openCtx(v, r.left + 12, r.bottom)) ctx.querySelector('button')?.focus();
 });
 
-// Start over: export first, then erase. Touch ID and the native dialogs belong to the shell.
+// Start over, as on iOS: Export Takes exports and stops there; "Erase. Takes exported" goes on
+// to the erase question; Cancel stops everything. After erasing there is nothing left to show,
+// so a last screen says so and offers no way back (ResetCompleteView, D-253). Touch ID belongs
+// to the shell.
 function startOver() {
-  if (confirm('Export your Takes?\n\nExport Takes now. This is the only way to preserve them. This will make cloud copies unreadable.\n\nOK exports them first; Cancel goes on without exporting.')) exportTakes(takes);
-  if (!confirm('Erase everything on this device?\n\nThis deletes every Take on this device and the Privacy phrase that unlocks them. Takes in your cloud folder will be unreadable. This cannot be undone.')) return;
+  ask('Export your Takes?', 'Export Takes now. This is the only way to preserve them. This will make cloud copies unreadable.', [
+    ['Export Takes', () => exportTakes(takes)],
+    ['Erase. Takes exported', () => ask('Erase everything on this device?', 'This deletes every Take on this device and the Privacy phrase that unlocks them. Takes in your cloud folder will be unreadable. This cannot be undone.',
+      [['Cancel', null, 'cancel'], ['Erase everything', eraseEverything, 'danger']]), 'danger'],
+    ['Cancel', null, 'cancel'],
+  ]);
+}
+function eraseEverything() {
   Object.keys(localStorage).filter(k => k.startsWith('cl.')).forEach(k => { try { localStorage.removeItem(k); } catch {} });
-  location.reload();
+  closeSettings();
+  const done = document.createElement('section');
+  done.className = 'reset-done'; done.setAttribute('role', 'alert');
+  done.innerHTML = `<h1>Catchlight has been reset</h1><p>Quit Catchlight and open it again to set up a new Privacy phrase. If you exported your Takes, you can bring them back with Import from a file.</p>`;
+  // Nothing behind it can be reached: no focus, no click, no shortcut that would write the
+  // in-memory Takes or Scripts back into the storage just cleared.
+  for (const el of document.body.children) el.inert = true;
+  document.activeElement?.blur();
+  addEventListener('keydown', e => { e.stopImmediatePropagation(); e.preventDefault(); }, true);
+  document.body.append(done);
 }
 
 document.addEventListener('keydown', e => {
   if ((e.metaKey || e.ctrlKey) && e.key === ',' && !document.body.classList.contains('first-running')) {
     e.preventDefault();
     if (sheet.hidden) openSettings(); else closeSettings();
-  } else if (e.key === 'Escape' && !sheet.hidden) {
+  } else if (e.key === 'Escape' && !sheet.hidden && !alertBox.open) {   // an alert over the sheet takes Escape first
     e.preventDefault(); e.stopImmediatePropagation();
     if (subStack.length) { subStack.pop(); paintSettings(); } else closeSettings();
   }
