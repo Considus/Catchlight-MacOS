@@ -111,10 +111,12 @@ In the Claude desktop app the preview config is `catchlight-macos-ui`.
   - About's credits read "Open Source Licences" and name the BIP-39 wordlist.
   - In Sequence, Search or a month filter, a "Show all Takes" button (for keyboard and screen reader) returns to Dailies.
 - **A new account opens with iOS's five starter Takes** (`SeedTakes`), in the owner's words with three desktop phrases: clicking the Iris, right-click beside swiping, and the Settings shortcut and menu in place of a swipe up. A restored account starts empty, its Takes coming from the folder, and neither starts with Scripts; an empty Scripts list reads "Your first Script is waiting." **Settings → Second device** ends as iOS's does: the old cloud folder is let go and Welcome back offers Not now or Connect cloud folder.
+- **Auto-Delete runs when Dailies opens**, as iOS's sweep does (`Take+AutoCleanup`). It deletes a Take that is finished, has no note text (checklist text doesn't count), isn't the Obie or a repeating reminder, and hasn't been touched for longer than the Settings window (1, 7, 31 or 365 days). It is off by default.
+- **Notice History** works as iOS's does: sync, storage, conflict and quarantine notices, newest first, each with its category's icon and a relative time ("yesterday"), and a Clear button. App lifecycle entries stay out of it. `?notices` fills in samples to look at. Actions waiting on the shell (Import, Export diagnostics, Sync Now from the menu) say so in an alert, the surface iOS uses for their results, not as notices.
 
 ## Known gaps
 
-the native behind Lock after, Auto-Delete, Snooze, Follow-up reminders, Notifications, Import and Export diagnostics (stored or stubbed until the shell exists), Touch ID before Privacy phrase and Start over, pairing with another device (D-327 makes it a later convenience), notifications themselves and place search, map and location (the shell's), and images in a Script (deferred by decision I).
+the native behind Lock after, Snooze, Follow-up reminders, Notifications, Import and Export diagnostics (stored or stubbed until the shell exists), Touch ID before Privacy phrase and Start over, pairing with another device (D-327 makes it a later convenience), notifications themselves and place search, map and location (the shell's), and images in a Script (deferred by decision I).
 
 ## Fonts
 

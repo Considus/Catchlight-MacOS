@@ -16,6 +16,26 @@ let takes = store.get('takes2', [
   { id: 't6', at: '2026-07-04T16:00:00Z', blocks: [{ k: 'text', text: 'Before the weekend' }, { k: 'check', text: 'Ask Sam about the second-hand 90mm lens', done: false }, { k: 'check', text: 'Lens cloth', done: false }], isNote: true },
   { id: 't7', at: '2026-07-09T11:00:00Z', blocks: [{ k: 'text', text: 'Paper stock: Hahnemühle Photo Rag 308 for the large prints, Baryta for the small ones.' }], isNote: true, isImportant: true },
 ]);
+// Auto-Delete (Take+AutoCleanup, owner 2026-06-19): when Dailies opens, delete each Take that is
+// finished, has no note (any prose line; checklist text doesn't count), isn't the Obie, isn't a
+// repeating reminder, and hasn't been touched for longer than the window set in Settings.
+// Never by default. A Take with no modifiedAt counts from when it was made.
+const CLEANUP_DAYS = { daily: 1, weekly: 7, monthly: 31, annually: 365 };
+const hasNoteContent = t => t.blocks.some(b => b.k !== 'check' && b.text.trim());
+function autoCleanupEligible(t, maxAge, now) {
+  if (t.obie || repeats(t.reminder) || !isDone(t) || hasNoteContent(t)) return false;
+  return now - (t.modifiedAt ?? Date.parse(t.at)) > maxAge;
+}
+function runAutoCleanup(now = Date.now()) {
+  const days = CLEANUP_DAYS[settings.autoDelete];
+  if (!days) return 0;
+  const doomed = takes.filter(t => autoCleanupEligible(t, days * 864e5, now));
+  if (!doomed.length) return 0;
+  takes = takes.filter(t => !doomed.includes(t));
+  doomed.forEach(t => forgetExpanded(t.id));
+  saveTakes();
+  return doomed.length;
+}
 // An Obie is always Important (Take.isObie's didSet, and the decoder ORs it back in on load).
 takes.forEach(t => { if (t.obie) t.isImportant = true; });
 const saveTakes = () => store.set('takes2', takes);
@@ -846,7 +866,9 @@ alertBox.addEventListener('click', e => {
 });
 // 'close' is queued after the action has run and repainted, so refocus() (a11y.js), which an
 // open alert defers, now finds the new card or Iris (Make Obie, Delete This Occurrence).
-alertBox.addEventListener('close', () => { alertActions = []; refocus(); });
+// The close event arrives after the action ran; if that action asked again, the new alert is
+// open and its actions must survive.
+alertBox.addEventListener('close', () => { if (alertBox.open) return; alertActions = []; refocus(); });
 
 // A Script made back into a Take: "- [ ]" lines become checklist items, the rest text.
 function takeFromScript(s) {
@@ -866,6 +888,7 @@ function takeFromScript(s) {
 let swallowClick = false;   // set by the saving mousedown above
 document.addEventListener('click', e => { if (swallowClick) { swallowClick = false; e.stopPropagation(); e.preventDefault(); } }, true);
 
+runAutoCleanup();   // on open, as DailiesView.onAppear does
 renderTakes();
 
 $('#show-all').addEventListener('click', () => { if (draft) commitEdit(); exitToResting(); $('#dailies-heading').focus(); });   // the heading takes focus, as the button hides
