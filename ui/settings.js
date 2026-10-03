@@ -18,7 +18,7 @@ const saveSettings = () => store.set('settings', settings);
 
 const createdLabel = iso => {
   const d = new Date(iso);
-  return `Created on ${d.toLocaleDateString([], { year: 'numeric', month: '2-digit', day: '2-digit' })} at ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+  return `Created on ${d.toLocaleDateString([], { year: 'numeric', month: '2-digit', day: '2-digit' })} at ${d.toLocaleTimeString([], { timeStyle: 'short' })}`;
 };
 
 // What the Script area reads.
@@ -44,6 +44,7 @@ const SI = {   // row icons, drawn to sit beside the iOS SF Symbols they stand i
   clock: '<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>',
   zzz: '<path d="M5 6h5l-5 6h5M13 11h4l-4 5h4M17 4h3l-3 3h3"/>',
   bell: '<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20.5h4"/>',
+  bellOff: '<path d="M6 16V11a6 6 0 0 1 9.5-4.9M18 11v5l1.5 2H8M10 20.5h4M4 4l16 16"/>',
   lock: '<rect x="5.5" y="10.5" width="13" height="10" rx="2"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/>',
   trash: '<path d="M5 7h14M10 7V5h4v2M7 7l1 13h8l1-13"/>',
   warn: '<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.5"/>',
@@ -167,9 +168,10 @@ const SUB = {
       <div class="fr-brand" aria-hidden="true"><span class="fr-iris">${iris(['note', 'task', 'remind', 'important'])}</span><span class="fr-wordmark">Catchlight</span></div>
       <h2 class="ssub-heading">Privacy-first notes and reminders</h2>
       <p class="quiet sversion" tabindex="0" data-copy-info title="Right-click to copy version and device info">Version 0.1 (prototype)</p>
-      <div class="scard"><h4>Open source licences</h4>
-        <p>Cormorant Garamond and DM Sans, under the SIL Open Font License 1.1. The licence text for each is beside the fonts and listed in NOTICE.</p></div>
-      <div class="scard links">${[['Privacy Policy', 'https://catchlight.app/privacy/'], ['Terms of Service', 'https://catchlight.app/terms/'], ['Support', 'https://catchlight.app/support/?platform=macOS'], ['Website', 'https://catchlight.app']]
+      <div class="scard"><h4>Open Source Licences</h4>
+        <p>Cormorant Garamond and DM Sans, under the SIL Open Font License 1.1. The licence text for each is beside the fonts and listed in NOTICE.</p>
+        <p class="quiet">The BIP-39 English wordlist is sourced from the Trezor project and bundled under the MIT licence.</p></div>
+      <div class="scard links">${[['Privacy Policy', 'https://catchlight.app/privacy/'], ['Terms of Service', 'https://catchlight.app/terms/'], ['Support', 'https://catchlight.app/support/?platform=' + PLATFORM.osName], ['Website', 'https://catchlight.app']]
         .map(([l, u]) => `<a href="${u}" target="_blank" rel="noopener">${l}<span aria-hidden="true">↗</span></a>`).join('')}</div>
       <p class="quiet small">Made by Considus</p></div>`],
   phrase: () => ['Privacy phrase', `<div class="ssub-col">
@@ -181,7 +183,7 @@ const SUB = {
     if (!words) return ['Privacy phrase', `<div class="ssub-col"><h2 class="ssub-heading">Phrase isn't on this device</h2>
       <p>Catchlight stores the Privacy phrase only on the device where you set it up. If you onboarded on a different device, use that one to view it.</p></div>`];
     return ['Privacy phrase', `<div class="ssub-col">
-      <ol class="fr-words">${words.map((w, i) => `<li><span>${i + 1}</span><b class="held">${esc(w)}</b></li>`).join('')}</ol>
+      <ol class="fr-words" data-phrase aria-label="Privacy phrase" aria-hidden="true">${words.map((w, i) => `<li><span>${i + 1}</span><b class="held">${esc(w)}</b></li>`).join('')}</ol>
       <p>Write these 12 words down somewhere safe, on paper. They're the only way back into your Takes on a new device.</p>
       <button class="fr-pill primary hold" type="button" data-hold>Hold to reveal</button></div>`];
   },
@@ -192,14 +194,22 @@ const SUB = {
       ${phraseGrid()}
       <p class="fr-status" id="sd-status" aria-live="polite">0 of 12 words</p>
       <button class="fr-pill primary" type="button" data-act="sd-restore" disabled>Restore on this device</button></div>`],
-  notices: () => ['Notice History', settings.notices.length ? `<div class="sgroup">${settings.notices.map(n => `<div class="srow">${icon('info')}<span class="srow-label">${esc(n)}</span></div>`).join('')}</div>`
-    : `<div class="ssub-col empty-col">${icon('bell')}<h2 class="ssub-heading">No notices yet</h2><p class="quiet">Sync, storage and conflict notices will appear here.</p></div>`],
+  // NoticeHistoryView: the user-facing notices, newest first, each with its category's icon and
+  // a relative time; Clear empties them. Lifecycle entries stay in diagnostics, as on iOS.
+  notices: () => {
+    const shown = noticesShown();
+    return ['Notice History', shown.length ? `<div class="snotice-bar"><button class="slink" type="button" data-act="clear-notices">Clear</button></div>
+      <div class="sgroup">${shown.map(n => `<div class="srow tall snotice" role="group" aria-label="${kindOf(n).name}. ${esc(n.message)}" aria-description="${ago(n.at)}">
+        <svg class="srow-icon ${kindOf(n).tint}" viewBox="0 0 24 24" aria-hidden="true">${kindOf(n).icon}</svg><span class="srow-label">${esc(n.message)}<small>${ago(n.at)}</small></span></div>`).join('')}</div>`
+      : `<div class="ssub-col empty-col">${icon('bellOff')}<h2 class="ssub-heading">No notices yet</h2><p class="quiet">Sync, storage and conflict notices will appear here.</p></div>`];
+  },
 };
 
 // ---------- the sheets ----------
 const sheet = $('#settings');
 let subStack = [];
 function paintSettings(keepScroll = true) {
+  sheet.classList.remove('revealing');   // the phrase never stays revealed past its own page
   const scroll = sheet.querySelector('.sheet-scroll')?.scrollTop || 0;
   const top = subStack.at(-1);
   const [title, body] = top ? SUB[top]() : [null, settingsPage()];
@@ -218,11 +228,42 @@ function openSettings(section) {
   sheet.querySelector('.sheet-x').focus();
 }
 function closeSettings() {
+  sheet.classList.remove('revealing');
   sheet.classList.remove('open');
   ctx.hidden = true;   // About's menu sits over the sheet
   setTimeout(() => { if (!sheet.classList.contains('open')) { sheet.hidden = true; sheet.innerHTML = ''; } }, still.matches ? 0 : 300);
 }
-const notice = msg => { settings.notices.unshift(msg); saveSettings(); };
+// A notice is { category, message, at }, as DiagnosticsLog keeps it; `category` is one of
+// NOTICE_KIND. Sync, storage, conflict and quarantine are shown; lifecycle is not (iOS keeps it
+// for Export diagnostics). Older prototype entries were plain strings, read as sync notices.
+const NOTICE_KIND = {
+  sync: { name: 'Sync', tint: 'accent', icon: '<path d="M5 12a7 7 0 0 1 12-5l2 2M19 12a7 7 0 0 1-12 5l-2-2M19 4v5h-5M5 20v-5h5"/>' },
+  storage: { name: 'Storage', tint: 'ruby', icon: '<rect x="4" y="12" width="16" height="7" rx="2"/><path d="M7 15.5h.5M12 4v5M12 10.5v.5"/>' },
+  conflict: { name: 'Conflict', tint: 'accent', icon: '<path d="M7 4v6a4 4 0 0 0 4 4h6M17 14l-3-3M17 14l-3 3M7 20v-6"/>' },
+  quarantine: { name: 'Quarantine', tint: 'ruby', icon: '<rect x="5.5" y="10.5" width="13" height="10" rx="2"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 6.6-1.6M4 4l16 16"/>' },
+  lifecycle: { name: 'App', tint: 'accent', icon: SI.info },
+};
+const noticeList = () => (settings.notices.length || !SAMPLE_NOTICES ? settings.notices : SAMPLE_NOTICES).map(n => typeof n === 'string' ? { category: 'sync', message: n, at: 0 } : n);
+const kindOf = n => NOTICE_KIND[n.category] || NOTICE_KIND.sync;   // an unknown category still draws
+const noticesShown = () => noticeList().filter(n => n.category !== 'lifecycle');
+// Built from the saved list only, so ?notices samples are never written into it.
+const notice = (message, category = 'sync') => { settings.notices = [{ category, message, at: Date.now() }, ...settings.notices]; saveSettings(); };
+// "2 minutes ago", "yesterday": the relative, named style iOS uses.
+function ago(at) {
+  if (!at) return '';
+  const s = (at - Date.now()) / 1000, rtf = new Intl.RelativeTimeFormat([], { numeric: 'auto' });
+  // The largest unit it is at least 95% of, so 59.6 minutes reads "1 hour ago", not "60 minutes ago".
+  for (const [unit, n] of [['year', 31536000], ['month', 2592000], ['week', 604800], ['day', 86400], ['hour', 3600], ['minute', 60]]) if (Math.abs(s) >= n * 0.95) return rtf.format(Math.round(s / n) || Math.sign(s), unit);
+  return rtf.format(0, 'second');
+}
+// ?notices: sample entries, to look at the list before a shell produces real ones.
+// Read in place of the saved list, never written into it, so a setting changed while looking
+// doesn't keep them.
+let SAMPLE_NOTICES = new URLSearchParams(location.search).has('notices') && [
+  { category: 'sync', message: 'Synced 3 Takes from your cloud folder.', at: Date.now() - 2 * 60e3 },
+  { category: 'conflict', message: 'Two versions of a Take were edited. Both are kept.', at: Date.now() - 26 * 36e5 },
+  { category: 'storage', message: "The cloud folder couldn't be reached. Your Takes are safe on this Mac.", at: Date.now() - 4 * 864e5 },
+];
 
 sheet.addEventListener('change', e => {
   const k = e.target.dataset.set;
@@ -250,6 +291,7 @@ sheet.addEventListener('click', async e => {
   else if (act === 'sync-now') { e.target.textContent = 'Syncing…'; e.target.disabled = true; setTimeout(() => paintSettings(), 2000); }
   else if (act === 'sd-restore') secondDeviceRestore();
   else if (act === 'reveal-phrase') { subStack.push('phrase-shown'); paintSettings(); }
+  else if (act === 'clear-notices') { settings.notices = noticeList().filter(n => n.category === 'lifecycle'); SAMPLE_NOTICES = null; saveSettings(); paintSettings(); }   // clearUserFacing: the lifecycle breadcrumbs stay
   else if (open && SUB[open]) {
     const go = () => { subStack.push(open); paintSettings(); if (open === 'second-device') sheet.querySelector('[data-word="0"]').focus(); };
     if (open !== 'second-device') go();
@@ -259,12 +301,12 @@ sheet.addEventListener('click', async e => {
   else if (open === 'notifications' && settings.notifications !== 'enabled') { settings.notifications = 'enabled'; saveSettings(); paintSettings(); }
   else if (open === 'export') exportTakes(takes);
   else if (open === 'import-notes') ask('Import notes', 'Any items in the folder, that have previously been imported, will be imported again.', [
-    ['Proceed', () => { notice('Import notes: the Import folder is read by the shell, which does not exist yet.'); paintSettings(); }], ['Cancel', null, 'cancel']]);
-  else if (open === 'import-file') notice('Import from a file: the file picker belongs to the shell, which does not exist yet.');
-  else if (open === 'report') window.open('https://catchlight.app/support/?platform=macOS&app=0.1', '_blank', 'noopener');
-  else if (open === 'diagnostics') notice('Export diagnostics: the log is written by the shell, which does not exist yet.');
+    ['Proceed', () => ask('Import notes', "The Import folder is read by the shell, which doesn't exist yet.", [['OK', null, 'cancel']])], ['Cancel', null, 'cancel']]);
+  else if (open === 'import-file') ask('Import from a file', "The file picker belongs to the shell, which doesn't exist yet.", [['OK', null, 'cancel']]);
+  else if (open === 'report') window.open(reportUrl(), '_blank', 'noopener');
+  else if (open === 'diagnostics') ask('Export diagnostics', "The log is written by the shell, which doesn't exist yet.", [['OK', null, 'cancel']]);
   else if (open === 'start-over') startOver();
-  if (open === 'notices' || ['import-file', 'diagnostics'].includes(open)) paintSettings();
+  if (open === 'notices') paintSettings();
 });
 
 // Second device: the same entry grid as first run. Core checks the words; here, their shape.
@@ -277,28 +319,47 @@ function paintSecondDevice(error) {
 function secondDeviceRestore() {
   if (sheet.querySelector('[data-act="sd-restore"]').disabled) return;
   if (!shell.phraseLooksValid(phraseWords(sheet))) { paintSecondDevice("That doesn't look right. Check the words and try again."); return; }
+  if (draft) discardEdit();   // a Take being written belongs to the account being replaced
   // As on iOS, this replaces the account here: Takes stored only on this device go, and so
   // does the phrase kept from first run, which is no longer this account's.
-  store.set('account', { ...store.get('account', {}), restored: true, phrase: undefined });
+  // The old cloud folder belongs to the account being replaced, so it goes too (AppModel).
+  store.set('account', { ...store.get('account', {}), restored: true, phrase: undefined, folder: null });
   takes = []; saveTakes(); renderTakes();
-  notice('Restored this device from its Privacy phrase.');
+  scripts = []; current = null; save(); renderScripts(); renderDoc(); $('#script-heading').textContent = '';
   closeSettings();
+  welcomeBack();   // first-run.js: Welcome back, Not now or Connect cloud folder
 }
 // Wired once first-run.js, which owns the grid, has loaded.
 addEventListener('DOMContentLoaded', () => wirePhraseEntry(sheet, () => paintSecondDevice(), secondDeviceRestore));
 
-// Hold to reveal: the words show only while the button is held.
+// Hold to reveal: the words show only while the button is held. From the keyboard, Space or
+// Return shows them and a second press hides them, as iOS offers Reveal and Hide as actions.
+sheet.addEventListener('keydown', e => {
+  const b = e.target.closest('[data-hold]');
+  if (!b || (e.key !== ' ' && e.key !== 'Enter')) return;
+  e.preventDefault();
+  if (e.repeat) return;   // a held key is one press
+  const on = !sheet.classList.contains('revealing');
+  sheet.classList.toggle('revealing', on);
+  b.textContent = on ? 'Hide phrase' : 'Hold to reveal';
+  b.setAttribute('aria-pressed', String(on));
+  sheet.querySelector('[data-phrase]')?.setAttribute('aria-hidden', String(!on));   // the words are read only while shown
+});
 sheet.addEventListener('pointerdown', e => {
   const b = e.target.closest('[data-hold]');
   if (!b) return;
-  sheet.classList.add('revealing'); b.textContent = 'Release to hide';
-  const end = () => { sheet.classList.remove('revealing'); b.textContent = 'Hold to reveal'; removeEventListener('pointerup', end); removeEventListener('pointercancel', end); };
+  const words = sheet.querySelector('[data-phrase]');
+  sheet.classList.add('revealing'); b.textContent = 'Release to hide'; words?.setAttribute('aria-hidden', 'false');
+  const end = () => { sheet.classList.remove('revealing'); b.textContent = 'Hold to reveal'; b.setAttribute('aria-pressed', 'false'); words?.setAttribute('aria-hidden', 'true'); removeEventListener('pointerup', end); removeEventListener('pointercancel', end); };
   addEventListener('pointerup', end); addEventListener('pointercancel', end);
 });
 
 // About's version line copies a short, paste-ready support block (AboutView.supportInfoString):
 // version, OS and model, and nothing from the user's Takes. Right-click it, or ⇧F10 from the
 // keyboard, as VoiceOver's named action on iOS.
+// The support page, told the platform, the app version and the OS version, and nothing else
+// (SettingsView.reportAnIssue).
+const reportUrl = () => 'https://catchlight.app/support/?' + new URLSearchParams({ platform: PLATFORM.osName, app: '0.1', os: shell.osVersion() });
 const supportInfo = () => `Catchlight 0.1 (prototype)\n${shell.systemInfo()}`;
 sheet.addEventListener('keydown', e => {
   const v = e.target.closest('[data-copy-info]');

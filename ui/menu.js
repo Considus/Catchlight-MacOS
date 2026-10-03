@@ -130,7 +130,7 @@ function dockTo(mode) {
   renderTakes();
   if (mode === 'search') $('#take-search').focus();
 }
-const supportUrl = 'https://catchlight.app/support/?platform=' + { mac: 'macOS', windows: 'Windows', linux: 'Linux' }[PLAT] + '&app=0.1';
+const supportUrl = 'https://catchlight.app/support/?platform=' + PLATFORM.osName + '&app=0.1';
 
 // ---------- the menus ----------
 // Each item: id, label (text or a function of the moment), keys, enabled(), checked(), run(),
@@ -142,9 +142,9 @@ const ITEMS = {
   newTake: { label: 'New Take', keys: { all: 'Mod+N' }, enabled: () => free() && !draft, run: newTake },
   newScript: { label: 'New Script', keys: { all: 'Mod+Shift+N' }, enabled: free, run: () => newScript() },
   exportTakes: { label: 'Export Takes…', keys: { all: 'Mod+Shift+E' }, enabled: () => free() && takes.length > 0, run: () => exportTakes(takes) },
-  importFile: { label: 'Import from a File…', enabled: free, run: () => notice('Import from a file: the file picker belongs to the shell, which does not exist yet.') },
-  importNotes: { label: 'Import Notes', enabled: () => free() && !!store.get('account', {})?.folder, run: () => notice('Import notes: the Import folder is read by the shell, which does not exist yet.') },
-  syncNow: { label: 'Sync Now', enabled: () => free() && settings.syncMode === 'manual' && !!store.get('account', {})?.folder, run: () => notice('Sync Now: the sync runs in Core, through the shell.') },
+  importFile: { label: 'Import from a File…', enabled: free, run: () => ask('Import from a file', "The file picker belongs to the shell, which doesn't exist yet.", [['OK', null, 'cancel']]) },
+  importNotes: { label: 'Import Notes', enabled: () => free() && !!store.get('account', {})?.folder, run: () => ask('Import notes', "The Import folder is read by the shell, which doesn't exist yet.", [['OK', null, 'cancel']]) },
+  syncNow: { label: 'Sync Now', enabled: () => free() && settings.syncMode === 'manual' && !!store.get('account', {})?.folder, run: () => ask('Sync Now', "The sync runs in Core, through the shell, which doesn't exist yet.", [['OK', null, 'cancel']]) },
   undo: { label: 'Undo', keys: { all: 'Mod+Z' }, inPlace: true, run: () => active >= 0 ? undo() : document.execCommand('undo') },
   redo: { label: 'Redo', keys: { mac: 'Mod+Shift+Z', windows: 'Mod+Y', linux: 'Mod+Shift+Z' }, inPlace: true, run: () => active >= 0 ? redo() : document.execCommand('redo') },
   cut: { label: 'Cut', keys: { all: 'Mod+X' }, role: 'cut' },
@@ -200,7 +200,7 @@ const ITEMS = {
   services: { label: 'Services', role: 'services', only: ['mac'] },
   quit: { label: PLAT === 'windows' ? 'Exit' : 'Quit Catchlight', keys: { mac: 'Mod+Q', windows: 'Alt+F4', linux: 'Mod+Q' }, role: 'quit' },
   help: { label: 'Catchlight Help', run: () => window.open(supportUrl, '_blank', 'noopener') },
-  report: { label: 'Report an Issue…', run: () => window.open(supportUrl, '_blank', 'noopener') },
+  report: { label: 'Report an Issue…', run: () => window.open(reportUrl(), '_blank', 'noopener') },
   copyInfo: { label: 'Copy Version and Device Info', run: () => navigator.clipboard?.writeText(supportInfo()) },
 };
 

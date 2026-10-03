@@ -16,6 +16,26 @@ let takes = store.get('takes2', [
   { id: 't6', at: '2026-07-04T16:00:00Z', blocks: [{ k: 'text', text: 'Before the weekend' }, { k: 'check', text: 'Ask Sam about the second-hand 90mm lens', done: false }, { k: 'check', text: 'Lens cloth', done: false }], isNote: true },
   { id: 't7', at: '2026-07-09T11:00:00Z', blocks: [{ k: 'text', text: 'Paper stock: Hahnemühle Photo Rag 308 for the large prints, Baryta for the small ones.' }], isNote: true, isImportant: true },
 ]);
+// Auto-Delete (Take+AutoCleanup, owner 2026-06-19): when Dailies opens, delete each Take that is
+// finished, has no note (any prose line; checklist text doesn't count), isn't the Obie, isn't a
+// repeating reminder, and hasn't been touched for longer than the window set in Settings.
+// Never by default. A Take with no modifiedAt counts from when it was made.
+const CLEANUP_DAYS = { daily: 1, weekly: 7, monthly: 31, annually: 365 };
+const hasNoteContent = t => t.blocks.some(b => b.k !== 'check' && b.text.trim());
+function autoCleanupEligible(t, maxAge, now) {
+  if (t.obie || repeats(t.reminder) || !isDone(t) || hasNoteContent(t)) return false;
+  return now - (t.modifiedAt ?? Date.parse(t.at)) > maxAge;
+}
+function runAutoCleanup(now = Date.now()) {
+  const days = CLEANUP_DAYS[settings.autoDelete];
+  if (!days) return 0;
+  const doomed = takes.filter(t => autoCleanupEligible(t, days * 864e5, now));
+  if (!doomed.length) return 0;
+  takes = takes.filter(t => !doomed.includes(t));
+  doomed.forEach(t => forgetExpanded(t.id));
+  saveTakes();
+  return doomed.length;
+}
 // An Obie is always Important (Take.isObie's didSet, and the decoder ORs it back in on load).
 takes.forEach(t => { if (t.obie) t.isImportant = true; });
 const saveTakes = () => store.set('takes2', takes);
@@ -102,6 +122,7 @@ const reorderHandle = t => !t.obie && canReorder() ? `<button class="thandle" ty
 
 function renderTakes() {
   $('#dailies-heading').textContent = storyboard ? 'Storyboard' : { resting: 'Dailies', filtering: 'Sequence', searching: 'Search' }[dock];
+  $('#show-all').hidden = storyboard || (dock === 'resting' && !filterMonth);   // iOS offers it only away from resting
   $('#sb-close').hidden = !storyboard;
   sidebar.classList.toggle('storyboard', storyboard);
   const list = $('#takes'), pinned = $('#pinned');
@@ -130,9 +151,15 @@ function renderTakes() {
     // Nothing at all yet (not a filter that matches nothing): iOS's empty state.
     if (!takes.length) list.innerHTML = '<div class="empty first-take"><p>Your first Take is waiting.</p></div>';
     else if (settings.takeArrangement === 'manual') list.innerHTML = inOrder(arranged(shown)).map(takeCard).join('');
-    else timeline(list, shown.sort(order), takeCard);
+    else timeline(list, shown.sort(order), takeCard, true);
     const lit = filterMonth && list.querySelector(`.month[data-month="${filterMonth}"]`);
-    if (lit) { lit.classList.add('on'); lit.querySelector('.month-label').insertAdjacentHTML('beforeend', ICON_XMARK); }
+    if (lit) {
+      lit.classList.add('on');
+      const label = lit.querySelector('.month-label');
+      label.insertAdjacentHTML('beforeend', ICON_XMARK);
+      label.setAttribute('aria-label', `${label.textContent.trim()}, filtering`);   // as iOS reads it
+      label.setAttribute('aria-description', 'Shows every month again.');
+    }
   }
   paintDock();
 }
@@ -152,6 +179,8 @@ function beginEdit(t, isNew = false) {
   draftComplete = isComplete(draft);
   if (!draft.blocks.length) draft.blocks.push({ k: 'text', text: '' });
   sidebar.classList.add('editing');
+  $('#takes').inert = $('#pinned').inert = true;   // the list behind is hidden from keyboard and screen reader, as on iOS
+  lastCaret = null;
   editorCard.hidden = false;
   paintEditor();
   focusRow(rows.children.length - 1, Infinity);
@@ -172,8 +201,8 @@ function rowFor(b) {
   if (b.k === 'check') {
     const box = document.createElement('button');
     box.className = 'echeck'; box.type = 'button';
-    box.setAttribute('aria-label', b.done ? 'Not done' : 'Done');
-    box.setAttribute('aria-pressed', String(!!b.done));
+    box.setAttribute('role', 'checkbox');
+    labelCheck(box, b.text, b.done);
     row.append(box);
   }
   const text = document.createElement('div');
@@ -185,6 +214,11 @@ function rowFor(b) {
   return row;
 }
 
+// The box reads as the item it ticks, as on iOS: its text (or "Checklist item"), checked or not.
+function labelCheck(box, text, done) {
+  box.setAttribute('aria-label', text.trim() || 'Checklist item');
+  box.setAttribute('aria-checked', String(!!done));
+}
 function readRows() {
   draft.blocks = [...rows.children].map(r => {
     const text = r.querySelector('.etext').textContent;
@@ -221,6 +255,7 @@ function commitEdit() {
 function discardEdit() { endEdit(); }
 
 function endEdit() {
+  $('#takes').inert = $('#pinned').inert = false;
   closeReminder();   // the picker belongs to the edit; it never outlives it
   draft = original = null;
   editorCard.hidden = true;
@@ -258,11 +293,32 @@ rows.addEventListener('keydown', e => {
 rows.addEventListener('click', e => {
   const box = e.target.closest('.echeck');
   if (!box) return;
-  box.closest('.erow').classList.toggle('ticked');
+  const row = box.closest('.erow');
+  row.classList.toggle('ticked');
+  labelCheck(box, row.querySelector('.etext').textContent, row.classList.contains('ticked'));
   readRows(); paintBar();
   draft.blocks.length && paintIris();
 });
-rows.addEventListener('input', () => { readRows(); paintIris(); paintBar(); });
+rows.addEventListener('input', e => {
+  const box = e.target.closest('.erow')?.querySelector('.echeck');
+  if (box) labelCheck(box, e.target.textContent, box.closest('.erow').classList.contains('ticked'));
+  readRows(); paintIris(); paintBar();
+});
+// Where the caret last sat in the editor, so the Focus-ring and the reminder picker can put it
+// back on the line it came from (DailiesView.applyInlineFanCommand, closeReminderEditor).
+let lastCaret = null;
+document.addEventListener('selectionchange', () => {
+  const sel = getSelection(), el = sel.anchorNode && (sel.anchorNode.nodeType === 1 ? sel.anchorNode : sel.anchorNode.parentElement)?.closest?.('.etext');
+  if (!el || !rows.contains(el)) return;
+  lastCaret = { el, i: [...rows.children].indexOf(el.closest('.erow')), off: caretOffset(el) ?? 0 };
+});
+// Back to that line, or the last one when the rows changed under it.
+// The line itself if it is still there (a drag moves it), else its place after a repaint.
+function restoreCaret() {
+  const n = rows.children.length;
+  const i = lastCaret?.el?.isConnected && rows.contains(lastCaret.el) ? [...rows.children].indexOf(lastCaret.el.closest('.erow')) : lastCaret?.i;
+  if (i != null && i >= 0 && i < n) focusRow(i, lastCaret.off); else focusRow(n - 1, Infinity);
+}
 function paintIris() { $('#take-editor-iris').innerHTML = irisHtml(typesOf(draft), draft.obie); }
 
 // Save on any press outside the card and its bar; Escape and ⌘S save too.
@@ -286,8 +342,15 @@ document.addEventListener('keydown', e => {
 function paintBar() {
   const task = isTask(draft);
   $('#eb-third').innerHTML = task ? ICON_CHECKLIST : ICON_IMPORTANT;
-  $('#eb-third').setAttribute('aria-label', task ? 'Open Shot List' : (draft.isImportant ? 'Remove Important' : 'Make Important'));
-  $('#eb-third').disabled = !task && !!draft.obie;   // an Obie stays Important
+  // Important is one label with an on/off state, and says why it's disabled on an Obie.
+  const third = $('#eb-third'), locked = !task && !!draft.obie;
+  third.setAttribute('aria-label', task ? 'Open Shot List' : 'Important');
+  if (task) third.removeAttribute('aria-pressed'); else third.setAttribute('aria-pressed', String(!!draft.isImportant));
+  third.title = task ? 'Open Shot List' : locked ? 'An Obie is always Important.' : 'Important';
+  if (locked) third.setAttribute('aria-description', 'An Obie is always Important.'); else third.removeAttribute('aria-description');
+  third.disabled = locked;   // an Obie stays Important
+  const doneLabel = isDone(draft) ? 'Mark not done' : 'Mark done';
+  $('#eb-done').setAttribute('aria-label', doneLabel); $('#eb-done').title = doneLabel;
   $('#eb-done').disabled = !canBeMarkedDone(draft);
   const remind = draft.reminder ? 'Edit reminder' : 'Add reminder';   // EditorKeyboardBar's label
   $('#eb-remind').setAttribute('aria-label', remind); $('#eb-remind').title = remind;
@@ -371,7 +434,13 @@ function openFocusRing(t, irisEl, fromEditor) {
   const hub = document.createElement('div');
   hub.className = 'hub';
   hub.innerHTML = irisHtml([...sel], t.obie) + '<i class="tick"></i>';
+  hub.setAttribute('role', 'img');
   ring.append(hub);
+  // The veil closes the ring; for the keyboard and a screen reader it is a button, first.
+  const veil = document.createElement('button');
+  veil.type = 'button'; veil.className = 'sr-only ring-close';
+  veil.textContent = 'Save and close'; veil.setAttribute('aria-description', 'Applies your selection and closes.');
+  ring.prepend(veil);
   for (const m of MARKS) {
     const b = document.createElement('button');
     b.className = 'mark' + (sel.has(m.key) ? ' on' : '');
@@ -386,31 +455,57 @@ function openFocusRing(t, irisEl, fromEditor) {
     ring.append(b);
   }
   focusRing = { t, sel, fromEditor };
+  ring.setAttribute('role', 'dialog'); ring.setAttribute('aria-label', 'Focus-ring');
   ring.hidden = false;
+  ringInert(true);
+  paintRing();
+  ring.querySelector('.mark')?.focus();
   sidebar.classList.add('ringed');
   requestAnimationFrame(() => requestAnimationFrame(() => ring.classList.add('open')));
 }
 
+// What the Iris shows, in words (TakeCircleView.activityDescription).
+function activityDescription(t, sel) {
+  const parts = [t.obie && 'Obie', sel.has('important') && 'Important', sel.has('note') && 'Note',
+    sel.has('task') && (isComplete(t) ? 'completed Task' : 'Task'), sel.has('remind') && 'Reminder'].filter(Boolean);
+  return parts.join(', ') || 'Note';
+}
 function paintRing() {
   const { t, sel } = focusRing;
   document.querySelectorAll('#focus-ring .mark').forEach(b => {
-    b.classList.toggle('on', sel.has(b.dataset.key));
-    b.setAttribute('aria-pressed', String(sel.has(b.dataset.key)));
+    const on = sel.has(b.dataset.key), label = b.getAttribute('aria-label');
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', String(on));
+    if (b.getAttribute('aria-disabled') !== 'true') b.setAttribute('aria-description', `${on ? 'Removes' : 'Adds'} ${label}.`);
   });
-  $('#focus-ring .hub').innerHTML = irisHtml([...sel], t.obie) + '<i class="tick"></i>';
+  const hub = $('#focus-ring .hub');
+  hub.innerHTML = irisHtml([...sel], t.obie) + '<i class="tick"></i>';
+  hub.setAttribute('aria-label', 'Selected: ' + activityDescription(t, sel));
+}
+// While the ring is up, nothing else in the window takes focus or reads out, as iOS's ring
+// covers the screen. The ring itself and the reminder picker it can open stay live.
+let ringInerted = [];
+function ringInert(on) {
+  ringInerted.forEach(el => { el.inert = false; });
+  ringInerted = [];
+  if (!on) return;
+  const keep = el => el.id === 'focus-ring' || el.contains($('#focus-ring'));
+  for (const el of [...sidebar.children, ...document.querySelectorAll('.app > :not(#sidebar)')]) if (!keep(el) && !el.inert) { el.inert = true; ringInerted.push(el); }
 }
 
 $('#focus-ring').addEventListener('click', e => {
   if (!focusRing) return;
   const mark = e.target.closest('.mark');
-  if (!mark) { closeFocusRing(true); return; }
+  if (!mark) { closeFocusRing(true); return; }   // the veil, or its Save and close button
   const { sel, t } = focusRing, k = mark.dataset.key;
   if (mark.getAttribute('aria-disabled') === 'true') return;   // an Obie's Important Mark
   if (sel.has(k)) sel.delete(k); else sel.add(k);
   if (!sel.has('task') && !sel.has('remind')) sel.add('note');          // never "none"
-  if (k === 'remind' && sel.has('remind') && !t.reminder) {
+  if (k === 'remind' && sel.has('remind')) {
     // Turning Remind on asks when; cancelling turns it back off.
-    const target = { ...t, reminder: null, isNote: t.isNote };
+    // It opens on the reminder the Take had, if any, as iOS keeps the picker's state: Done keeps
+    // it, Cancel turns Remind off (and Save and close then removes it), as on iOS.
+    const target = { ...t, isNote: t.isNote };
     openReminder(target, () => { focusRing.pendingReminder = target.reminder; paintRing(); },
       () => { sel.delete('remind'); if (!sel.has('task')) sel.add('note'); paintRing(); });
   }
@@ -441,13 +536,19 @@ function closeFocusRing(apply) {
   ring.classList.remove('open');
   focusRing = null;
   setTimeout(() => { ring.hidden = true; ring.innerHTML = ''; sidebar.classList.remove('ringed'); }, still.matches ? 0 : 840);
-  if (fromEditor) { paintEditor(); focusRow(rows.children.length - 1, Infinity); }
+  ringInert(false);
+  if (fromEditor) {
+    const grew = rows.children.length;
+    paintEditor();
+    // Turning Task on adds an item: go to it. Otherwise back to the line the caret was on.
+    if (rows.children.length > grew) focusRow(rows.children.length - 1, Infinity); else restoreCaret();
+  }
   else {
     renderTakes();
     // Turning Task on from the timeline opens the editor on the new empty item, as on iOS.
     const target = takes.find(x => x.id === t.id);
     if (apply && sel.has('task') && target && target.blocks.at(-1)?.k === 'check' && !target.blocks.at(-1).text) beginEdit(target);
-    else refocus();
+    else { returnFocusTo ??= { id: t.id, iris: true }; refocus(); }   // back to the Iris that opened it, however it was opened
   }
 }
 document.addEventListener('keydown', e => { if (focusRing && !reminderFor && e.key === 'Escape') { e.preventDefault(); closeFocusRing(true); } });
@@ -475,9 +576,10 @@ sidebar.addEventListener('click', e => {
   if (draft || focusRing) return;
   const label = e.target.closest('#takes .month-label');
   if (label) {   // a month label toggles that month's filter, in any mode
-    const key = label.parentElement.dataset.month;
+    const key = label.parentElement.dataset.month, hadFocus = document.activeElement === label;
     filterMonth = filterMonth === key ? null : key;
     renderTakes();
+    if (hadFocus) $(`#takes .month[data-month="${key}"] .month-label`)?.focus();   // the repaint replaced it
     return;
   }
   // A dock button repaints the dock, so its click arrives here from a detached element:
@@ -495,6 +597,12 @@ sidebar.addEventListener('click', e => {
   if (card && !e.target.closest('.thandle')) beginEdit(takes.find(x => x.id === card.dataset.take));
 });
 $('#take-editor-iris').addEventListener('click', () => openFocusRing(draft, $('#take-editor-iris'), true));
+// It is role=button, so Return and Space open the ring too.
+$('#take-editor-iris').addEventListener('keydown', e => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  e.preventDefault(); e.stopPropagation();
+  openFocusRing(draft, $('#take-editor-iris'), true);
+});
 const newTake = () => beginEdit({ id: 't' + Date.now(), at: new Date().toISOString(), blocks: [{ k: 'text', text: '' }], isNote: true }, true);
 
 // ---------- the dock (BottomDockView): resting, Sequence and Search ----------
@@ -758,7 +866,9 @@ alertBox.addEventListener('click', e => {
 });
 // 'close' is queued after the action has run and repainted, so refocus() (a11y.js), which an
 // open alert defers, now finds the new card or Iris (Make Obie, Delete This Occurrence).
-alertBox.addEventListener('close', () => { alertActions = []; refocus(); });
+// The close event arrives after the action ran; if that action asked again, the new alert is
+// open and its actions must survive.
+alertBox.addEventListener('close', () => { if (alertBox.open) return; alertActions = []; refocus(); });
 
 // A Script made back into a Take: "- [ ]" lines become checklist items, the rest text.
 function takeFromScript(s) {
@@ -778,4 +888,18 @@ function takeFromScript(s) {
 let swallowClick = false;   // set by the saving mousedown above
 document.addEventListener('click', e => { if (swallowClick) { swallowClick = false; e.stopPropagation(); e.preventDefault(); } }, true);
 
+runAutoCleanup();   // on open, as DailiesView.onAppear does
 renderTakes();
+
+$('#show-all').addEventListener('click', () => { if (draft) commitEdit(); exitToResting(); $('#dailies-heading').focus(); });   // the heading takes focus, as the button hides
+
+// Paste into a Take's line drops the line breaks at either end, as iOS does
+// (BlockEditorViewController.normalisedPaste): a copied paragraph shouldn't open blank lines.
+rows.addEventListener('paste', e => {
+  const text = e.clipboardData?.getData('text/plain');
+  if (!text) return;
+  const clean = text.replace(/^[\r\n]+|[\r\n]+$/g, '');
+  if (clean === text) return;
+  e.preventDefault();
+  document.execCommand('insertText', false, clean);
+});
