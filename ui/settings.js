@@ -151,7 +151,7 @@ const SUB = {
   about: () => ['About', `<div class="ssub-col">
       <div class="fr-brand" aria-hidden="true"><span class="fr-iris">${iris(['note', 'task', 'remind', 'important'])}</span><span class="fr-wordmark">Catchlight</span></div>
       <h2 class="ssub-heading">Privacy-first notes and reminders</h2>
-      <p class="quiet">Version 0.1 (prototype)</p>
+      <p class="quiet sversion" tabindex="0" data-copy-info title="Right-click to copy version and device info">Version 0.1 (prototype)</p>
       <div class="scard"><h4>Open source licences</h4>
         <p>Cormorant Garamond and DM Sans, under the SIL Open Font License 1.1. The licence text for each is beside the fonts and listed in NOTICE.</p></div>
       <div class="scard links">${[['Privacy Policy', 'https://catchlight.app/privacy/'], ['Terms of Service', 'https://catchlight.app/terms/'], ['Support', 'https://catchlight.app/support/?platform=macOS'], ['Website', 'https://catchlight.app']]
@@ -204,6 +204,7 @@ function openSettings(section) {
 }
 function closeSettings() {
   sheet.classList.remove('open');
+  ctx.hidden = true;   // About's menu sits over the sheet
   setTimeout(() => { if (!sheet.classList.contains('open')) { sheet.hidden = true; sheet.innerHTML = ''; } }, still.matches ? 0 : 300);
 }
 const notice = msg => { settings.notices.unshift(msg); saveSettings(); };
@@ -276,6 +277,18 @@ sheet.addEventListener('pointerdown', e => {
   sheet.classList.add('revealing'); b.textContent = 'Release to hide';
   const end = () => { sheet.classList.remove('revealing'); b.textContent = 'Hold to reveal'; removeEventListener('pointerup', end); removeEventListener('pointercancel', end); };
   addEventListener('pointerup', end); addEventListener('pointercancel', end);
+});
+
+// About's version line copies a short, paste-ready support block (AboutView.supportInfoString):
+// version, OS and model, and nothing from the user's Takes. Right-click it, or ⇧F10 from the
+// keyboard, as VoiceOver's named action on iOS.
+const supportInfo = () => `Catchlight 0.1 (prototype)\n${shell.systemInfo()}`;
+sheet.addEventListener('keydown', e => {
+  const v = e.target.closest('[data-copy-info]');
+  if (!v || !(e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10'))) return;
+  e.preventDefault();
+  const r = v.getBoundingClientRect();
+  if (openCtx(v, r.left + 12, r.bottom)) ctx.querySelector('button')?.focus();
 });
 
 // Start over: export first, then erase. Touch ID and the native dialogs belong to the shell.

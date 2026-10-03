@@ -522,9 +522,10 @@ $('#new-script').addEventListener('click', () => newScript());
 const ctx = $('#ctx');
 // Built per target: a Take's menu comes from takeMenu() in takes.js; a Script has one item.
 function openCtx(target, x, y) {
-  const take = target.closest('[data-take]'), scr = target.closest('[data-script]');
-  if (!take && !scr) return false;
-  const items = take ? takeMenu(take.dataset.take)
+  const take = target.closest('[data-take]'), scr = target.closest('[data-script]'), info = target.closest('[data-copy-info]');
+  if (!take && !scr && !info) return false;
+  const items = info ? [['Copy version and device info', () => navigator.clipboard?.writeText(supportInfo())]]   // settings.js
+    : take ? takeMenu(take.dataset.take)
     : isBlank(takeFromScript(scripts.find(x => x.id === scr.dataset.script))) ? []   // a blank Take is never kept
     : [['Make this a Take', () => scriptToTake(scr.dataset.script)]];
   if (!items.length) return false;
