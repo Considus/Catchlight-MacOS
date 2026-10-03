@@ -137,7 +137,8 @@ const supportUrl = 'https://catchlight.app/support/?platform=' + { mac: 'macOS',
 // or role for an OS item. `only` limits an item to some platforms.
 const ITEMS = {
   about: { label: 'About Catchlight', run: showAbout },
-  settings: { label: PLAT === 'linux' ? 'Preferences' : 'Settings…', keys: { all: 'Mod+,' }, enabled: () => free() && !focusRing && !reminderFor && !shotListOpen(), run: () => sheet.hidden ? openSettings() : closeSettings() },
+  // Settings checks ready() rather than free(): the same item closes the sheet once it is open.
+  settings: { label: PLAT === 'linux' ? 'Preferences' : 'Settings…', keys: { all: 'Mod+,' }, enabled: () => ready() && !focusRing && !reminderFor && !shotListOpen(), run: () => sheet.hidden ? openSettings() : closeSettings() },
   newTake: { label: 'New Take', keys: { all: 'Mod+N' }, enabled: () => free() && !draft, run: newTake },
   newScript: { label: 'New Script', keys: { all: 'Mod+Shift+N' }, enabled: free, run: () => newScript() },
   exportTakes: { label: 'Export Takes…', keys: { all: 'Mod+Shift+E' }, enabled: () => free() && takes.length > 0, run: () => exportTakes(takes) },
