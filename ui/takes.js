@@ -689,7 +689,9 @@ alertBox.addEventListener('click', e => {
   alertActions = []; alertBox.close();
   run && run();
 });
-alertBox.addEventListener('close', () => { alertActions = []; });
+// 'close' is queued after the action has run and repainted, so refocus() (a11y.js), which an
+// open alert defers, now finds the new card or Iris (Make Obie, Delete This Occurrence).
+alertBox.addEventListener('close', () => { alertActions = []; refocus(); });
 
 // A Script made back into a Take: "- [ ]" lines become checklist items, the rest text.
 function takeFromScript(s) {
