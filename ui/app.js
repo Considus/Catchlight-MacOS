@@ -121,11 +121,13 @@ function renderScripts() {
 // ---------- markdown: one parser, two faces (source while editing, rendered otherwise) ----------
 // A table is one block: a header row, a separator row of dashes, then body rows.
 const isTable = t => /^\|.*\|[ \t]*\n\|[ \t]*:?-+:?[ \t]*(\|[ \t]*:?-+:?[ \t]*)*\|[ \t]*(\n|$)/.test(t);   // GFM: one dash is enough
-const cells = line => line.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(c => c.trim());
+// An escaped pipe (\|) belongs to its cell, as in GFM; the cell editor stores a typed | that way.
+const PIPE = /(?<!\\)\|/g;
+const cells = line => line.trim().replace(/^\|/, '').replace(/(?<!\\)\|$/, '').split(PIPE).map(c => c.trim());
 function tableHtml(t) {
   const [head, sep, ...body] = t.split('\n');
   const align = cells(sep).map(c => c.startsWith(':') && c.endsWith(':') ? 'center' : c.endsWith(':') ? 'right' : '');
-  const td = (tag, row) => cells(row).map((c, i) => `<${tag}${align[i] ? ` style="text-align:${align[i]}"` : ''}>${inline(c, false)}</${tag}>`).join('');
+  const td = (tag, row) => cells(row).map((c, i) => `<${tag}${align[i] ? ` style="text-align:${align[i]}"` : ''}>${inline(c.replace(/\\\|/g, '|'), false)}</${tag}>`).join('');
   return `<table><thead><tr>${td('th', head)}</tr></thead><tbody>${body.filter(r => r.trim() && r.trim() !== '|').map(r => `<tr>${td('td', r)}</tr>`).join('')}</tbody></table>`;
 }
 
@@ -167,7 +169,7 @@ function paint(el, text, active) {
   if (i === 0 && text === '') { el.classList.add('placeholder'); el.dataset.ph = 'Title'; } else el.classList.remove('placeholder');
   if (active) {
     if (k.type === 'code') el.innerHTML = esc(text).replace(/^```.*$/gm, l => `<span class="mk">${l}</span>`);
-    else if (k.type === 'table') el.innerHTML = esc(text).replace(/\|/g, '<span class="mk">|</span>');
+    else if (k.type === 'table') { paintGrid(el, text); return; }
     else el.innerHTML = (k.pre ? `<span class="mk">${esc(k.pre)}</span>` : '') + inline(text.slice(k.pre.length), true);
     if (text.endsWith('\n')) el.innerHTML += '<br>';
     return;
@@ -227,6 +229,12 @@ function activate(i, off) {
   const el = doc.children[i];
   if (!el) return;
   active = i;
+  if (classify(s.blocks[i]).type === 'table') {
+    paint(el, s.blocks[i], true);
+    const { r, c, o } = cellAt(s.blocks[i], off == null ? s.blocks[i].length : off);
+    focusCell(el, r, c, o);
+    return;
+  }
   try { el.contentEditable = 'plaintext-only'; } catch { el.contentEditable = 'true'; }
   paint(el, s.blocks[i], true);
   el.focus({ preventScroll: true });
@@ -249,7 +257,7 @@ const changed = debounce(() => { save(); renderScripts(); $('#script-heading').t
 // starting a table are a step each. ⌘Z undoes, ⇧⌘Z (or ⌃Y) redoes, and so does the Edit menu.
 const edits = { undo: [], redo: [], typing: 0, block: -1, id: null };
 function snapshot() {
-  return { blocks: [...script().blocks], active, off: active >= 0 ? caretOffset(doc.children[active]) : null };
+  return { blocks: [...script().blocks], active, off: active >= 0 ? blockOffset() : null };
 }
 function remember(kind) {
   const s = script();
@@ -283,15 +291,22 @@ doc.addEventListener('beforeinput', e => {
   else if (active >= 0) remember(/^(insertText|insertReplacementText|deleteContent)/.test(e.inputType) ? 'type' : 'edit');
 });
 
-doc.addEventListener('input', e => {
-  if (active < 0 || e.isComposing) return;
+function onInput() {
+  if (active < 0) return;
+  if (classify(script().blocks[active]).type === 'table') { tableInput(); return; }
   const el = doc.children[active];
   const off = caretOffset(el);
   script().blocks[active] = el.textContent;
+  // A pasted table: the grid takes over from the block's own editing.
+  if (classify(el.textContent).type === 'table') { el.removeAttribute('contenteditable'); activate(active, off); changed(); return; }
   paint(el, el.textContent, true);
   if (off != null) setCaret(el, off);
   changed();
-});
+}
+doc.addEventListener('input', e => { if (!e.isComposing) onInput(); });
+// The input that ends a composition (an IME, dead keys) can still say isComposing, so the text
+// it committed is read here too.
+doc.addEventListener('compositionend', onInput);
 
 doc.addEventListener('keydown', e => {
   if (active < 0 || e.isComposing) return;
@@ -305,32 +320,15 @@ doc.addEventListener('keydown', e => {
     if (e.shiftKey || e.key.toLowerCase() === 'y') redo(); else undo();
     return;
   }
-  // In a table, Enter starts a row; Enter on an empty row leaves the table. Shift+Enter does the
-  // same, deliberately: a line break inside a row would break the table.
-  if (e.key === 'Enter' && k.type === 'table') {
-    e.preventDefault();
-    remember('edit');
-    let start = text.lastIndexOf('\n', off - 1) + 1, end = (text.indexOf('\n', off) + 1 || text.length + 1) - 1;
-    // On the header or the separator, a new row goes after the separator, never between them.
-    const lineNo = text.slice(0, start).split('\n').length - 1;
-    if (lineNo < 2) { const sepEnd = text.indexOf('\n', text.indexOf('\n') + 1); end = sepEnd < 0 ? text.length : sepEnd; start = text.lastIndexOf('\n', end - 1) + 1; }
-    const line = text.slice(start, end);
-    if (line.replace(/[|\s]/g, '') === '' && start > 0) {
-      s.blocks[active] = text.slice(0, start - 1) + text.slice(end);
-      s.blocks.splice(active + 1, 0, '');
-      return rebuild(active + 1, 0);
-    }
-    s.blocks[active] = text.slice(0, end) + '\n| ' + text.slice(end);
-    paint(el, s.blocks[active], true); setCaret(el, end + 3); changed();
-    return;
-  }
+  if (k.type === 'table') { tableKey(e, s, el, text); return; }   // the grid's own keys
   // A header row, "| a | b |", becomes a table on Enter: the separator and a first row follow.
   if (e.key === 'Enter' && k.type === 'p' && !text.includes('\n') && /^\|.*\|.*\|\s*$/.test(text) && off === text.length) {
     e.preventDefault();
     remember('edit');
     const n = cells(text).length;
-    s.blocks[active] = `${text.trimEnd()}\n|${' --- |'.repeat(n)}\n| `;
-    paint(el, s.blocks[active], true); setCaret(el, s.blocks[active].length); changed();
+    s.blocks[active] = tableText({ rows: [cells(text), Array(n).fill('')], sep: Array(n).fill('---') });
+    el.removeAttribute('contenteditable');   // the grid's cells are the editors now
+    activate(active, sourceAt(s.blocks[active], 1, 0, 0)); changed();
     return;
   }
   // Return is the line break: Shift+Enter does what Enter does (owner, 2026-10-02), except in a
@@ -369,6 +367,15 @@ doc.addEventListener('keydown', e => {
 
 doc.addEventListener('mousedown', e => {
   const el = e.target.closest('.blk');
+  if (el?.classList.contains('active') && el.classList.contains('table')) {
+    // Inside a cell the browser places the caret; anywhere else in the block keeps the grid
+    // live rather than letting the cell lose focus and close it.
+    if (e.target.closest('.cell')) return;
+    e.preventDefault();
+    const c = e.target.closest('td, th')?.querySelector('.cell');
+    if (c) { c.focus(); setCaret(c, c.textContent.length); }
+    return;
+  }
   if (!el || el.classList.contains('active')) return;
   const i = +el.dataset.i, s = script();
   const gutter = el.classList.contains('check') && e.clientX - el.getBoundingClientRect().left < 34;
@@ -418,7 +425,7 @@ function clickToSource(el, src, e) {
     const n = tr.parentElement.tagName === 'THEAD' ? 0 : bodyLines[tr.rowIndex - 1];
     if (n == null) return undefined;
     const line = lines[n], lineStart = lines.slice(0, n).reduce((a, l) => a + l.length + 1, 0);
-    const pipes = [...line.matchAll(/\|/g)].map(m => m.index);
+    const pipes = [...line.matchAll(PIPE)].map(m => m.index);
     const start = pipes[cell.cellIndex], end = pipes[cell.cellIndex + 1] ?? line.length;
     if (start == null) return lineStart + line.length;
     const raw = line.slice(start + 1, end), lead = raw.length - raw.trimStart().length;
@@ -432,7 +439,8 @@ function clickToSource(el, src, e) {
 }
 doc.addEventListener('click', e => { if (e.target.closest('a') && !(e.metaKey || e.ctrlKey)) e.preventDefault(); });
 $('#editor-scroll').addEventListener('mousedown', e => {
-  if (e.target.closest('.blk')) return;
+  // A block that handled the press may have repainted, leaving e.target detached from it.
+  if (e.defaultPrevented || e.target.closest('.blk')) return;
   const s = script();
   if (!s) return;
   e.preventDefault();
@@ -440,6 +448,155 @@ $('#editor-scroll').addEventListener('mousedown', e => {
   activate(s.blocks.length - 1);
 });
 doc.addEventListener('focusout', e => { if (!doc.contains(e.relatedTarget)) setTimeout(() => { if (!doc.contains(document.activeElement)) deactivate(); }, 0); });
+
+// ---------- a table, edited cell by cell ----------
+// While a table is the active block it is a grid: each cell is its own small editor showing its
+// source (markers dimmed, as any active block does), and the block's text is rebuilt from the
+// cells as you type. A typed | is stored as \| so it can't split a cell, and a pasted line break
+// becomes a space. Tab and ⇧Tab move along the row and on to the next; Tab in the last cell adds
+// a row. Enter starts a row below (below the header, never between it and the separator); Enter
+// on an empty row leaves the table, as before. ↑ ↓ move within the column and out of the table
+// at either end; ← → at a cell's edge move to the next cell. ⌥⌘→ adds a column after this one
+// and ⌥⌘⌫ removes it. ⌫ in an empty row removes the row, and in an empty table removes it.
+const rowLines = lines => lines.map((_, n) => n).filter(n => n === 0 || (n > 1 && lines[n].trim() && lines[n].trim() !== '|'));
+const lineStart = (lines, n) => lines.slice(0, n).reduce((a, l) => a + l.length + 1, 0);
+// The table as rows of cell sources, every row as wide as the widest, so no cell is dropped.
+function parseTable(t) {
+  const lines = t.split('\n'), rows = rowLines(lines).map(n => cells(lines[n]));
+  const width = Math.max(...rows.map(r => r.length));
+  const pad = (r, fill) => r.length < width ? [...r, ...Array(width - r.length).fill(fill)] : r;
+  return { sep: pad(cells(lines[1]), '---'), rows: rows.map(r => pad(r, '')) };
+}
+const tableText = ({ sep, rows }) => [rows[0], sep, ...rows.slice(1)].map(r => `| ${r.join(' | ')} |`).join('\n');
+// Which cell a source offset falls in, and where in it; and back again.
+function cellAt(t, off) {
+  const lines = t.split('\n'), rl = rowLines(lines), n = t.slice(0, off).split('\n').length - 1;
+  const r = Math.max(0, rl.findLastIndex(x => x <= n)), line = lines[rl[r]];
+  const at = rl[r] === n ? off - lineStart(lines, n) : line.length;
+  const pipes = [...line.matchAll(PIPE)].map(m => m.index);
+  const c = Math.max(0, Math.min(pipes.filter(p => p < at).length - 1, cells(line).length - 1));
+  const start = (pipes[c] ?? -1) + 1, raw = line.slice(start, pipes[c + 1] ?? line.length);
+  const lead = raw.length - raw.trimStart().length;
+  return { r, c, o: Math.max(0, Math.min(at - start - lead, raw.trim().length)) };
+}
+function sourceAt(t, r, c, o) {
+  const lines = t.split('\n'), n = rowLines(lines)[r] ?? 0, line = lines[n], from = lineStart(lines, n);
+  const pipes = [...line.matchAll(PIPE)].map(m => m.index);
+  if (pipes[c] == null) return from + line.length;
+  const raw = line.slice(pipes[c] + 1, pipes[c + 1] ?? line.length), lead = raw.length - raw.trimStart().length;
+  return from + pipes[c] + 1 + lead + Math.min(o, raw.trim().length);
+}
+function paintGrid(el, t) {
+  const { sep, rows } = parseTable(t);
+  const align = sep.map(c => c.startsWith(':') && c.endsWith(':') ? 'center' : c.endsWith(':') ? 'right' : '');
+  const row = (r, ri) => `<tr>${r.map((c, ci) => { const tag = ri ? 'td' : 'th';
+    return `<${tag}${align[ci] ? ` style="text-align:${align[ci]}"` : ''}><span class="cell" data-r="${ri}" data-c="${ci}" contenteditable="plaintext-only" role="textbox" aria-label="${ri ? `Row ${ri}` : 'Header'}, column ${ci + 1}">${inline(c, true)}</span></${tag}>`; }).join('')}</tr>`;
+  el.innerHTML = `<table><thead>${row(rows[0], 0)}</thead><tbody>${rows.slice(1).map((r, i) => row(r, i + 1)).join('')}</tbody></table>`;
+}
+const activeCell = () => { const c = document.activeElement?.closest?.('.cell'); return c && doc.children[active]?.contains(c) ? c : null; };
+function focusCell(el, r, c, o) {
+  const cell = el.querySelector(`.cell[data-r="${r}"][data-c="${c}"]`);
+  if (!cell) return;
+  cell.focus({ preventScroll: true });
+  setCaret(cell, o == null ? cell.textContent.length : o);
+  cell.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+}
+// Where the caret is, in source characters, for undo to put it back.
+function blockOffset() {
+  const el = doc.children[active], cell = activeCell();
+  if (!cell) return caretOffset(el);
+  // The stored cell is trimmed, so a caret counted over the cell's text loses its leading spaces.
+  const text = cell.textContent, lead = text.length - text.trimStart().length;
+  return sourceAt(script().blocks[active], +cell.dataset.r, +cell.dataset.c, Math.max(0, (caretOffset(cell) ?? 0) - lead));
+}
+function tableInput() {
+  const s = script(), cell = activeCell();
+  if (!cell) return;
+  let off = caretOffset(cell) ?? 0;
+  const typed = cell.textContent.replace(/\n/g, ' '), at = off;
+  const src = typed.replace(PIPE, (m, i) => { if (i < at) off++; return '\\|'; });
+  const t = parseTable(s.blocks[active]);
+  t.rows[+cell.dataset.r][+cell.dataset.c] = src;
+  s.blocks[active] = tableText(t);
+  cell.innerHTML = inline(src, true);
+  setCaret(cell, off);
+  changed();
+}
+function tableKey(e, s, el, text) {
+  if (e.key === 'Escape') { deactivate(); return; }
+  const cell = activeCell();
+  if (!cell) return;
+  const r = +cell.dataset.r, c = +cell.dataset.c, o = caretOffset(cell) ?? 0, len = cell.textContent.length;
+  const collapsed = getSelection().isCollapsed, t = parseTable(text), rows = t.rows.length, cols = t.rows[0].length;
+  const go = (r2, c2, o2) => focusCell(el, r2, c2, o2);
+  const write = (r2, c2, o2) => { s.blocks[active] = tableText(t); paintGrid(el, s.blocks[active]); go(r2, c2, o2); changed(); };
+  const empty = row => row.every(x => !x.trim());
+  if (e.altKey && e.metaKey && e.key === 'ArrowRight') {
+    e.preventDefault(); remember('edit');
+    t.rows.forEach(row => row.splice(c + 1, 0, '')); t.sep.splice(c + 1, 0, '---');
+    return write(r, c + 1, 0);
+  }
+  if (e.altKey && e.metaKey && e.key === 'Backspace') {
+    e.preventDefault();
+    if (cols < 2) return;
+    remember('edit');
+    t.rows.forEach(row => row.splice(c, 1)); t.sep.splice(c, 1);
+    return write(r, Math.min(c, cols - 2));
+  }
+  if (e.key === 'Tab') {
+    if (e.shiftKey && r === 0 && c === 0) return;   // ⇧Tab from the first cell leaves the table, as Tab leaves any field
+    e.preventDefault();
+    if (e.shiftKey) return c > 0 ? go(r, c - 1) : go(r - 1, cols - 1);
+    if (c < cols - 1) return go(r, c + 1);
+    if (r < rows - 1) return go(r + 1, 0);
+    remember('edit'); t.rows.push(Array(cols).fill(''));
+    return write(r + 1, 0, 0);
+  }
+  if (e.key === 'Enter') {
+    e.preventDefault(); remember('edit');
+    if (r > 0 && empty(t.rows[r])) {
+      t.rows.splice(r, 1); s.blocks[active] = tableText(t);
+      s.blocks.splice(active + 1, 0, '');
+      return rebuild(active + 1, 0);
+    }
+    t.rows.splice(r + 1, 0, Array(cols).fill(''));
+    return write(r + 1, 0, 0);
+  }
+  if (e.key === 'Backspace' && collapsed && o === 0 && c === 0) {
+    if (r > 0 && empty(t.rows[r])) {
+      e.preventDefault(); remember('edit');
+      t.rows.splice(r, 1);
+      return write(r - 1, cols - 1);
+    }
+    if (r === 0 && t.rows.every(empty)) {
+      e.preventDefault(); remember('edit');
+      s.blocks[active] = '';
+      return rebuild(active, 0);
+    }
+    return;
+  }
+  if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+    // Only from a cell's first or last line, as in any block: a wrapped cell moves within itself.
+    const up = e.key === 'ArrowUp', line = caretLine(cell);
+    if (e.shiftKey || e.metaKey || e.altKey || e.ctrlKey || !(up ? line.first : line.last)) return;
+    e.preventDefault();
+    const r2 = r + (up ? -1 : 1);
+    if (r2 >= 0 && r2 < rows) return go(r2, c, Math.min(o, t.rows[r2][c].length));
+    if (r2 < 0 && active > 0) return activate(active - 1);
+    if (r2 >= rows && active < s.blocks.length - 1) return activate(active + 1, 0);
+    return;
+  }
+  const plain = !e.shiftKey && !e.metaKey && !e.altKey && !e.ctrlKey;
+  if (e.key === 'ArrowLeft' && collapsed && plain && o === 0) {
+    e.preventDefault();
+    if (c > 0) go(r, c - 1); else if (r > 0) go(r - 1, cols - 1); else if (active > 0) activate(active - 1);
+    return;
+  }
+  if (e.key === 'ArrowRight' && collapsed && plain && o === len) {
+    e.preventDefault();
+    if (c < cols - 1) go(r, c + 1, 0); else if (r < rows - 1) go(r + 1, 0, 0); else if (active < s.blocks.length - 1) activate(active + 1, 0);
+  }
+}
 
 // ---------- page mode: continuous, A4 or US Letter (D-314) ----------
 const PAGE = { a4: { w: 794, h: 1123 }, letter: { w: 816, h: 1056 } }; // CSS px at 96 dpi
