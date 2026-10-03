@@ -226,7 +226,7 @@ rsheet.addEventListener('click', e => {
   else if (b.dataset.day) { rs.date = new Date(rs.view.getFullYear(), rs.view.getMonth(), +b.dataset.day, rs.date.getHours(), rs.date.getMinutes()); rs.quick = null; }
   else if (b.dataset.wd) {
     const w = +b.dataset.wd, i = rs.weekdays.indexOf(w);
-    if (i >= 0 && rs.weekdays.length > 1) rs.weekdays.splice(i, 1); else if (i < 0) rs.weekdays.push(w);
+    if (i >= 0) rs.weekdays.splice(i, 1); else rs.weekdays.push(w);   // the last one can go too: Interval then reads Weekly, as on iOS
   }
   else if (k === 'current') { rs.place = { name: 'Current location', mode: 'arrive', radius: 150, notify: true, ...(rs.place || {}), name: rs.place?.name || 'Current location' }; }
   else if (k === 'arrive' || k === 'leave') rs.place.mode = k;

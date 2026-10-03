@@ -130,7 +130,7 @@ function dockTo(mode) {
   renderTakes();
   if (mode === 'search') $('#take-search').focus();
 }
-const supportUrl = 'https://catchlight.app/support/?platform=' + { mac: 'macOS', windows: 'Windows', linux: 'Linux' }[PLAT] + '&app=0.1';
+const supportUrl = 'https://catchlight.app/support/?platform=' + PLATFORM.osName + '&app=0.1';
 
 // ---------- the menus ----------
 // Each item: id, label (text or a function of the moment), keys, enabled(), checked(), run(),
@@ -200,7 +200,7 @@ const ITEMS = {
   services: { label: 'Services', role: 'services', only: ['mac'] },
   quit: { label: PLAT === 'windows' ? 'Exit' : 'Quit Catchlight', keys: { mac: 'Mod+Q', windows: 'Alt+F4', linux: 'Mod+Q' }, role: 'quit' },
   help: { label: 'Catchlight Help', run: () => window.open(supportUrl, '_blank', 'noopener') },
-  report: { label: 'Report an Issue…', run: () => window.open(supportUrl, '_blank', 'noopener') },
+  report: { label: 'Report an Issue…', run: () => window.open(reportUrl(), '_blank', 'noopener') },
   copyInfo: { label: 'Copy Version and Device Info', run: () => navigator.clipboard?.writeText(supportInfo()) },
 };
 

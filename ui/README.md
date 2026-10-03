@@ -90,6 +90,15 @@ In the Claude desktop app the preview config is `catchlight-macos-ui`.
 - Scene follows the system, or Night or Daylight from the toolbar.
 - The open Script's title is the Script area's heading, in the same place, size and face as DAILIES and SCRIPTS; the toolbar carries no title.
 
+- **Smaller iOS matches, 2026-10-03:**
+  - The pinned Obie stands down while any Take is edited, so it never shows twice.
+  - A paste into a Take's line drops line breaks at either end.
+  - The creation stamp uses the locale's short time (09:05 in the UK, 9:05 AM in the US).
+  - Report an issue also sends the OS version.
+  - A custom repeat can lose its last weekday, and the Interval then reads Weekly.
+  - About's credits read "Open Source Licences" and name the BIP-39 wordlist.
+  - In Sequence, Search or a month filter, a "Show all Takes" button (for keyboard and screen reader) returns to Dailies.
+
 ## Known gaps
 
 the native behind Lock after, Auto-Delete, Snooze, Follow-up reminders, Notifications, Import and Export diagnostics (stored or stubbed until the shell exists), Touch ID before Privacy phrase and Start over, pairing with another device (D-327 makes it a later convenience), notifications themselves and place search, map and location (the shell's), and images in a Script (deferred by decision I).

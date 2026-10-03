@@ -241,7 +241,8 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 .sidebar { --veil: rgba(15,14,12,.9); }
 :root[data-scene="daylight"] .sidebar { --veil: rgba(247,244,239,.9); }
 .sidebar .timeline, .sidebar #pinned, .sidebar .page-heading { transition: opacity .22s ease-in-out; }
-.sidebar.editing .timeline, .sidebar.editing #pinned { opacity: .14; pointer-events: none; }
+.sidebar.editing .timeline { opacity: .14; pointer-events: none; }
+.sidebar.editing #pinned { visibility: hidden; }   /* the Obie never shows twice: for itself the editor is the card */
 .sidebar.editing .page-heading { opacity: .12; }
 .editor-bar { display: none; }
 .sidebar.editing .editor-bar { display: grid; }

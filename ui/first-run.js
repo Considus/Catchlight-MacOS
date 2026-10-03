@@ -9,11 +9,11 @@
 // ?platform=linux previews the others. The backup lines are only true because each shell keeps
 // the Takes out of that platform's backup (ui/README.md, "What each shell must do").
 const PLATFORMS = {
-  mac: { device: 'Mac', search: 'Spotlight & Siri', writingTools: true, noBackup: "Time Machine won't contain them", keptOut: 'because we deliberately keep them out of it' },
-  windows: { device: 'PC', search: 'Windows Search', noBackup: "Windows Backup and File History won't contain them", keptOut: 'because we deliberately keep them out of both' },
+  mac: { osName: 'macOS', device: 'Mac', search: 'Spotlight & Siri', writingTools: true, noBackup: "Time Machine won't contain them", keptOut: 'because we deliberately keep them out of it' },
+  windows: { osName: 'Windows', device: 'PC', search: 'Windows Search', noBackup: "Windows Backup and File History won't contain them", keptOut: 'because we deliberately keep them out of both' },
   // Named, as Time Machine is: only Déjà Dup honours the marker the shell writes, and a general
   // "your backups" would be untrue for rsync or Borg.
-  linux: { device: 'computer', search: 'Desktop search', noBackup: "Déjà Dup won't contain them", keptOut: 'because we deliberately keep them out of it' },
+  linux: { osName: 'Linux', device: 'computer', search: 'Desktop search', noBackup: "Déjà Dup won't contain them", keptOut: 'because we deliberately keep them out of it' },
 };
 const PLATFORM = PLATFORMS[new URLSearchParams(location.search).get('platform')] || PLATFORMS.mac;
 
@@ -34,7 +34,8 @@ const shell = {
   chooseFolder: () => '~/Dropbox/Catchlight',   // the native folder picker, via the shell
   // The OS version and hardware model for About's copy line. A browser can't read either
   // truthfully, so the prototype stands in a sample of what the shell returns.
-  systemInfo: () => 'macOS 26.0 · Mac16,1',
+  systemInfo: () => `${PLATFORM.osName} ${shell.osVersion()} · Mac16,1`,
+  osVersion: () => '26.0',
 };
 
 const fr = { step: null, storage: null, words: [], positions: [], picked: [], bank: [], basics: 0, folder: null, restore: false };
