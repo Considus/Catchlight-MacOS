@@ -62,7 +62,9 @@ function commitSwipe(card, side) {
   const { t } = actionsFor(card);
   if (!t) return;
   if (side === 'leading') { toggleDone(t); touch(t); return; }   // renderTakes rebuilds the row closed
-  // With Confirm before deleting on, the row has to still be there if the answer is no.
+  // A repeating reminder, or Confirm before deleting, asks first, and the row has to still be
+  // there if the answer is no.
+  if (asksWhichToDelete(t)) { swipeOpen = null; setOffset(card, 0, true); askWhichToDelete(t); return; }
   if (settings.confirmDelete) {
     if (confirm('Delete this Take?\n\nThis cannot be undone.')) deleteTake(t.id);
     else { swipeOpen = null; setOffset(card, 0, true); }

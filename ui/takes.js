@@ -617,6 +617,38 @@ function deleteTake(id) {
   saveTakes(); renderTakes();
 }
 
+// Delete on a repeating reminder in Dailies asks which, as on iOS (owner 2026-06-21): Delete
+// This Occurrence skips to the next one and the series goes on; Delete Series deletes the Take.
+// It replaces Confirm before deleting, since it already asks. The Storyboard's menu has no
+// such dialog on iOS, so there a repeating Take deletes like any other.
+const asksWhichToDelete = t => !storyboard && repeats(t.reminder);
+const repeatAlert = document.createElement('dialog');
+repeatAlert.className = 'alert';
+repeatAlert.innerHTML = `<h2>This is a repeating reminder.</h2>
+  <p>Delete only the next occurrence, or the whole repeating series?</p>
+  <div class="alert-actions"><button type="button" data-a="one">Delete This Occurrence</button>
+  <button type="button" class="danger" data-a="all">Delete Series</button>
+  <button type="button" data-a="cancel">Cancel</button></div>`;
+document.body.append(repeatAlert);
+let repeatFor = null;
+function askWhichToDelete(t) {
+  repeatFor = t;
+  repeatAlert.showModal();
+  repeatAlert.querySelector('[data-a="cancel"]').focus();
+}
+repeatAlert.addEventListener('click', e => {
+  const a = e.target.closest('button')?.dataset.a;
+  if (!a) return;
+  const t = repeatFor;
+  repeatFor = null; repeatAlert.close();
+  if (a === 'one') {
+    // Leave the editor first if this Take is open, or saving the draft would undo the skip.
+    if (draft && original?.id === t.id) discardEdit();
+    advanceRepeat(t.reminder); touch(t);
+  } else if (a === 'all') deleteTake(t.id);
+});
+repeatAlert.addEventListener('close', () => { repeatFor = null; });
+
 // A Script made back into a Take: "- [ ]" lines become checklist items, the rest text.
 function takeFromScript(s) {
   const blocks = [];

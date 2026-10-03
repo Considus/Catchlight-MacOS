@@ -297,6 +297,15 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 .ctx button:hover { background: var(--accent-fill); color: var(--on-accent); }
 .ctx button.danger { color: var(--ruby); }
 .ctx button.danger:hover { background: var(--ruby); color: #fff; }
+/* The alert a repeating reminder's Delete raises (NSAlert on the Mac). */
+.alert { width: min(320px, calc(100vw - 32px)); padding: 20px 18px 14px; border: 1px solid var(--card-border); border-radius: 12px; background: var(--surface); color: var(--text); box-shadow: 0 16px 48px rgba(0,0,0,.35); text-align: center; }
+.alert::backdrop { background: rgba(0,0,0,.35); }
+.alert h2 { margin: 0 0 6px; font: 600 15px "DM Sans", sans-serif; }
+.alert p { margin: 0 0 16px; font-size: 13px; line-height: 1.4; }
+.alert-actions { display: grid; gap: 6px; }
+.alert-actions button { min-height: 44px; border-radius: 8px; background: var(--accent-fill); color: var(--on-accent); font: 500 14px "DM Sans", sans-serif; }
+.alert-actions .danger { background: var(--ruby); color: #fff; }
+.alert-actions [data-a="cancel"] { background: transparent; color: var(--text); border: 1px solid var(--card-border); }
 
 /* ---------- the Dailies dock: Sequence, Search and the Storyboard (BottomDockView) ---------- */
 .dock[hidden] { display: none; }
