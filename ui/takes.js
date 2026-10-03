@@ -390,10 +390,8 @@ sidebar.addEventListener('pointerdown', e => {
   const hold = irisHold = { id: ir.dataset.iris, x: e.clientX, y: e.clientY, fired: false, t: setTimeout(() => {
     hold.fired = true;
     const t = takes.find(x => x.id === hold.id);
-    const make = !t.obie;
-    takes.forEach(x => { x.obie = false; });
-    t.obie = make; if (make) t.isImportant = true;   // becoming the Obie makes it Important; Important can be removed later, as on iOS (Take.isObie)
-    t.modifiedAt = Date.now(); saveTakes(); renderTakes();
+    if (!t.obie) makeObie(t);
+    else { t.obie = false; touch(t); }   // holding the Obie's Iris makes it a standard Take again, without asking
   }, 450) };
 });
 // A hold that moves (a scroll) or is cancelled is not a hold.
@@ -618,7 +616,7 @@ function takeMenu(id) {
     touch(t);
   }]);
   if (!storyboard) {
-    if (!t.obie) items.push(['Make Obie', () => { takes.forEach(x => { x.obie = false; }); t.obie = true; t.isImportant = true; touch(t); }]);
+    if (!t.obie) items.push(['Make Obie', () => makeObie(t)]);
     items.push(['Export Take', () => exportTake(t)]);
     items.push(['Expand into a Script', () => {
       takes = takes.filter(x => x !== t);
@@ -629,6 +627,15 @@ function takeMenu(id) {
   items.push(['Delete Take', null, 'danger']);
   return items;
 }
+// Making a Take the Obie when another already is asks first (RootView, owner copy 2026-06-17).
+// Becoming the Obie makes it Important; Important can be taken off later (Take.isObie).
+function makeObie(t) {
+  const make = () => { takes.forEach(x => { x.obie = false; }); t.obie = true; t.isImportant = true; touch(t); };
+  if (!takes.some(x => x.obie && x.id !== t.id)) { make(); return; }
+  ask('Make this your Obie?', 'Your existing Obie returns to the timeline. Only one Take can be your Obie.', [['Make Obie', make], ['Cancel', null, 'cancel']]);
+}
+// Confirm before deleting (DeleteConfirmation): Delete first, then Cancel, as on iOS.
+const askDelete = t => ask('Delete this Take?', 'This cannot be undone.', [['Delete', () => deleteTake(t.id), 'danger'], ['Cancel', null, 'cancel']]);
 function touch(t) { t.modifiedAt = Date.now(); saveTakes(); renderTakes(); }
 function forgetExpanded(id) { if (expanded.delete(id)) store.set('expanded', [...expanded].sort()); }
 function deleteTake(id) {

@@ -530,3 +530,8 @@ body.first-running .app { visibility: hidden; }
 .sl-rows.reordering, .sl-rows.reordering .sl-handle { cursor: grabbing; }
 .sl-item.lifted { z-index: 2; }
 .sl-gap { flex: none; }
+
+/* After Start over: nothing left to show and no way back (ResetCompleteView). */
+.reset-done { position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 0 24px; background: var(--bg); color: var(--text); text-align: center; }
+.reset-done h1 { margin: 0; font: 300 28px/1.2 "Cormorant Garamond", serif; }
+.reset-done p { margin: 0; max-width: 420px; font-size: 15px; line-height: 1.45; color: var(--text-2); }

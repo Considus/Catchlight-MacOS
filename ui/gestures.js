@@ -65,11 +65,7 @@ function commitSwipe(card, side) {
   // A repeating reminder, or Confirm before deleting, asks first, and the row has to still be
   // there if the answer is no.
   if (asksWhichToDelete(t)) { swipeOpen = null; setOffset(card, 0, true); askWhichToDelete(t); return; }
-  if (settings.confirmDelete) {
-    if (confirm('Delete this Take?\n\nThis cannot be undone.')) deleteTake(t.id);
-    else { swipeOpen = null; setOffset(card, 0, true); }
-    return;
-  }
+  if (settings.confirmDelete) { swipeOpen = null; setOffset(card, 0, true); askDelete(t); return; }
   // Otherwise one continuous motion: the card slides off and the row goes with it.
   card.classList.add('swipe-off');
   card.style.transform = `translateX(-${card.parentElement.clientWidth + 200}px)`;
