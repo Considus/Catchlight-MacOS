@@ -62,12 +62,10 @@ function commitSwipe(card, side) {
   const { t } = actionsFor(card);
   if (!t) return;
   if (side === 'leading') { toggleDone(t); touch(t); return; }   // renderTakes rebuilds the row closed
-  // With Confirm before deleting on, the row has to still be there if the answer is no.
-  if (settings.confirmDelete) {
-    if (confirm('Delete this Take?\n\nThis cannot be undone.')) deleteTake(t.id);
-    else { swipeOpen = null; setOffset(card, 0, true); }
-    return;
-  }
+  // A repeating reminder, or Confirm before deleting, asks first, and the row has to still be
+  // there if the answer is no.
+  if (asksWhichToDelete(t)) { swipeOpen = null; setOffset(card, 0, true); askWhichToDelete(t); return; }
+  if (settings.confirmDelete) { swipeOpen = null; setOffset(card, 0, true); askDelete(t); return; }
   // Otherwise one continuous motion: the card slides off and the row goes with it.
   card.classList.add('swipe-off');
   card.style.transform = `translateX(-${card.parentElement.clientWidth + 200}px)`;
@@ -158,7 +156,8 @@ sidebar.addEventListener('click', e => {
     return;
   }
   if (swipeSuppress) { swipeSuppress = false; e.stopImmediatePropagation(); e.preventDefault(); return; }
-  if (swipeOpen && e.target.closest(swipeCards) === swipeOpen.card) { e.stopImmediatePropagation(); closeSwipe(); }
+  // A click on an open card only closes it: no editor, and no link followed.
+  if (swipeOpen && e.target.closest(swipeCards) === swipeOpen.card) { e.stopImmediatePropagation(); e.preventDefault(); closeSwipe(); }
 }, true);
 
 // A repaint rebuilds the cards, so no row stays open across one.
