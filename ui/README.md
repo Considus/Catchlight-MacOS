@@ -12,6 +12,16 @@ The interface shared by every desktop build (Mac, Windows, Linux) and later iPad
 - `localStorage` here is a prototype convenience only. Real data goes through `CatchlightCore`.
 - Touch-ready (D-320): every control has a hit area of at least 44 × 44, extended invisibly with `::after` where it should look smaller; a long press does what a right-click does; checklist rows are 44 tall under a coarse pointer. A new control must pass the 44px hit probe before it merges.
 
+## What each shell must do
+
+The copy promises things only the shell can make true. Each platform's shell owns its half:
+
+- **Keep local Takes out of the platform's backup**, because first run says so, naming each platform's own backup ("Time Machine / Windows Backup and File History / Déjà Dup won't contain them, because we deliberately keep them out"):
+  - **macOS:** exclude the data folder from Time Machine (`NSURLIsExcludedFromBackupKey`).
+  - **Windows:** keep the data in `%LOCALAPPDATA%`. Neither File History nor Windows Backup includes AppData by default. Never store it in `Documents` or a OneDrive-synced folder.
+  - **Linux:** keep the data under `$XDG_DATA_HOME` and write a `.deja-dup-ignore` file in its folder. Déjà Dup, the default backup tool on GNOME and Ubuntu, backs up the whole home folder unless a folder holds that marker. Don't use `CACHEDIR.TAG` instead: it marks the folder as a disposable cache, and cleaners may delete it.
+- Name the platform, so the copy reads Mac, PC or computer (`PLATFORMS` in `first-run.js`; `?platform=windows|linux` previews them).
+
 ## Running it
 
 Serve the folder and open it in any browser:
@@ -70,7 +80,7 @@ In the Claude desktop app the preview config is `catchlight-macos-ui`.
 
 ## Known gaps
 
-Spotlight & Siri and Writing Tools rows (macOS has both; not yet decided), the native behind Lock after, Auto-Delete, Snooze, Follow-up reminders, Notifications, Import and Export diagnostics (stored or stubbed until the shell exists), Touch ID before Privacy phrase and Start over, pairing with another device (D-327 makes it a later convenience), Windows and Linux backup wording, notifications themselves and place search, map and location (the shell's), and images in a Script (deferred by decision I).
+Spotlight & Siri and Writing Tools rows (macOS has both; not yet decided), the native behind Lock after, Auto-Delete, Snooze, Follow-up reminders, Notifications, Import and Export diagnostics (stored or stubbed until the shell exists), Touch ID before Privacy phrase and Start over, pairing with another device (D-327 makes it a later convenience), notifications themselves and place search, map and location (the shell's), and images in a Script (deferred by decision I).
 
 ## Fonts
 
