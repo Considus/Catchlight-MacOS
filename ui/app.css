@@ -9,7 +9,8 @@
 /* Night is the design default. */
 :root, :root[data-scene="night"] {
   --bg: #0F0E0C; --surface: #1C1A16; --text: #F5EDD8; --text-2: #B8B0A3;
-  --text-done: rgba(184,176,163,.58); --accent: #C9A96E; --accent-fill: #C9A96E;
+  --text-done: rgba(184,176,163,.76); --accent: #C9A96E; --accent-fill: #C9A96E;   /* done text: 5.22:1 on a card, 4.58 on an Obie */
+  --tick: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.4l2.6 2.6L12 5.4' fill='none' stroke='%230F0E0C' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   --on-accent: #0F0E0C; --placeholder: #898378; --ruby: rgb(219,82,82);
   --obie-surface: #2D2921; --obie-border: rgba(237,217,163,.65); --obie-text: #EDD9A3;
   --card-border: rgba(245,237,216,.10); --card-shadow: none; --divider: #2D2A24;
@@ -22,7 +23,9 @@
 }
 :root[data-scene="daylight"] {
   --bg: #F7F4EF; --surface: #FFFFFF; --text: #0F0E0C; --text-2: #5C5650;
-  --text-done: rgba(184,176,163,.82); --accent: #856539; --accent-fill: #C9A96E;
+  --text-done: #746E68; --accent: #856539; --accent-fill: #C9A96E;   /* done text: 5.03:1 on a card, 4.59 on the page */
+  /* The tick in the card's own colour, as iOS's checkmark.circle.fill lets the card show through (5.36:1). */
+  --tick: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.4l2.6 2.6L12 5.4' fill='none' stroke='%23FFFFFF' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   --on-accent: #0F0E0C; --placeholder: #7A746C; --ruby: rgb(184,46,46);
   --obie-surface: #FBF8F3; --obie-border: rgba(201,169,110,.65); --obie-text: #856539;
   --card-border: rgba(15,14,12,.09);
@@ -215,7 +218,7 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 .blk.check + .blk.check { margin-top: .15em; }
 /* On touch a checklist row is a 44pt row, as on iOS; the whole left gutter toggles it. */
 @media (pointer: coarse) { .blk.check { min-height: 44px; padding-top: 9px; } .blk.check input { top: 13px; } }
-.blk.check input { position: absolute; left: 1px; top: .3em; width: 18px; height: 18px; margin: 0; accent-color: var(--accent-fill); }
+.blk.check input { position: absolute; left: 1px; top: .3em; width: 18px; height: 18px; margin: 0; accent-color: var(--accent); }   /* 5.36:1 on Daylight's page; --accent-fill was 2.24 */
 .blk.check.done:not(.active) .txt { color: var(--text-done); }
 .blk.code { font: 13px/1.55 ui-monospace, "SF Mono", Menlo, monospace; background: var(--code-bg); padding: 10px 14px; border-radius: 8px; }
 .blk.hr:not(.active) { height: 1.2em; background: linear-gradient(var(--divider), var(--divider)) center / 100% 1px no-repeat; color: transparent; }
@@ -257,7 +260,7 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 .echeck { position: relative; flex: none; width: 24px; height: 32px; margin-left: -4px; }
 .echeck::after { content: ""; position: absolute; inset: -6px -10px; }   /* 44 x 44 hit area */
 .echeck::before { content: ""; position: absolute; left: 4px; top: 8px; width: 15px; height: 15px; border: 1.5px solid var(--text-2); border-radius: 3px; box-sizing: border-box; }
-.erow.ticked .echeck::before { border: 0; border-radius: 50%; background: var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.4l2.6 2.6L12 5.4' fill='none' stroke='%230F0E0C' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/100% no-repeat; }
+.erow.ticked .echeck::before { border: 0; border-radius: 50%; background: var(--accent) var(--tick) center/100% no-repeat; }
 .ehandle { flex: none; width: 36px; height: 32px; background: linear-gradient(color-mix(in srgb, var(--text-2) 55%, transparent), color-mix(in srgb, var(--text-2) 55%, transparent)) center 11px / 14px 1.5px no-repeat, linear-gradient(color-mix(in srgb, var(--text-2) 55%, transparent), color-mix(in srgb, var(--text-2) 55%, transparent)) center 15.5px / 14px 1.5px no-repeat, linear-gradient(color-mix(in srgb, var(--text-2) 55%, transparent), color-mix(in srgb, var(--text-2) 55%, transparent)) center 20px / 14px 1.5px no-repeat; }
 .card .body .ticked { color: var(--text-done); }
 
@@ -542,7 +545,7 @@ body.first-running .app { visibility: hidden; }
 @media (prefers-reduced-motion: reduce) { .sl-row.swipe-settle, .sl-row.swipe-off, .sl-box::before { transition: none; } }
 .sl-box { position: relative; flex: none; width: 44px; height: 44px; }
 .sl-box::before { content: ""; position: absolute; left: 14.5px; top: 14.5px; width: 15px; height: 15px; border: 1.5px solid var(--text-2); border-radius: 3px; box-sizing: border-box; transition: background .15s, border-radius .15s; }
-.sl-row.ticked .sl-box::before { border: 0; border-radius: 50%; background: var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.4l2.6 2.6L12 5.4' fill='none' stroke='%230F0E0C' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/100% no-repeat; }
+.sl-row.ticked .sl-box::before { border: 0; border-radius: 50%; background: var(--accent) var(--tick) center/100% no-repeat; }
 .sl-box:focus-visible { outline: 2px solid var(--accent); outline-offset: -6px; border-radius: 8px; }
 .sl-text { flex: 1; min-width: 0; font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sl-row.ticked .sl-text { color: var(--text-done); }
