@@ -1,11 +1,13 @@
 'use strict';
 // The page's half of a native shell's bridge (the Mac's is App/Sources/ShellBridge.swift).
-// Loaded before first-run.js, whose `shell` takes the methods below in place of its browser
-// stand-ins. In a plain browser there is no bridge: this file does nothing and the stand-ins stay.
+// Loaded first, before app.js reads the library through its store, and first-run.js's `shell`
+// takes the methods below in place of its browser stand-ins. In a plain browser there is no bridge: this file does nothing and the stand-ins stay.
 //
-// The Mac shell gives the page two things: `window.catchlightShell`, the values the page reads
-// synchronously (OS version, model), set before any script runs; and the `catchlight` message
-// handler, which answers each message with a promise.
+// The Mac shell gives the page three things, the first two set before any script runs:
+// `window.catchlightShell`, the values the page reads synchronously (OS version, model);
+// `window.catchlightLibrary`, the account state and the decrypted Takes and Scripts, which the
+// page's store reads in place of localStorage (app.js); and the `catchlight` message handler,
+// which answers each message with a promise.
 (() => {
   const handler = window.webkit?.messageHandlers?.catchlight, info = window.catchlightShell;
   if (!handler || !info) return;
@@ -40,12 +42,34 @@
   // Links open in the default browser or mail app, never in the window.
   window.open = url => { post('openURL', { url: new URL(url, location.href).href }); return null; };
 
+  // The library. A save sends the whole list; the shell writes what changed and keeps the rest.
+  // Saves go in order, one message each, so the last one sent is the one that stands.
+  const library = window.catchlightLibrary;
+  const save = (kind, list) => post('save', { kind, list }).catch(e => console.error(`Saving ${kind} failed`, e));
+  // The shell couldn't read the library: say so, rather than show an empty Catchlight that
+  // looks as if everything has gone. The shell refuses every save until it can read it.
+  if (library?.loadError) addEventListener('load', () => ask("Catchlight couldn't read your Takes",
+    `Nothing has been changed or deleted, and nothing you do now will be saved. Quit and open Catchlight again, and if this keeps happening, report it with this detail: ${library.loadError}`,
+    [['OK', null, 'cancel']]));
+
   window.catchlightBridge = {
     pushMenu,
+    library,
+    save,
     shell: {
       osVersion: () => info.osVersion,
       systemInfo: () => `${info.osName} ${info.osVersion} · ${info.model}`,
       copyText: text => post('copy', { text }),
+      ...(library && {
+        // The phrase comes from Core (BIP-39 English, 12 different words), made before the page
+        // loaded, and the shell checks one typed in against the list and its checksum.
+        newPhrase: () => library.newPhrase || [],
+        phraseLooksValid: words => post('validatePhrase', { words }),
+        createAccount: (words, restored) => post('createAccount', { words, restored }),
+        replaceAccount: words => post('replaceAccount', { words }),
+        revealPhrase: () => post('revealPhrase'),
+        eraseEverything: () => post('eraseEverything'),
+      }),
     },
   };
 })();

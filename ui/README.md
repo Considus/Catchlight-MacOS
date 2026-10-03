@@ -9,7 +9,7 @@ The interface shared by every desktop build (Mac, Windows, Linux) and later iPad
 - No framework, no bundler, no build step. Files load as they are.
 - No platform-only web features. If something needs the OS (menus, drag to Finder, the folder picker, the keychain), it goes through the shell bridge (`bridge.js`, and on the Mac `App/Sources/ShellBridge.swift`).
 - Design tokens mirror `Catchlight-iOS/Catchlight/UI/Theme/CatchlightTheme.swift`. As-Built wins (D-274): if this file and the iOS code disagree, the iOS code is right.
-- `localStorage` here is a prototype convenience only. Real data goes through `CatchlightCore`.
+- `localStorage` here is a prototype convenience only. In the Mac app, Takes and Scripts live in an encrypted library through `CatchlightCore` and the account through the Keychain (The shell bridge, below); localStorage keeps only view settings.
 - Touch-ready (D-320): every control has a hit area of at least 44 × 44, extended invisibly with `::after` where it should look smaller; a long press does what a right-click does; checklist rows are 44 tall under a coarse pointer. A new control must pass the 44px hit probe before it merges.
 
 ## The menu bar
@@ -31,11 +31,16 @@ The copy promises things only the shell can make true. Each platform's shell own
   - **Windows:** keep the data in `%LOCALAPPDATA%`. Neither File History nor Windows Backup includes AppData by default. Never store it in `Documents` or a OneDrive-synced folder.
   - **Linux:** keep the data under `$XDG_DATA_HOME` and write a `.deja-dup-ignore` file in its folder. Déjà Dup, the default backup tool on GNOME and Ubuntu, backs up the whole home folder unless a folder holds that marker. Don't use `CACHEDIR.TAG` instead: it marks the folder as a disposable cache, and cleaners may delete it.
 - Build the native menu bar from `catchlightMenu.model()` and route choices to `catchlightMenu.run(id)` (The menu bar, above).
+- Hold Takes and Scripts encrypted, the phrase and key in the platform's secret store, and give the page the library before its scripts run (The shell bridge, below).
+- Make a place reminder only where there is a map: the Mac picker offers time only, and keeps one made on the iPhone (`placeOffered()` in `reminders.js`).
 - Name the platform, so the copy reads Mac, PC or computer (`PLATFORMS` in `first-run.js`; `?platform=windows|linux` previews them).
 
 ## The shell bridge
 
-`bridge.js` loads before `first-run.js` and does nothing in a plain browser, where the `shell` stand-ins stay. A shell is present when it has defined both `window.catchlightShell` (values the page reads synchronously, set before any script runs: `platform`, `osName`, `osVersion`, `model`) and the `catchlight` message handler. Then the page:
+`bridge.js` loads first and does nothing in a plain browser, where the `shell` stand-ins stay. A shell is present when it has defined both `window.catchlightShell` (values the page reads synchronously, set before any script runs: `platform`, `osName`, `osVersion`, `model`) and the `catchlight` message handler. A shell with a library also defines `window.catchlightLibrary` before any script runs: `{account, takes, scripts}`, plus `newPhrase` (12 BIP-39 words from Core) while there is no account. Then the page:
+
+- reads Takes and Scripts from the library instead of localStorage (`store` in `app.js`), and sends each save back whole (`save {kind, list}`); ids are UUIDs (`newId()`), as Core needs;
+- takes the account from the shell: first run calls `createAccount` before it seeds anything, a typed phrase is checked by `validatePhrase` (a promise; the browser stand-in answers at once), Settings shows the phrase from `revealPhrase` (the Keychain asks for Touch ID or the password), Second device calls `replaceAccount`, and Erase calls `eraseEverything` before clearing anything here;
 
 - replaces `shell.systemInfo`, `shell.osVersion` and `shell.copyText` with the real ones (`copyText` writes through the native clipboard; in a browser it is `navigator.clipboard.writeText`);
 - adds `in-shell` to `<html>`: the drawn traffic lights go and the toolbar leaves room for the real ones, except in full screen, when the shell adds `full-screen`;
@@ -43,7 +48,7 @@ The copy promises things only the shell can make true. Each platform's shell own
 - lets the toolbar stand in for the title bar: a press on its empty space drags the window, and a double-click does what the system setting says. Its controls keep their clicks;
 - pushes the menu model (The menu bar, above).
 
-Messages are `{cmd, ...}`: `menu {model}`, `copy {text}`, `openURL {url}`, `dragWindow`, `titlebarDoubleClick`. Each answers with a promise.
+Messages are `{cmd, ...}`: `menu {model}`, `copy {text}`, `openURL {url}`, `dragWindow`, `titlebarDoubleClick`, `save {kind, list}`, `validatePhrase {words}`, `createAccount {words, restored}`, `replaceAccount {words}`, `revealPhrase`, `eraseEverything`. Each answers with a promise.
 
 **The Mac shell blocks every web address.** A content rule list blocks any load (fetch, images, fonts, WebSockets) that isn't the app's own `catchlight://`, and navigation off `catchlight://` is cancelled; a link the user follows opens in the browser instead. So nothing in `ui/` may rely on the network inside the app: a font, image or script has to be in the folder.
 

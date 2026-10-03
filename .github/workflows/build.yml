@@ -44,7 +44,8 @@ jobs:
             -configuration Debug \
             -destination 'generic/platform=macOS' \
             -derivedDataPath "$RUNNER_TEMP/DerivedData" \
-            CODE_SIGNING_ALLOWED=NO
+            CODE_SIGNING_ALLOWED=NO \
+            ONLY_ACTIVE_ARCH=NO   # on the command line so the package targets build universal too
 
       - name: Check the binary is universal
         run: |

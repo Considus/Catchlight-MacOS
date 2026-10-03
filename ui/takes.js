@@ -603,7 +603,7 @@ $('#take-editor-iris').addEventListener('keydown', e => {
   e.preventDefault(); e.stopPropagation();
   openFocusRing(draft, $('#take-editor-iris'), true);
 });
-const newTake = () => beginEdit({ id: 't' + Date.now(), at: new Date().toISOString(), blocks: [{ k: 'text', text: '' }], isNote: true }, true);
+const newTake = () => beginEdit({ id: newId(), at: new Date().toISOString(), blocks: [{ k: 'text', text: '' }], isNote: true }, true);
 
 // ---------- the dock (BottomDockView): resting, Sequence and Search ----------
 // Resting: Add, the Storyboard, Sequence, Search. Sequence turns the dock into four filter
@@ -880,7 +880,7 @@ function takeFromScript(s) {
     else blocks.push({ k: 'text', text: line });
   }
   // removeEmptyTextBlocks, as a save does; a Script that leaves a blank Take is not offered.
-  return { id: 't' + Date.now(), at: s.at + (s.at.length === 10 ? 'T00:00:00Z' : ''), blocks: blocks.filter(b => b.k === 'check' || b.text.trim()), isNote: true };
+  return { id: newId(), at: s.at + (s.at.length === 10 ? 'T00:00:00Z' : ''), blocks: blocks.filter(b => b.k === 'check' || b.text.trim()), isNote: true };
 }
 
 // A press outside the edited Take saves it and does nothing else inside Dailies, as a tap

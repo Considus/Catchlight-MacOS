@@ -1,4 +1,5 @@
 'use strict';
+let shownPhrase = null;   // the phrase the Keychain gave for the page showing it, and no longer
 // Settings, as the iPhone's SettingsView (As-Built, D-274): one sheet of grouped sections,
 // every choice a dropdown showing its value on the right, sub-screens as sheets over it.
 // The desktop gives each pane its own section (owner, 2026-10-02): Dailies, the Script
@@ -179,7 +180,7 @@ const SUB = {
       <p>Authenticate with Touch ID or your password to view the 12 words. They're the only way to recover your account, so reveal them somewhere private.</p>
       <button class="fr-pill primary" type="button" data-act="reveal-phrase">Reveal phrase</button></div>`],
   'phrase-shown': () => {
-    const words = store.get('account', {})?.phrase;
+    const words = shownPhrase ?? store.get('account', {})?.phrase;
     if (!words) return ['Privacy phrase', `<div class="ssub-col"><h2 class="ssub-heading">Phrase isn't on this device</h2>
       <p>Catchlight stores the Privacy phrase only on the device where you set it up. If you onboarded on a different device, use that one to view it.</p></div>`];
     return ['Privacy phrase', `<div class="ssub-col">
@@ -210,6 +211,7 @@ const sheet = $('#settings');
 let subStack = [];
 function paintSettings(keepScroll = true) {
   sheet.classList.remove('revealing');   // the phrase never stays revealed past its own page
+  if (subStack.at(-1) !== 'phrase-shown') shownPhrase = null;   // nor kept once its page has gone
   const scroll = sheet.querySelector('.sheet-scroll')?.scrollTop || 0;
   const top = subStack.at(-1);
   const [title, body] = top ? SUB[top]() : [null, settingsPage()];
@@ -229,6 +231,7 @@ function openSettings(section) {
 }
 function closeSettings() {
   sheet.classList.remove('revealing');
+  shownPhrase = null;
   sheet.classList.remove('open');
   ctx.hidden = true;   // About's menu sits over the sheet
   setTimeout(() => { if (!sheet.classList.contains('open')) { sheet.hidden = true; sheet.innerHTML = ''; } }, still.matches ? 0 : 300);
@@ -290,7 +293,11 @@ sheet.addEventListener('click', async e => {
   else if (act === 'remove-folder') { store.set('account', { ...store.get('account', {}), folder: null }); paintSettings(); }
   else if (act === 'sync-now') { e.target.textContent = 'Syncing…'; e.target.disabled = true; setTimeout(() => paintSettings(), 2000); }
   else if (act === 'sd-restore') secondDeviceRestore();
-  else if (act === 'reveal-phrase') { subStack.push('phrase-shown'); paintSettings(); }
+  else if (act === 'reveal-phrase') {
+    // In the Mac app the words come from the Keychain, which asks for Touch ID or the password.
+    if (window.catchlightBridge?.library) shell.revealPhrase().then(w => { if (!w) return; shownPhrase = w; subStack.push('phrase-shown'); paintSettings(); }).catch(() => {});   // no words: the prompt was cancelled
+    else { subStack.push('phrase-shown'); paintSettings(); }
+  }
   else if (act === 'clear-notices') { settings.notices = noticeList().filter(n => n.category === 'lifecycle'); SAMPLE_NOTICES = null; saveSettings(); paintSettings(); }   // clearUserFacing: the lifecycle breadcrumbs stay
   else if (open && SUB[open]) {
     const go = () => { subStack.push(open); paintSettings(); if (open === 'second-device') sheet.querySelector('[data-word="0"]').focus(); };
@@ -316,9 +323,15 @@ function paintSecondDevice(error) {
   status.textContent = error || (n === 12 ? 'Ready to restore.' : `${n} of 12 words`);
   sheet.querySelector('[data-act="sd-restore"]').disabled = n < 12;
 }
-function secondDeviceRestore() {
+async function secondDeviceRestore() {
   if (sheet.querySelector('[data-act="sd-restore"]').disabled) return;
-  if (!shell.phraseLooksValid(phraseWords(sheet))) { paintSecondDevice("That doesn't look right. Check the words and try again."); return; }
+  const words = phraseWords(sheet).map(w => w.toLowerCase());
+  if (!await shell.phraseLooksValid(words)) { paintSecondDevice("That doesn't look right. Check the words and try again."); return; }
+  // In the Mac app the shell swaps the account first: this one's Keychain items and library go,
+  // the phrase given becomes the account here. Nothing on the page changes unless that worked.
+  if (window.catchlightBridge?.library) {
+    try { await shell.replaceAccount(words); } catch (e) { paintSecondDevice(`Couldn't add this Mac: ${e}`); return; }
+  }
   if (draft) discardEdit();   // a Take being written belongs to the account being replaced
   // As on iOS, this replaces the account here: Takes stored only on this device go, and so
   // does the phrase kept from first run, which is no longer this account's.
@@ -381,7 +394,13 @@ function startOver() {
     ['Cancel', null, 'cancel'],
   ]);
 }
-function eraseEverything() {
+async function eraseEverything() {
+  // In the Mac app the Keychain items and the encrypted library go first; if that fails, the
+  // page says so and keeps everything as it was.
+  if (window.catchlightBridge?.library) {
+    try { await shell.eraseEverything(); window.catchlightBridge.library.account = false; }
+    catch (e) { ask("Couldn't erase everything", String(e), [['OK', null, 'cancel']]); return; }
+  }
   Object.keys(localStorage).filter(k => k.startsWith('cl.')).forEach(k => { try { localStorage.removeItem(k); } catch {} });
   closeSettings();
   const done = document.createElement('section');

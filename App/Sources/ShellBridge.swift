@@ -28,7 +28,10 @@ enum SystemInfo {
 /// - `menu {model}`: the menu model as JSON, pushed whenever it may have changed;
 /// - `copy {text}`: write plain text to the clipboard;
 /// - `openURL {url}`: open an http(s) or mailto address in the default app;
-/// - `dragWindow`, `titlebarDoubleClick`: the page's toolbar standing in for the title bar.
+/// - `dragWindow`, `titlebarDoubleClick`: the page's toolbar standing in for the title bar;
+/// - `save {kind: 'takes'|'scripts', list}`: the page's whole list, written to the library;
+/// - `validatePhrase {words}`, `createAccount {words, restored}`, `replaceAccount {words}`,
+///   `revealPhrase`, `eraseEverything`: the account, through the `Vault`.
 final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
     static let name = "catchlight"
     private static let log = Logger(subsystem: "com.considus.catchlight.mac", category: "bridge")
@@ -36,6 +39,10 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
     weak var window: NSWindow?
     var onMenuModel: (([MenuEntry]) -> Void)?
     var openExternally: (URL) -> Void = { NSWorkspace.shared.open($0) }
+    var vault: Vault?
+    /// Set when the library could not be read at launch. The page then holds empty lists, and
+    /// a save from it would be applied as the whole library, so every save is refused.
+    private(set) var libraryUnreadable = false
 
     /// Defines `window.catchlightShell` before any of the page's own scripts run, with the values
     /// baked in, so `shell.systemInfo()` stays synchronous.
@@ -46,8 +53,33 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
         return WKUserScript(source: source, injectionTime: .atDocumentStart, forMainFrameOnly: true, in: .page)
     }
 
+    /// `window.catchlightLibrary`: whether there is an account, the decrypted Takes and Scripts,
+    /// and on first run a fresh phrase, so the page's synchronous reads keep working. Built once,
+    /// before the page loads; the page owns the lists from then on and saves them back.
+    func injectedLibrary() -> WKUserScript {
+        var value: [String: Any] = ["account": false, "takes": [Any](), "scripts": [Any]()]
+        if let vault {
+            if let library = vault.library {
+                value["account"] = true
+                do {
+                    value["takes"] = try library.pageTakes()
+                    value["scripts"] = try library.pageScripts()
+                } catch {
+                    Self.log.fault("the library did not load: \(String(describing: error), privacy: .public)")
+                    value = ["account": true, "takes": [Any](), "scripts": [Any](), "loadError": String(describing: error)]
+                    libraryUnreadable = true
+                }
+            } else if let words = try? Vault.newPhrase() {
+                value["newPhrase"] = words
+            }
+        }
+        let json = (try? JSONSerialization.data(withJSONObject: value)).flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
+        return WKUserScript(source: "window.catchlightLibrary = \(json);", injectionTime: .atDocumentStart, forMainFrameOnly: true, in: .page)
+    }
+
     func install(in controller: WKUserContentController) {
         controller.addUserScript(Self.injectedValues())
+        if vault != nil { controller.addUserScript(injectedLibrary()) }
         controller.addScriptMessageHandler(self, contentWorld: .page, name: Self.name)
     }
 
@@ -97,8 +129,58 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
             default: window?.performZoom(nil)
             }
             replyHandler(true, nil)
+        case "save", "validatePhrase", "createAccount", "replaceAccount", "revealPhrase", "eraseEverything":
+            handleLibrary(cmd, body, replyHandler)
         default:
             replyHandler(nil, "unknown command \(cmd)")
+        }
+    }
+
+    // MARK: The library and the account
+
+    private func handleLibrary(_ cmd: String, _ body: [String: Any], _ reply: @escaping (Any?, String?) -> Void) {
+        guard let vault else { return reply(nil, "no library in this build") }
+        let words = (body["words"] as? [String]) ?? []
+        do {
+            switch cmd {
+            case "save":
+                guard let library = vault.library else { return reply(nil, "locked") }
+                guard !libraryUnreadable else { return reply(nil, "the library could not be read, so nothing is saved over it") }
+                guard let list = body["list"] as? [[String: Any]] else { return reply(nil, "save needs a list") }
+                switch body["kind"] as? String {
+                case "takes":
+                    let report = try library.saveTakes(list)
+                    if !report.rejected.isEmpty { Self.log.error("save kept \(report.rejected.count) Takes it could not read") }
+                    reply(["upserted": report.upserted, "deleted": report.deleted, "rejected": report.rejected], nil)
+                case "scripts":
+                    try library.saveScripts(list)
+                    reply(true, nil)
+                default:
+                    reply(nil, "save needs kind takes or scripts")
+                }
+            case "validatePhrase":
+                reply(Vault.isValid(words), nil)
+            case "createAccount":
+                try vault.createAccount(words: words, restored: body["restored"] as? Bool ?? false)
+                reply(true, nil)
+            case "replaceAccount":
+                // Settings ▸ Second device, as the iPhone: this account's Takes here go, the
+                // phrase given opens (or will receive) the other one.
+                guard Vault.isValid(words) else { return reply(nil, "invalid phrase") }
+                try vault.eraseEverything()
+                try vault.createAccount(words: words, restored: true)
+                reply(true, nil)
+            case "revealPhrase":
+                reply(vault.phrase() as Any? ?? NSNull(), nil)
+            case "eraseEverything":
+                try vault.eraseEverything()
+                reply(true, nil)
+            default:
+                reply(nil, "unknown command \(cmd)")
+            }
+        } catch {
+            Self.log.error("\(cmd, privacy: .public) failed: \(String(describing: error), privacy: .public)")
+            reply(nil, String(describing: error))
         }
     }
 }
