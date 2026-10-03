@@ -90,6 +90,19 @@ In the Claude desktop app the preview config is `catchlight-macos-ui`.
 - Scene follows the system, or Night or Daylight from the toolbar.
 - The open Script's title is the Script area's heading, in the same place, size and face as DAILIES and SCRIPTS; the toolbar carries no title.
 
+- **Keyboard and screen reader, beyond the timeline.** These match iOS's accessibility:
+  - **The Focus-ring** takes focus on its first Mark. Each Mark is a toggle that says what it will add or remove. The hub reads "Selected: Task, Reminder…", and a first "Save and close" button stands in for iOS's veil. The rest of the window is out of reach until the ring closes.
+  - **While a Take is edited**, the cards behind it leave the Tab order.
+  - **Focus returns to the line the caret was on** when the ring or the reminder picker closes from the editor. The picker takes focus when it opens.
+  - **Labels:**
+    - a checklist box reads as its item ("Buy mounts", checked);
+    - the editor bar's Important button is one toggle, "Important", and says why it's disabled on an Obie;
+    - Done reads "Mark not done" when the Take is done;
+    - a month label is a button that reads "July 2026, filtering" when on.
+  - **Privacy phrase:** Space or Return reveals the phrase and hides it again, and the words are hidden from a screen reader until shown.
+  - **First run:** a wrong word in "Confirm three words" is announced and takes focus.
+- **Turning Remind on in the Focus-ring always asks when**, and Cancel leaves it off, as on iOS, even if the Take had a reminder before.
+
 ## Known gaps
 
 the native behind Lock after, Auto-Delete, Snooze, Follow-up reminders, Notifications, Import and Export diagnostics (stored or stubbed until the shell exists), Touch ID before Privacy phrase and Start over, pairing with another device (D-327 makes it a later convenience), notifications themselves and place search, map and location (the shell's), and images in a Script (deferred by decision I).
