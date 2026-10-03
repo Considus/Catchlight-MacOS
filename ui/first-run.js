@@ -5,8 +5,17 @@
 // takes.js. Placeholder only: generating and checking a phrase, the Keychain and the folder
 // picker are Core's and the shell's, reached through `shell` below.
 
-// What the copy names. One place, so the Windows and Linux shells (D-318) swap their own in.
-const PLATFORM = { device: 'Mac', backup: 'Time Machine' };
+// What the copy names, per desktop (D-318). The shell says which it is; ?platform=windows or
+// ?platform=linux previews the others. The backup lines are only true because each shell keeps
+// the Takes out of that platform's backup (ui/README.md, "What each shell must do").
+const PLATFORMS = {
+  mac: { device: 'Mac', noBackup: "Time Machine won't contain them", keptOut: 'because we deliberately keep them out of it' },
+  windows: { device: 'PC', noBackup: "Windows Backup and File History won't contain them", keptOut: 'because we deliberately keep them out of both' },
+  // Named, as Time Machine is: only Déjà Dup honours the marker the shell writes, and a general
+  // "your backups" would be untrue for rsync or Borg.
+  linux: { device: 'computer', noBackup: "Déjà Dup won't contain them", keptOut: 'because we deliberately keep them out of it' },
+};
+const PLATFORM = PLATFORMS[new URLSearchParams(location.search).get('platform')] || PLATFORMS.mac;
 
 // Stand-ins for the shell bridge. The real phrase is BIP-39 from Core (128 bits, 12 words,
 // checksum, all different); these words are a sample of that list and carry no checksum.
@@ -45,12 +54,12 @@ const SCREENS = {
 
   storage: () => `<h2>Now, where should your Takes live?</h2>
     <button class="fr-card" type="button" data-fr="local"><b>Local: on this ${PLATFORM.device} only</b>
-      <span>Your Takes stay on this ${PLATFORM.device} and nowhere else. ${PLATFORM.backup} won't contain them, so if the ${PLATFORM.device} goes, they go with it.</span></button>
+      <span>Your Takes stay on this ${PLATFORM.device} and nowhere else. ${PLATFORM.noBackup}, so if the ${PLATFORM.device} goes, they go with it.</span></button>
     <button class="fr-card" type="button" data-fr="cloud"><b>Cloud: backed up and restorable</b>
       <span>Connect a cloud folder you control. Your Takes stay encrypted, we never see them, and your 12 words are what open them again on any other device.</span></button>`,
 
   localWarning: () => `<h2>One thing before we continue.</h2>
-    <p>Your Takes will live on this ${PLATFORM.device} and nowhere else. ${PLATFORM.backup} won't contain them, because we deliberately keep them out of it. Lose this ${PLATFORM.device} or wipe it, and there's nothing to restore from.</p>
+    <p>Your Takes will live on this ${PLATFORM.device} and nowhere else. ${PLATFORM.noBackup}, ${PLATFORM.keptOut}. Lose this ${PLATFORM.device} or wipe it, and there's nothing to restore from.</p>
     <div class="fr-actions">${pill('back-storage', 'Go back')}${pill('risk', 'I know the risk', ' primary')}</div>`,
 
   // The desktop picks the folder here (D-327); the phone leaves it to Settings.
