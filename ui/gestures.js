@@ -156,7 +156,8 @@ sidebar.addEventListener('click', e => {
     return;
   }
   if (swipeSuppress) { swipeSuppress = false; e.stopImmediatePropagation(); e.preventDefault(); return; }
-  if (swipeOpen && e.target.closest(swipeCards) === swipeOpen.card) { e.stopImmediatePropagation(); closeSwipe(); }
+  // A click on an open card only closes it: no editor, and no link followed.
+  if (swipeOpen && e.target.closest(swipeCards) === swipeOpen.card) { e.stopImmediatePropagation(); e.preventDefault(); closeSwipe(); }
 }, true);
 
 // A repaint rebuilds the cards, so no row stays open across one.

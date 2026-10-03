@@ -30,16 +30,20 @@ function detectLinks(text) {
   for (const m of text.matchAll(SCHEMED)) {
     const raw = trimLinkEnd(m[0]);
     if (!raw) continue;
-    const url = raw.includes('@') && !raw.includes('://') ? 'mailto:' + raw : raw.includes('://') ? raw : 'https://' + raw;
+    // Which alternative matched decides the kind, so www.medium.com/@user stays a web link.
+    const url = raw.includes('://') ? raw : /^www\./i.test(raw) ? 'https://' + raw : 'mailto:' + raw;
     found.push({ start: m.index, end: m.index + raw.length, url });
   }
   for (const m of text.matchAll(BARE_DOMAIN)) {
-    const start = m.index, end = start + m[0].length;
+    // Trimmed as pass 1 is: on iOS NSDataDetector finds most bare domains first and stops
+    // before the sentence's punctuation, which this regex alone would take.
+    const raw = trimLinkEnd(m[0]);
+    const start = m.index, end = start + raw.length;
     if (found.some(f => start < f.end && f.start < end)) continue;   // a pass-1 link already covers it
     const tld = m[2];
-    if (tld !== tld.toLowerCase() && m[0] !== m[0].toUpperCase()) continue;
+    if (tld !== tld.toLowerCase() && raw !== raw.toUpperCase()) continue;
     if (!TLDS.has(tld.toLowerCase())) continue;
-    found.push({ start, end, url: 'https://' + m[0] });
+    found.push({ start, end, url: 'https://' + raw });
   }
   return found.sort((a, b) => a.start - b.start);
 }
