@@ -277,6 +277,7 @@ function paintSecondDevice(error) {
 function secondDeviceRestore() {
   if (sheet.querySelector('[data-act="sd-restore"]').disabled) return;
   if (!shell.phraseLooksValid(phraseWords(sheet))) { paintSecondDevice("That doesn't look right. Check the words and try again."); return; }
+  if (draft) discardEdit();   // a Take being written belongs to the account being replaced
   // As on iOS, this replaces the account here: Takes stored only on this device go, and so
   // does the phrase kept from first run, which is no longer this account's.
   // The old cloud folder belongs to the account being replaced, so it goes too (AppModel).
