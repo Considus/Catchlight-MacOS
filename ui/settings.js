@@ -18,7 +18,7 @@ const saveSettings = () => store.set('settings', settings);
 
 const createdLabel = iso => {
   const d = new Date(iso);
-  return `Created on ${d.toLocaleDateString([], { year: 'numeric', month: '2-digit', day: '2-digit' })} at ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+  return `Created on ${d.toLocaleDateString([], { year: 'numeric', month: '2-digit', day: '2-digit' })} at ${d.toLocaleTimeString([], { timeStyle: 'short' })}`;
 };
 
 // What the Script area reads.
@@ -167,9 +167,10 @@ const SUB = {
       <div class="fr-brand" aria-hidden="true"><span class="fr-iris">${iris(['note', 'task', 'remind', 'important'])}</span><span class="fr-wordmark">Catchlight</span></div>
       <h2 class="ssub-heading">Privacy-first notes and reminders</h2>
       <p class="quiet sversion" tabindex="0" data-copy-info title="Right-click to copy version and device info">Version 0.1 (prototype)</p>
-      <div class="scard"><h4>Open source licences</h4>
-        <p>Cormorant Garamond and DM Sans, under the SIL Open Font License 1.1. The licence text for each is beside the fonts and listed in NOTICE.</p></div>
-      <div class="scard links">${[['Privacy Policy', 'https://catchlight.app/privacy/'], ['Terms of Service', 'https://catchlight.app/terms/'], ['Support', 'https://catchlight.app/support/?platform=macOS'], ['Website', 'https://catchlight.app']]
+      <div class="scard"><h4>Open Source Licences</h4>
+        <p>Cormorant Garamond and DM Sans, under the SIL Open Font License 1.1. The licence text for each is beside the fonts and listed in NOTICE.</p>
+        <p class="quiet">The BIP-39 English wordlist is sourced from the Trezor project and bundled under the MIT licence.</p></div>
+      <div class="scard links">${[['Privacy Policy', 'https://catchlight.app/privacy/'], ['Terms of Service', 'https://catchlight.app/terms/'], ['Support', 'https://catchlight.app/support/?platform=' + PLATFORM.osName], ['Website', 'https://catchlight.app']]
         .map(([l, u]) => `<a href="${u}" target="_blank" rel="noopener">${l}<span aria-hidden="true">↗</span></a>`).join('')}</div>
       <p class="quiet small">Made by Considus</p></div>`],
   phrase: () => ['Privacy phrase', `<div class="ssub-col">
@@ -181,7 +182,7 @@ const SUB = {
     if (!words) return ['Privacy phrase', `<div class="ssub-col"><h2 class="ssub-heading">Phrase isn't on this device</h2>
       <p>Catchlight stores the Privacy phrase only on the device where you set it up. If you onboarded on a different device, use that one to view it.</p></div>`];
     return ['Privacy phrase', `<div class="ssub-col">
-      <ol class="fr-words">${words.map((w, i) => `<li><span>${i + 1}</span><b class="held">${esc(w)}</b></li>`).join('')}</ol>
+      <ol class="fr-words" data-phrase aria-label="Privacy phrase" aria-hidden="true">${words.map((w, i) => `<li><span>${i + 1}</span><b class="held">${esc(w)}</b></li>`).join('')}</ol>
       <p>Write these 12 words down somewhere safe, on paper. They're the only way back into your Takes on a new device.</p>
       <button class="fr-pill primary hold" type="button" data-hold>Hold to reveal</button></div>`];
   },
@@ -200,6 +201,7 @@ const SUB = {
 const sheet = $('#settings');
 let subStack = [];
 function paintSettings(keepScroll = true) {
+  sheet.classList.remove('revealing');   // the phrase never stays revealed past its own page
   const scroll = sheet.querySelector('.sheet-scroll')?.scrollTop || 0;
   const top = subStack.at(-1);
   const [title, body] = top ? SUB[top]() : [null, settingsPage()];
@@ -218,6 +220,7 @@ function openSettings(section) {
   sheet.querySelector('.sheet-x').focus();
 }
 function closeSettings() {
+  sheet.classList.remove('revealing');
   sheet.classList.remove('open');
   ctx.hidden = true;   // About's menu sits over the sheet
   setTimeout(() => { if (!sheet.classList.contains('open')) { sheet.hidden = true; sheet.innerHTML = ''; } }, still.matches ? 0 : 300);
@@ -261,7 +264,7 @@ sheet.addEventListener('click', async e => {
   else if (open === 'import-notes') ask('Import notes', 'Any items in the folder, that have previously been imported, will be imported again.', [
     ['Proceed', () => { notice('Import notes: the Import folder is read by the shell, which does not exist yet.'); paintSettings(); }], ['Cancel', null, 'cancel']]);
   else if (open === 'import-file') notice('Import from a file: the file picker belongs to the shell, which does not exist yet.');
-  else if (open === 'report') window.open('https://catchlight.app/support/?platform=macOS&app=0.1', '_blank', 'noopener');
+  else if (open === 'report') window.open(reportUrl(), '_blank', 'noopener');
   else if (open === 'diagnostics') notice('Export diagnostics: the log is written by the shell, which does not exist yet.');
   else if (open === 'start-over') startOver();
   if (open === 'notices' || ['import-file', 'diagnostics'].includes(open)) paintSettings();
@@ -290,18 +293,34 @@ function secondDeviceRestore() {
 // Wired once first-run.js, which owns the grid, has loaded.
 addEventListener('DOMContentLoaded', () => wirePhraseEntry(sheet, () => paintSecondDevice(), secondDeviceRestore));
 
-// Hold to reveal: the words show only while the button is held.
+// Hold to reveal: the words show only while the button is held. From the keyboard, Space or
+// Return shows them and a second press hides them, as iOS offers Reveal and Hide as actions.
+sheet.addEventListener('keydown', e => {
+  const b = e.target.closest('[data-hold]');
+  if (!b || (e.key !== ' ' && e.key !== 'Enter')) return;
+  e.preventDefault();
+  if (e.repeat) return;   // a held key is one press
+  const on = !sheet.classList.contains('revealing');
+  sheet.classList.toggle('revealing', on);
+  b.textContent = on ? 'Hide phrase' : 'Hold to reveal';
+  b.setAttribute('aria-pressed', String(on));
+  sheet.querySelector('[data-phrase]')?.setAttribute('aria-hidden', String(!on));   // the words are read only while shown
+});
 sheet.addEventListener('pointerdown', e => {
   const b = e.target.closest('[data-hold]');
   if (!b) return;
-  sheet.classList.add('revealing'); b.textContent = 'Release to hide';
-  const end = () => { sheet.classList.remove('revealing'); b.textContent = 'Hold to reveal'; removeEventListener('pointerup', end); removeEventListener('pointercancel', end); };
+  const words = sheet.querySelector('[data-phrase]');
+  sheet.classList.add('revealing'); b.textContent = 'Release to hide'; words?.setAttribute('aria-hidden', 'false');
+  const end = () => { sheet.classList.remove('revealing'); b.textContent = 'Hold to reveal'; b.setAttribute('aria-pressed', 'false'); words?.setAttribute('aria-hidden', 'true'); removeEventListener('pointerup', end); removeEventListener('pointercancel', end); };
   addEventListener('pointerup', end); addEventListener('pointercancel', end);
 });
 
 // About's version line copies a short, paste-ready support block (AboutView.supportInfoString):
 // version, OS and model, and nothing from the user's Takes. Right-click it, or ⇧F10 from the
 // keyboard, as VoiceOver's named action on iOS.
+// The support page, told the platform, the app version and the OS version, and nothing else
+// (SettingsView.reportAnIssue).
+const reportUrl = () => 'https://catchlight.app/support/?' + new URLSearchParams({ platform: PLATFORM.osName, app: '0.1', os: shell.osVersion() });
 const supportInfo = () => `Catchlight 0.1 (prototype)\n${shell.systemInfo()}`;
 sheet.addEventListener('keydown', e => {
   const v = e.target.closest('[data-copy-info]');

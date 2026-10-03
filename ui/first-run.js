@@ -9,11 +9,11 @@
 // ?platform=linux previews the others. The backup lines are only true because each shell keeps
 // the Takes out of that platform's backup (ui/README.md, "What each shell must do").
 const PLATFORMS = {
-  mac: { device: 'Mac', settingsKey: '⌘,', settingsWhere: 'Settings from the Catchlight menu', search: 'Spotlight & Siri', writingTools: true, noBackup: "Time Machine won't contain them", keptOut: 'because we deliberately keep them out of it' },
-  windows: { device: 'PC', settingsKey: 'Ctrl+,', settingsWhere: 'Settings from the File menu', search: 'Windows Search', noBackup: "Windows Backup and File History won't contain them", keptOut: 'because we deliberately keep them out of both' },
+  mac: { osName: 'macOS', sampleOs: '26.0', sampleModel: 'Mac16,1', device: 'Mac', settingsKey: '⌘,', settingsWhere: 'Settings from the Catchlight menu', search: 'Spotlight & Siri', writingTools: true, noBackup: "Time Machine won't contain them", keptOut: 'because we deliberately keep them out of it' },
+  windows: { osName: 'Windows', sampleOs: '11 24H2', sampleModel: 'Surface Laptop 7', device: 'PC', settingsKey: 'Ctrl+,', settingsWhere: 'Settings from the File menu', search: 'Windows Search', noBackup: "Windows Backup and File History won't contain them", keptOut: 'because we deliberately keep them out of both' },
   // Named, as Time Machine is: only Déjà Dup honours the marker the shell writes, and a general
   // "your backups" would be untrue for rsync or Borg.
-  linux: { device: 'computer', settingsKey: 'Ctrl+,', settingsWhere: 'Preferences from the File menu', search: 'Desktop search', noBackup: "Déjà Dup won't contain them", keptOut: 'because we deliberately keep them out of it' },
+  linux: { osName: 'Linux', sampleOs: 'Ubuntu 24.04', sampleModel: 'ThinkPad X1 Carbon', device: 'computer', settingsKey: 'Ctrl+,', settingsWhere: 'Preferences from the File menu', search: 'Desktop search', noBackup: "Déjà Dup won't contain them", keptOut: 'because we deliberately keep them out of it' },
 };
 const PLATFORM = PLATFORMS[new URLSearchParams(location.search).get('platform')] || PLATFORMS.mac;
 
@@ -34,7 +34,9 @@ const shell = {
   chooseFolder: () => '~/Dropbox/Catchlight',   // the native folder picker, via the shell
   // The OS version and hardware model for About's copy line. A browser can't read either
   // truthfully, so the prototype stands in a sample of what the shell returns.
-  systemInfo: () => 'macOS 26.0 · Mac16,1',
+  // The OS version and model, for About and Report an issue; a sample of what each shell reports.
+  systemInfo: () => `${PLATFORM.osName} ${shell.osVersion()} · ${PLATFORM.sampleModel}`,
+  osVersion: () => PLATFORM.sampleOs,
 };
 
 const fr = { step: null, storage: null, words: [], positions: [], picked: [], bank: [], basics: 0, folder: null, restore: false };
@@ -80,7 +82,7 @@ const SCREENS = {
 
   confirm: () => {
     const [a, b, c] = fr.positions.map(p => p + 1);
-    return `<div class="fr-error" id="fr-error" hidden>Those aren't quite right. Try again.</div>
+    return `<div class="fr-error" id="fr-error" role="alert" tabindex="-1" hidden>Those aren't quite right. Try again.</div>
     <h2>Confirm three words</h2>
     <p>Click words ${a}, ${b} and ${c} from your phrase, in order.</p>
     <div class="fr-slots">${fr.positions.map((p, i) => `<button class="fr-slot" type="button" data-slot="${i}"><span>${p + 1}</span>${fr.picked[i] != null ? fr.bank[fr.picked[i]] : '—'}</button>`).join('')}</div>
@@ -139,7 +141,7 @@ function checkConfirm() {
   if (right) { fr.basics = 0; show('basics'); return; }
   $('#fr-error').hidden = false;
   layer.querySelectorAll('.fr-slot').forEach(s => s.classList.add('wrong'));
-  setTimeout(() => { if (fr.step === 'confirm') { fr.picked = []; show('confirm'); $('#fr-error').hidden = false; } }, 600);
+  setTimeout(() => { if (fr.step === 'confirm') { fr.picked = []; show('confirm'); $('#fr-error').hidden = false; $('#fr-error').focus(); } }, 600);
 }
 
 const restoreWords = () => phraseWords(layer);
