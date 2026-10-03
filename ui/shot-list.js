@@ -74,7 +74,7 @@ slRows.addEventListener('click', e => {
   const fill = e.target.closest('.sl-fill');
   if (fill) { commitShotSwipe(fill.closest('.sl-item'), fill.dataset.side); return; }
   const box = e.target.closest('.sl-box');
-  if (slOpen) { closeShotSwipe(); return; }   // a click on an open row closes it
+  if (slOpen) { e.preventDefault(); closeShotSwipe(); return; }   // a click on an open row closes it, and follows no link
   if (box) tick(+box.closest('.sl-item').dataset.i);
 });
 slRows.addEventListener('keydown', e => {
