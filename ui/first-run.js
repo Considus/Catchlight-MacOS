@@ -23,6 +23,9 @@ const shell = {
   // twelve words of 3 to 8 letters, which every BIP-39 English word is.
   phraseLooksValid: words => words.length === 12 && words.every(w => /^[a-z]{3,8}$/.test(w)),
   chooseFolder: () => '~/Dropbox/Catchlight',   // the native folder picker, via the shell
+  // The OS version and hardware model for About's copy line. A browser can't read either
+  // truthfully, so the prototype stands in a sample of what the shell returns.
+  systemInfo: () => 'macOS 26.0 · Mac16,1',
 };
 
 const fr = { step: null, storage: null, words: [], positions: [], picked: [], bank: [], basics: 0, folder: null, restore: false };
