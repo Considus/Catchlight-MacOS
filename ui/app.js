@@ -536,7 +536,9 @@ function openCtx(target, x, y) {
       // Delete asks twice in place rather than through a dialog the shells would each draw.
       b.className = 'danger';
       b.addEventListener('click', () => {
-        if (b.dataset.armed || !settings.confirmDelete) { ctx.hidden = true; deleteTake(take.dataset.take); return; }
+        const t = takes.find(x => x.id === take.dataset.take);
+        if (asksWhichToDelete(t)) { ctx.hidden = true; askWhichToDelete(t); return; }
+        if (b.dataset.armed || !settings.confirmDelete) { ctx.hidden = true; deleteTake(t.id); return; }
         b.dataset.armed = '1'; b.textContent = 'Delete? Click again';
       });
     } else b.addEventListener('click', () => { ctx.hidden = true; act(); });
