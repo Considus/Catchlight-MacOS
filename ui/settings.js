@@ -9,6 +9,7 @@
 const settings = Object.assign({
   takeSpacing: 'standard', takePreview: 'some', takeSort: 'oldest', takeArrangement: 'date', creationStamp: 'off',
   scriptTextSize: 'standard', newScriptPage: 'region', spellcheck: 'on',
+  spotlight: 'none', writingTools: 'off',   // both private until the user opts in (D-110, D-246)
   reminderHours: '24', snooze: '60', followUp: true,
   lockAfter: '60', autoDelete: 'never', confirmDelete: true,
   notifications: 'ask', syncMode: 'automatic', notices: [],
@@ -56,6 +57,8 @@ const SI = {   // row icons, drawn to sit beside the iOS SF Symbols they stand i
   restart: '<path d="M5 12a7 7 0 1 0 2-5M5 4v4h4"/>',
   bug: '<rect x="8" y="8" width="8" height="11" rx="4"/><path d="M12 8v11M9 6l1.5 2M15 6l-1.5 2M4 12h4M16 12h4M5 17l3-1M19 17l-3-1"/>',
   list: '<rect x="4" y="5" width="16" height="14" rx="2"/><path d="M8 9h8M8 12h8M8 15h5"/>',
+  search: '<circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/>',
+  wand: '<path d="M4 20L15 9M13 7l4 4M17 3v3M15.5 4.5h3M20 9v2M19 10h2"/>',
 };
 const icon = k => `<svg class="srow-icon" viewBox="0 0 24 24" aria-hidden="true">${SI[k]}</svg>`;
 const CHEV = '<svg class="srow-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 7l5 5-5 5"/></svg>';
@@ -63,10 +66,12 @@ const UPDOWN = '<svg class="srow-chev" viewBox="0 0 24 24" aria-hidden="true"><p
 
 // A picker: the whole row is a native select, so it opens the platform's own menu with a
 // check beside the current value, as iOS's Menu does, on every shell and on touch.
-function pick(id, ic, label, options, get) {
+// An option can be [value, label, locked]: shown, greyed and not selectable, as iOS's Menu
+// disables one. A note sits under the label, as iOS puts a caption in the same cell.
+function pick(id, ic, label, options, get, note = '') {
   const cur = options.find(o => o[0] === get());
-  return `<label class="srow">${icon(ic)}<span class="srow-label">${label}</span><span class="srow-value">${cur ? cur[1] : ''}</span>${UPDOWN}
-    <select data-set="${id}" aria-label="${label}">${options.map(([v, l]) => `<option value="${v}"${v === get() ? ' selected' : ''}>${l}</option>`).join('')}</select></label>`;
+  return `<label class="srow${note ? ' tall' : ''}">${icon(ic)}<span class="srow-label">${label}${note ? `<small>${note}</small>` : ''}</span><span class="srow-value">${cur ? cur[1] : ''}</span>${UPDOWN}
+    <select data-set="${id}" aria-label="${label}">${options.map(([v, l, locked]) => `<option value="${v}"${v === get() ? ' selected' : ''}${locked ? ' disabled' : ''}>${l}</option>`).join('')}</select></label>`;
 }
 const toggle = (id, ic, label, sub, on) => `<label class="srow tall">${icon(ic)}<span class="srow-label">${label}<small>${sub}</small></span>
   <input type="checkbox" role="switch" class="srow-switch" data-set="${id}"${on ? ' checked' : ''}></label>`;
@@ -113,6 +118,15 @@ function settingsPage() {
     toggle('confirmDelete', 'warn', 'Confirm before deleting', 'A deleted Take cannot be recovered', settings.confirmDelete),
     link('phrase', 'key', 'Privacy phrase'),
     link('second-device', 'device', 'Second device'),
+    // How much of each Take the OS search may index (SpotlightExposure, D-110). Past the type
+    // label it puts decrypted text in the OS index; the two text levels stay locked, as on
+    // iOS, until the platform's search can find them.
+    pick('spotlight', 'search', PLATFORM.search, [['none', 'None'], ['type', 'Type only'], ['firstLine', 'Type + first line', true], ['all', 'Type + full text', true]],
+      () => settings.spotlight, 'On-device search only. Considus can never read your Takes. Text levels are greyed out until search can find them.'),
+    // Writing Tools (D-246) is Apple's, so only the Mac has the row. Off by default: the
+    // editor would otherwise inherit it, and either mode sends that Take to Apple.
+    PLATFORM.writingTools ? pick('writingTools', 'wand', 'Writing Tools', [['off', 'Off'], ['panel', 'Panel'], ['inline', 'Inline']],
+      () => settings.writingTools, 'Panel suggests, you accept. Inline rewrites in place. Both send that Take to Apple. Your Privacy phrase never goes.') : '',
   ])}
   ${group('System', [
     link('notifications', 'bell', 'Notifications', notif, settings.notifications !== 'enabled'),
