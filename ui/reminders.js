@@ -95,14 +95,24 @@ function openReminder(t, after, onCancel) {
     place: isPlaceR(r) ? { ...r } : null, query: '',
     view: new Date(start.getFullYear(), start.getMonth(), 1),
   };
+  reminderReturn = document.activeElement;
   rsheet.hidden = false;
   paintReminder();
   requestAnimationFrame(() => rsheet.classList.add('open'));
+  rsheet.querySelector('button, [tabindex="0"], input, select')?.focus();
 }
+// Closing gives focus back: to the editor line the caret was on (DailiesView.closeReminderEditor),
+// else to whatever opened the picker, if it is still on the page.
+let reminderReturn = null;
 function closeReminder() {
+  const wasOpen = !!reminderFor;
   rsheet.classList.remove('open');
   rsheet.hidden = true; rsheet.innerHTML = '';
   reminderFor = reminderAfter = reminderCancel = rs = null;
+  const back = reminderReturn; reminderReturn = null;
+  if (!wasOpen) return;   // endEdit tidies up a picker that wasn't open: nothing to hand back
+  if (focusRing) { if (back?.isConnected) back.focus(); return; }   // back to the Remind Mark
+  if (draft) restoreCaret(); else if (back?.isConnected) back.focus();
 }
 const cancelReminder = () => { const c = reminderCancel; closeReminder(); c && c(); };
 
@@ -226,7 +236,7 @@ rsheet.addEventListener('click', e => {
   else if (b.dataset.day) { rs.date = new Date(rs.view.getFullYear(), rs.view.getMonth(), +b.dataset.day, rs.date.getHours(), rs.date.getMinutes()); rs.quick = null; }
   else if (b.dataset.wd) {
     const w = +b.dataset.wd, i = rs.weekdays.indexOf(w);
-    if (i >= 0 && rs.weekdays.length > 1) rs.weekdays.splice(i, 1); else if (i < 0) rs.weekdays.push(w);
+    if (i >= 0) rs.weekdays.splice(i, 1); else rs.weekdays.push(w);   // the last one can go too: Interval then reads Weekly, as on iOS
   }
   else if (k === 'current') { rs.place = { name: 'Current location', mode: 'arrive', radius: 150, notify: true, ...(rs.place || {}), name: rs.place?.name || 'Current location' }; }
   else if (k === 'arrive' || k === 'leave') rs.place.mode = k;

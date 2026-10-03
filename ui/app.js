@@ -92,11 +92,12 @@ let query = '';
 const save = () => { store.set('scripts', scripts); store.set('current', current); };
 
 // ---------- the two Dailies-style timelines ----------
-function timeline(container, items, cardHtml) {
+// `filterable`: the month labels filter the list (Dailies), so they are buttons; elsewhere text.
+function timeline(container, items, cardHtml, filterable = false) {
   let html = '', month = '';
   for (const it of items) {
     const m = monthLabel(it.at);
-    if (m !== month) { html += `<div class="month" data-month="${monthKey(it.at)}"><span class="month-label">${m}</span></div>`; month = m; }
+    if (m !== month) { html += `<div class="month" data-month="${monthKey(it.at)}">${filterable ? `<button type="button" class="month-label" aria-label="${m}">${m}</button>` : `<span class="month-label">${m}</span>`}</div>`; month = m; }
     html += cardHtml(it);
   }
   container.innerHTML = html;
@@ -116,6 +117,8 @@ function renderScripts() {
     const pages = s.mode === 'continuous' ? 'Continuous' : `${s.mode === 'a4' ? 'A4' : 'US Letter'}${s.pageCount ? ` · ${s.pageCount} page${s.pageCount > 1 ? 's' : ''}` : ''}`;
     return `<div class="card${s.id === current ? ' selected' : ''}" data-script="${s.id}"><span class="iris-wrap"><span class="iris-shadow"></span>${iris(['note'])}</span><div class="body">${esc(body)}</div><div class="pages">${pages}</div></div>`;
   });
+  // No Scripts at all (not a search that matches none): the same quiet line Dailies shows.
+  if (!scripts.length) tl.innerHTML = '<div class="empty first-take"><p>Your first Script is waiting.</p></div>';
 }
 
 // ---------- markdown: one parser, two faces (source while editing, rendered otherwise) ----------

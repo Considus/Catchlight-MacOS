@@ -90,6 +90,27 @@ In the Claude desktop app the preview config is `catchlight-macos-ui`.
 - Scene follows the system, or Night or Daylight from the toolbar.
 - The open Script's title is the Script area's heading, in the same place, size and face as DAILIES and SCRIPTS; the toolbar carries no title.
 
+- **Keyboard and screen reader, beyond the timeline.** These match iOS's accessibility:
+  - **The Focus-ring** takes focus on its first Mark. Each Mark is a toggle that says what it will add or remove. The hub reads "Selected: Task, Reminder…", and a first "Save and close" button stands in for iOS's veil. The rest of the window is out of reach until the ring closes.
+  - **While a Take is edited**, the cards behind it leave the Tab order.
+  - **Focus returns to the line the caret was on** when the ring or the reminder picker closes from the editor. The picker takes focus when it opens.
+  - **Labels:**
+    - a checklist box reads as its item ("Buy mounts", checked);
+    - the editor bar's Important button is one toggle, "Important", and says why it's disabled on an Obie;
+    - Done reads "Mark not done" when the Take is done;
+    - a month label is a button that reads "July 2026, filtering" when on.
+  - **Privacy phrase:** Space or Return reveals the phrase and hides it again, and the words are hidden from a screen reader until shown.
+  - **First run:** a wrong word in "Confirm three words" is announced and takes focus.
+- **Turning Remind on in the Focus-ring always asks when**, and Cancel leaves it off, as on iOS, even if the Take had a reminder before.
+- **Smaller iOS matches, 2026-10-03:**
+  - The pinned Obie stands down while any Take is edited, so it never shows twice.
+  - A paste into a Take's line drops line breaks at either end.
+  - The creation stamp uses the locale's short time (09:05 in the UK, 9:05 AM in the US).
+  - Report an issue also sends the OS version.
+  - A custom repeat can lose its last weekday, and the Interval then reads Weekly.
+  - About's credits read "Open Source Licences" and name the BIP-39 wordlist.
+  - In Sequence, Search or a month filter, a "Show all Takes" button (for keyboard and screen reader) returns to Dailies.
+- **A new account opens with iOS's five starter Takes** (`SeedTakes`), in the owner's words with three desktop phrases: clicking the Iris, right-click beside swiping, and the Settings shortcut and menu in place of a swipe up. A restored account starts empty, its Takes coming from the folder, and neither starts with Scripts; an empty Scripts list reads "Your first Script is waiting." **Settings → Second device** ends as iOS's does: the old cloud folder is let go and Welcome back offers Not now or Connect cloud folder.
 - **Auto-Delete runs when Dailies opens**, as iOS's sweep does (`Take+AutoCleanup`). It deletes a Take that is finished, has no note text (checklist text doesn't count), isn't the Obie or a repeating reminder, and hasn't been touched for longer than the Settings window (1, 7, 31 or 365 days). It is off by default.
 - **Notice History** works as iOS's does: sync, storage, conflict and quarantine notices, newest first, each with its category's icon and a relative time ("yesterday"), and a Clear button. App lifecycle entries stay out of it. `?notices` fills in samples to look at. Actions waiting on the shell (Import, Export diagnostics, Sync Now from the menu) say so in an alert, the surface iOS uses for their results, not as notices.
 
