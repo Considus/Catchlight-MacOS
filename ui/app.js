@@ -505,7 +505,9 @@ function focusCell(el, r, c, o) {
 function blockOffset() {
   const el = doc.children[active], cell = activeCell();
   if (!cell) return caretOffset(el);
-  return sourceAt(script().blocks[active], +cell.dataset.r, +cell.dataset.c, caretOffset(cell) ?? 0);
+  // The stored cell is trimmed, so a caret counted over the cell's text loses its leading spaces.
+  const text = cell.textContent, lead = text.length - text.trimStart().length;
+  return sourceAt(script().blocks[active], +cell.dataset.r, +cell.dataset.c, Math.max(0, (caretOffset(cell) ?? 0) - lead));
 }
 function tableInput() {
   const s = script(), cell = activeCell();
@@ -574,20 +576,23 @@ function tableKey(e, s, el, text) {
     return;
   }
   if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-    if (e.shiftKey) return;
+    // Only from a cell's first or last line, as in any block: a wrapped cell moves within itself.
+    const up = e.key === 'ArrowUp', line = caretLine(cell);
+    if (e.shiftKey || e.metaKey || e.altKey || e.ctrlKey || !(up ? line.first : line.last)) return;
     e.preventDefault();
-    const r2 = r + (e.key === 'ArrowUp' ? -1 : 1);
+    const r2 = r + (up ? -1 : 1);
     if (r2 >= 0 && r2 < rows) return go(r2, c, Math.min(o, t.rows[r2][c].length));
     if (r2 < 0 && active > 0) return activate(active - 1);
     if (r2 >= rows && active < s.blocks.length - 1) return activate(active + 1, 0);
     return;
   }
-  if (e.key === 'ArrowLeft' && collapsed && !e.shiftKey && o === 0) {
+  const plain = !e.shiftKey && !e.metaKey && !e.altKey && !e.ctrlKey;
+  if (e.key === 'ArrowLeft' && collapsed && plain && o === 0) {
     e.preventDefault();
     if (c > 0) go(r, c - 1); else if (r > 0) go(r - 1, cols - 1); else if (active > 0) activate(active - 1);
     return;
   }
-  if (e.key === 'ArrowRight' && collapsed && !e.shiftKey && o === len) {
+  if (e.key === 'ArrowRight' && collapsed && plain && o === len) {
     e.preventDefault();
     if (c < cols - 1) go(r, c + 1, 0); else if (r < rows - 1) go(r + 1, 0, 0); else if (active < s.blocks.length - 1) activate(active + 1, 0);
   }
