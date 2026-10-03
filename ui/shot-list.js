@@ -43,9 +43,10 @@ function paintShotList(focusIndex) {
   slOpen = null;
   slRows.innerHTML = draft.blocks.map((b, i) => b.k === 'check'
     ? `<div class="sl-item" data-i="${i}"><div class="sl-row${b.done ? ' ticked' : ''}">
-        <button class="sl-box" type="button" role="checkbox" aria-checked="${!!b.done}" aria-label="${esc(b.text.trim() || 'Item')}"
+        <button class="sl-box" type="button" role="checkbox" aria-checked="${!!b.done}"
+          ${b.text.trim() ? `aria-labelledby="sl-text-${i}"` : 'aria-label="Item"'}
           title="${b.done ? 'Untick' : 'Tick'} · ⌥↑ ⌥↓ to move · ⌫ to delete"></button>
-        <span class="sl-text" aria-hidden="true">${linkify(b.text)}</span>
+        <span class="sl-text" id="sl-text-${i}">${linkify(b.text)}</span>
         <span class="sl-handle" aria-label="Reorder item" role="img"></span></div></div>`
     : `<div class="sl-prose" data-i="${i}">${linkify(b.text)}</div>`).join('');
   if (focusIndex != null) slRows.querySelector(`.sl-item[data-i="${focusIndex}"] .sl-box`)?.focus();
