@@ -16,6 +16,8 @@ let takes = store.get('takes2', [
   { id: 't6', at: '2026-07-04T16:00:00Z', blocks: [{ k: 'text', text: 'Before the weekend' }, { k: 'check', text: 'Ask Sam about the second-hand 90mm lens', done: false }, { k: 'check', text: 'Lens cloth', done: false }], isNote: true },
   { id: 't7', at: '2026-07-09T11:00:00Z', blocks: [{ k: 'text', text: 'Paper stock: Hahnemühle Photo Rag 308 for the large prints, Baryta for the small ones.' }], isNote: true, isImportant: true },
 ]);
+// An Obie is always Important (Take.isObie's didSet, and the decoder ORs it back in on load).
+takes.forEach(t => { if (t.obie) t.isImportant = true; });
 const saveTakes = () => store.set('takes2', takes);
 
 // ---------- what a Take is (CatchlightCore's derived properties) ----------
@@ -72,10 +74,10 @@ function renderTakes() {
     // Order and Arrangement from Settings → Dailies. Manual hides the month rows; arranging
     // by hand (dragging) is not built yet, so the order stays by date.
     const items = takes.filter(t => t !== obie && matches(t)).sort(order);
-    if (settings.takeArrangement === 'manual') list.innerHTML = items.map(takeCard).join('');
-    else timeline(list, items, takeCard);
     // Nothing at all yet (not a filter that matches nothing): iOS's empty state.
     if (!takes.length) list.innerHTML = '<div class="empty first-take"><p>Your first Take is waiting.</p></div>';
+    else if (settings.takeArrangement === 'manual') list.innerHTML = items.map(takeCard).join('');
+    else timeline(list, items, takeCard);
     const lit = filterMonth && list.querySelector(`.month[data-month="${filterMonth}"]`);
     if (lit) { lit.classList.add('on'); lit.querySelector('.month-label').insertAdjacentHTML('beforeend', ICON_XMARK); }
   }
@@ -228,6 +230,7 @@ function paintBar() {
   const task = isTask(draft);
   $('#eb-third').innerHTML = task ? ICON_CHECKLIST : ICON_IMPORTANT;
   $('#eb-third').setAttribute('aria-label', task ? 'Shot List (not built yet)' : (draft.isImportant ? 'Remove Important' : 'Make Important'));
+  $('#eb-third').disabled = !task && !!draft.obie;   // an Obie stays Important
   $('#eb-done').disabled = !canBeMarkedDone(draft);
   const remind = draft.reminder ? 'Edit reminder' : 'Add reminder';   // EditorKeyboardBar's label
   $('#eb-remind').setAttribute('aria-label', remind); $('#eb-remind').title = remind;
@@ -236,6 +239,7 @@ $('#eb-discard').addEventListener('click', discardEdit);
 $('#eb-third').addEventListener('click', () => {
   readRows();
   if (isTask(draft)) return;                                            // the Shot List Angle is not built yet
+  if (draft.obie) return;                                               // an Obie stays Important
   draft.isImportant = !draft.isImportant;
   if (!draft.isImportant) noteFloor(draft);
   paintIris(); paintBar();
@@ -380,7 +384,7 @@ sidebar.addEventListener('pointerdown', e => {
     const t = takes.find(x => x.id === hold.id);
     const make = !t.obie;
     takes.forEach(x => { x.obie = false; });
-    t.obie = make; if (make) t.isImportant = true;   // becoming the Obie makes it Important; Important can be removed later, as on iOS (Take.isObie)
+    t.obie = make; if (make) t.isImportant = true;   // becoming the Obie makes it Important; it can come off once it stops being the Obie
     t.modifiedAt = Date.now(); saveTakes(); renderTakes();
   }, 450) };
 });
@@ -600,7 +604,8 @@ function takeMenu(id) {
   const items = [];
   if (!storyboard) items.push([expanded.has(id) ? 'Collapse Take' : 'Expand Take', () => toggleExpanded(id)]);
   if (canBeMarkedDone(t)) items.push([isDone(t) ? 'Mark Not Done' : 'Mark Done', () => { toggleDone(t); touch(t); }]);
-  items.push([t.isImportant ? 'Remove Important' : 'Make Important', () => {
+  // An Obie stays Important, so its menu has nothing to offer here.
+  if (!t.obie) items.push([t.isImportant ? 'Remove Important' : 'Make Important', () => {
     t.isImportant = !t.isImportant;
     if (!t.isImportant) noteFloor(t);
     touch(t);
