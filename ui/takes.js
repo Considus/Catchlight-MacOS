@@ -55,6 +55,8 @@ function renderTakes() {
   const list = $('#takes'), pinned = $('#pinned');
   for (const el of [list, pinned]) { el.dataset.preview = settings.takePreview; el.dataset.spacing = settings.takeSpacing; }
   const order = (a, b) => settings.takeSort === 'newest' ? b.at.localeCompare(a.at) : a.at.localeCompare(b.at);
+  // The Storyboard is not the timeline: plain cards, no spine and no Iris (StoryboardView).
+  list.classList.toggle('storyboard', storyboard);
   if (storyboard) {
     // Every Take with an unticked item, the Obie among them and not pinned; no month dividers.
     pinned.hidden = true; list.classList.remove('under-obie');
@@ -72,6 +74,8 @@ function renderTakes() {
     const items = takes.filter(t => t !== obie && matches(t)).sort(order);
     if (settings.takeArrangement === 'manual') list.innerHTML = items.map(takeCard).join('');
     else timeline(list, items, takeCard);
+    // Nothing at all yet (not a filter that matches nothing): iOS's empty state.
+    if (!takes.length) list.innerHTML = '<div class="empty first-take"><p>Your first Take is waiting.</p></div>';
     const lit = filterMonth && list.querySelector(`.month[data-month="${filterMonth}"]`);
     if (lit) { lit.classList.add('on'); lit.querySelector('.month-label').insertAdjacentHTML('beforeend', ICON_XMARK); }
   }
@@ -225,6 +229,8 @@ function paintBar() {
   $('#eb-third').innerHTML = task ? ICON_CHECKLIST : ICON_IMPORTANT;
   $('#eb-third').setAttribute('aria-label', task ? 'Shot List (not built yet)' : (draft.isImportant ? 'Remove Important' : 'Make Important'));
   $('#eb-done').disabled = !canBeMarkedDone(draft);
+  const remind = draft.reminder ? 'Edit reminder' : 'Add reminder';   // EditorKeyboardBar's label
+  $('#eb-remind').setAttribute('aria-label', remind); $('#eb-remind').title = remind;
 }
 $('#eb-discard').addEventListener('click', discardEdit);
 $('#eb-third').addEventListener('click', () => {
@@ -339,7 +345,9 @@ function closeFocusRing(apply) {
     const before = JSON.stringify(target);
     // Only what changed is written, so an unchanged ring is a no-op (D-250).
     if (!!target.isNote !== sel.has('note')) target.isNote = sel.has('note');
-    if (!!target.isImportant !== sel.has('important')) target.isImportant = sel.has('important');
+    // An Obie is always Important, so the ring can't take it off one (DailiesViewModel).
+    const important = sel.has('important') || !!target.obie;
+    if (!!target.isImportant !== important) target.isImportant = important;
     if (sel.has('task') && !isTask(target)) target.blocks.push({ k: 'check', text: '', done: false });
     if (!sel.has('task') && isTask(target)) target.blocks = target.blocks.map(b => ({ k: 'text', text: b.text }));
     if (!sel.has('remind')) { if (target.reminder) target.reminder = null; }   // a picked time with Remind off is dropped

@@ -487,3 +487,10 @@ body.first-running .app { visibility: hidden; }
 .rmap svg { width: 100%; height: 100%; display: block; }
 .rname { width: 50%; text-align: right; border: 0; background: none; color: var(--text); font: 400 15px "DM Sans", sans-serif; outline: none; }
 .srow-icon svg { width: 22px; height: 22px; }
+
+/* The Storyboard: the same cards with no spine and no Iris, and the Iris's radius taken out of
+   every gap so the rhythm matches Dailies (StoryboardView.storyboardGap). */
+.timeline.storyboard { background: none; }
+.timeline.storyboard .iris-wrap { display: none; }
+.timeline.storyboard .card { margin-bottom: max(0px, calc(var(--gap) - 22px)); }
+.empty.first-take { margin-top: 30vh; font: 300 17px "DM Sans", sans-serif; }

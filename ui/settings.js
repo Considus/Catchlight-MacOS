@@ -139,9 +139,9 @@ const SUB = {
       <h2 class="ssub-heading">Choose a cloud folder you own</h2>
       <p>Select an empty folder, or create a new one, and we'll take care of the rest.</p>
       <p class="quiet">Catchlight never sees your files. Only you can read them.</p>
-      ${folder
-        ? `<p class="sfolder">✓ ${esc(folder)}</p><button class="slink danger" type="button" data-act="remove-folder">Remove</button>`
-        : '<button class="fr-pill primary" type="button" data-act="pick-folder">Choose folder</button>'}
+      ${folder ? `<p class="sfolder">✓ ${esc(folder)}</p>` : ''}
+      <button class="fr-pill primary" type="button" data-act="pick-folder">Choose folder</button>
+      ${folder ? '<button class="slink danger" type="button" data-act="remove-folder">Remove</button>' : ''}
       <hr>
       <div class="sgroup">${pick('syncMode', 'cloud', 'Sync', [['automatic', 'Automatic'], ['manual', 'Manual'], ['disabled', 'Disabled']], () => settings.syncMode)}</div>
       <p class="quiet">${modes[settings.syncMode]}</p>

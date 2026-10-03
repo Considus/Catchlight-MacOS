@@ -43,11 +43,12 @@ function nextDue(r) {
   return d;
 }
 
-// "Today", "Tomorrow", "Yesterday", or a short date, in the viewer's locale.
+// "Today", "Tomorrow", "Yesterday", or the medium date ("3 Oct 2026", "Oct 3, 2026"), in the
+// viewer's locale: iOS's medium date style with relative formatting.
 function dayWord(d) {
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const day = Math.round((new Date(d).setHours(0, 0, 0, 0) - today) / 864e5);
-  return { '-1': 'Yesterday', 0: 'Today', 1: 'Tomorrow' }[day] ?? d.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' });
+  return { '-1': 'Yesterday', 0: 'Today', 1: 'Tomorrow' }[day] ?? d.toLocaleDateString([], { dateStyle: 'medium' });
 }
 
 // The line on a card: "Tomorrow at 09:00 · Daily", the date alone when all-day, or
@@ -55,7 +56,7 @@ function dayWord(d) {
 function reminderLine(r) {
   if (isPlaceR(r)) return `${r.name || 'Location'} · ${r.mode === 'leave' ? 'On leaving' : 'On arrival'}`;
   const d = nextDue(r);
-  const when = r.allDay ? dayWord(d) : `${dayWord(d)} at ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+  const when = r.allDay ? dayWord(d) : `${dayWord(d)} at ${d.toLocaleTimeString([], { timeStyle: 'short' })}`;
   return repeats(r) ? `${when} · ${REPEAT_LABEL[r.repeat]}` : when;
 }
 const ICON_BELL_SLASH = '<svg viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 9.5-4.9M18 11v5l1.5 2h-15M10 20.5h4M4 4l16 16"/></svg>';
