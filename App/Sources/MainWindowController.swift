@@ -14,11 +14,14 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
     let bridge = ShellBridge()
     let menuController = MenuController()
 
-    init() {
+    /// `vault` is nil only in tests that load the page without a library; the page then keeps
+    /// the browser prototype's localStorage behaviour.
+    init(vault: Vault?) {
         let configuration = WKWebViewConfiguration()
         configuration.setURLSchemeHandler(UIResourceSchemeHandler(), forURLScheme: UIResourceSchemeHandler.scheme)
         // Offline: no Safe Browsing lookups either.
         configuration.preferences.isFraudulentWebsiteWarningEnabled = false
+        bridge.vault = vault
         bridge.install(in: configuration.userContentController)
         webView = WKWebView(frame: .zero, configuration: configuration)
         #if DEBUG
