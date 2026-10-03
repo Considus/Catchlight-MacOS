@@ -18,7 +18,8 @@ const BARE_DOMAIN = /(?<![@./\w-])((?:[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?\.
 function trimLinkEnd(s) {
   for (;;) {
     if (/[.,;:!?'"]$/.test(s)) { s = s.slice(0, -1); continue; }
-    if (s.endsWith(')') && (s.match(/\(/g) || []).length < (s.match(/\)/g) || []).length) { s = s.slice(0, -1); continue; }
+    const close = s.at(-1), open = { ')': '(', ']': '[' }[close];
+    if (open && s.split(open).length < s.split(close).length) { s = s.slice(0, -1); continue; }
     return s;
   }
 }
