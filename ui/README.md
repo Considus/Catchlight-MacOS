@@ -110,6 +110,7 @@ In the Claude desktop app the preview config is `catchlight-macos-ui`.
   - A custom repeat can lose its last weekday, and the Interval then reads Weekly.
   - About's credits read "Open Source Licences" and name the BIP-39 wordlist.
   - In Sequence, Search or a month filter, a "Show all Takes" button (for keyboard and screen reader) returns to Dailies.
+- **A new account opens with iOS's five starter Takes** (`SeedTakes`), in the owner's words with three desktop phrases: clicking the Iris, right-click beside swiping, and the Settings shortcut and menu in place of a swipe up. A restored account starts empty, its Takes coming from the folder, and neither starts with Scripts; an empty Scripts list reads "Your first Script is waiting." **Settings → Second device** ends as iOS's does: the old cloud folder is let go and Welcome back offers Not now or Connect cloud folder.
 
 ## Known gaps
 
