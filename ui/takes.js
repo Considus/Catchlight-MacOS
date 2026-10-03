@@ -781,13 +781,13 @@ document.addEventListener('click', e => { if (swallowClick) { swallowClick = fal
 
 renderTakes();
 
-$('#show-all').addEventListener('click', () => { exitToResting(); $('#dailies-heading').focus?.(); });
+$('#show-all').addEventListener('click', () => { if (draft) commitEdit(); exitToResting(); $('#dailies-heading').focus(); });   // the heading takes focus, as the button hides
 
 // Paste into a Take's line drops the line breaks at either end, as iOS does
 // (BlockEditorViewController.normalisedPaste): a copied paragraph shouldn't open blank lines.
 rows.addEventListener('paste', e => {
   const text = e.clipboardData?.getData('text/plain');
-  if (!text || text.length < 2) return;
+  if (!text) return;
   const clean = text.replace(/^[\r\n]+|[\r\n]+$/g, '');
   if (clean === text) return;
   e.preventDefault();

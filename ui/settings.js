@@ -170,7 +170,7 @@ const SUB = {
       <div class="scard"><h4>Open Source Licences</h4>
         <p>Cormorant Garamond and DM Sans, under the SIL Open Font License 1.1. The licence text for each is beside the fonts and listed in NOTICE.</p>
         <p class="quiet">The BIP-39 English wordlist is sourced from the Trezor project and bundled under the MIT licence.</p></div>
-      <div class="scard links">${[['Privacy Policy', 'https://catchlight.app/privacy/'], ['Terms of Service', 'https://catchlight.app/terms/'], ['Support', 'https://catchlight.app/support/?platform=macOS'], ['Website', 'https://catchlight.app']]
+      <div class="scard links">${[['Privacy Policy', 'https://catchlight.app/privacy/'], ['Terms of Service', 'https://catchlight.app/terms/'], ['Support', 'https://catchlight.app/support/?platform=' + PLATFORM.osName], ['Website', 'https://catchlight.app']]
         .map(([l, u]) => `<a href="${u}" target="_blank" rel="noopener">${l}<span aria-hidden="true">↗</span></a>`).join('')}</div>
       <p class="quiet small">Made by Considus</p></div>`],
   phrase: () => ['Privacy phrase', `<div class="ssub-col">
