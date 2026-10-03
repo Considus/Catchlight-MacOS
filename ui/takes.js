@@ -130,7 +130,7 @@ function renderTakes() {
     // Nothing at all yet (not a filter that matches nothing): iOS's empty state.
     if (!takes.length) list.innerHTML = '<div class="empty first-take"><p>Your first Take is waiting.</p></div>';
     else if (settings.takeArrangement === 'manual') list.innerHTML = inOrder(arranged(shown)).map(takeCard).join('');
-    else timeline(list, shown.sort(order), takeCard);
+    else timeline(list, shown.sort(order), takeCard, true);
     const lit = filterMonth && list.querySelector(`.month[data-month="${filterMonth}"]`);
     if (lit) {
       lit.classList.add('on');
@@ -289,12 +289,14 @@ let lastCaret = null;
 document.addEventListener('selectionchange', () => {
   const sel = getSelection(), el = sel.anchorNode && (sel.anchorNode.nodeType === 1 ? sel.anchorNode : sel.anchorNode.parentElement)?.closest?.('.etext');
   if (!el || !rows.contains(el)) return;
-  lastCaret = { i: [...rows.children].indexOf(el.closest('.erow')), off: caretOffset(el) ?? 0 };
+  lastCaret = { el, i: [...rows.children].indexOf(el.closest('.erow')), off: caretOffset(el) ?? 0 };
 });
 // Back to that line, or the last one when the rows changed under it.
+// The line itself if it is still there (a drag moves it), else its place after a repaint.
 function restoreCaret() {
   const n = rows.children.length;
-  if (lastCaret && lastCaret.i >= 0 && lastCaret.i < n) focusRow(lastCaret.i, lastCaret.off); else focusRow(n - 1, Infinity);
+  const i = lastCaret?.el?.isConnected && rows.contains(lastCaret.el) ? [...rows.children].indexOf(lastCaret.el.closest('.erow')) : lastCaret?.i;
+  if (i != null && i >= 0 && i < n) focusRow(i, lastCaret.off); else focusRow(n - 1, Infinity);
 }
 function paintIris() { $('#take-editor-iris').innerHTML = irisHtml(typesOf(draft), draft.obie); }
 
@@ -480,7 +482,9 @@ $('#focus-ring').addEventListener('click', e => {
   if (!sel.has('task') && !sel.has('remind')) sel.add('note');          // never "none"
   if (k === 'remind' && sel.has('remind')) {
     // Turning Remind on asks when; cancelling turns it back off.
-    const target = { ...t, reminder: null, isNote: t.isNote };
+    // It opens on the reminder the Take had, if any, as iOS keeps the picker's state: Done keeps
+    // it, Cancel turns Remind off (and Save and close then removes it), as on iOS.
+    const target = { ...t, isNote: t.isNote };
     openReminder(target, () => { focusRing.pendingReminder = target.reminder; paintRing(); },
       () => { sel.delete('remind'); if (!sel.has('task')) sel.add('note'); paintRing(); });
   }
@@ -551,9 +555,10 @@ sidebar.addEventListener('click', e => {
   if (draft || focusRing) return;
   const label = e.target.closest('#takes .month-label');
   if (label) {   // a month label toggles that month's filter, in any mode
-    const key = label.parentElement.dataset.month;
+    const key = label.parentElement.dataset.month, hadFocus = document.activeElement === label;
     filterMonth = filterMonth === key ? null : key;
     renderTakes();
+    if (hadFocus) $(`#takes .month[data-month="${key}"] .month-label`)?.focus();   // the repaint replaced it
     return;
   }
   // A dock button repaints the dock, so its click arrives here from a detached element:
@@ -571,6 +576,12 @@ sidebar.addEventListener('click', e => {
   if (card && !e.target.closest('.thandle')) beginEdit(takes.find(x => x.id === card.dataset.take));
 });
 $('#take-editor-iris').addEventListener('click', () => openFocusRing(draft, $('#take-editor-iris'), true));
+// It is role=button, so Return and Space open the ring too.
+$('#take-editor-iris').addEventListener('keydown', e => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  e.preventDefault(); e.stopPropagation();
+  openFocusRing(draft, $('#take-editor-iris'), true);
+});
 const newTake = () => beginEdit({ id: 't' + Date.now(), at: new Date().toISOString(), blocks: [{ k: 'text', text: '' }], isNote: true }, true);
 
 // ---------- the dock (BottomDockView): resting, Sequence and Search ----------

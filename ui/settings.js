@@ -200,6 +200,7 @@ const SUB = {
 const sheet = $('#settings');
 let subStack = [];
 function paintSettings(keepScroll = true) {
+  sheet.classList.remove('revealing');   // the phrase never stays revealed past its own page
   const scroll = sheet.querySelector('.sheet-scroll')?.scrollTop || 0;
   const top = subStack.at(-1);
   const [title, body] = top ? SUB[top]() : [null, settingsPage()];
@@ -218,6 +219,7 @@ function openSettings(section) {
   sheet.querySelector('.sheet-x').focus();
 }
 function closeSettings() {
+  sheet.classList.remove('revealing');
   sheet.classList.remove('open');
   ctx.hidden = true;   // About's menu sits over the sheet
   setTimeout(() => { if (!sheet.classList.contains('open')) { sheet.hidden = true; sheet.innerHTML = ''; } }, still.matches ? 0 : 300);
@@ -293,6 +295,7 @@ sheet.addEventListener('keydown', e => {
   const b = e.target.closest('[data-hold]');
   if (!b || (e.key !== ' ' && e.key !== 'Enter')) return;
   e.preventDefault();
+  if (e.repeat) return;   // a held key is one press
   const on = !sheet.classList.contains('revealing');
   sheet.classList.toggle('revealing', on);
   b.textContent = on ? 'Hide phrase' : 'Hold to reveal';

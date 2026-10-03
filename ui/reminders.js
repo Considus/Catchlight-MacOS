@@ -109,7 +109,7 @@ function closeReminder() {
   rsheet.hidden = true; rsheet.innerHTML = '';
   reminderFor = reminderAfter = reminderCancel = rs = null;
   const back = reminderReturn; reminderReturn = null;
-  if (focusRing) return;   // the ring keeps focus while it is up
+  if (focusRing) { if (back?.isConnected) back.focus(); return; }   // back to the Remind Mark
   if (draft) restoreCaret(); else if (back?.isConnected) back.focus();
 }
 const cancelReminder = () => { const c = reminderCancel; closeReminder(); c && c(); };
