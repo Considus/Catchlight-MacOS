@@ -95,14 +95,22 @@ function openReminder(t, after, onCancel) {
     place: isPlaceR(r) ? { ...r } : null, query: '',
     view: new Date(start.getFullYear(), start.getMonth(), 1),
   };
+  reminderReturn = document.activeElement;
   rsheet.hidden = false;
   paintReminder();
   requestAnimationFrame(() => rsheet.classList.add('open'));
+  rsheet.querySelector('button, [tabindex="0"], input, select')?.focus();
 }
+// Closing gives focus back: to the editor line the caret was on (DailiesView.closeReminderEditor),
+// else to whatever opened the picker, if it is still on the page.
+let reminderReturn = null;
 function closeReminder() {
   rsheet.classList.remove('open');
   rsheet.hidden = true; rsheet.innerHTML = '';
   reminderFor = reminderAfter = reminderCancel = rs = null;
+  const back = reminderReturn; reminderReturn = null;
+  if (focusRing) return;   // the ring keeps focus while it is up
+  if (draft) restoreCaret(); else if (back?.isConnected) back.focus();
 }
 const cancelReminder = () => { const c = reminderCancel; closeReminder(); c && c(); };
 

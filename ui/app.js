@@ -96,7 +96,7 @@ function timeline(container, items, cardHtml) {
   let html = '', month = '';
   for (const it of items) {
     const m = monthLabel(it.at);
-    if (m !== month) { html += `<div class="month" data-month="${monthKey(it.at)}"><span class="month-label">${m}</span></div>`; month = m; }
+    if (m !== month) { html += `<div class="month" data-month="${monthKey(it.at)}"><button type="button" class="month-label" aria-label="${m}">${m}</button></div>`; month = m; }
     html += cardHtml(it);
   }
   container.innerHTML = html;

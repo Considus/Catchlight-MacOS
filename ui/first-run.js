@@ -80,7 +80,7 @@ const SCREENS = {
 
   confirm: () => {
     const [a, b, c] = fr.positions.map(p => p + 1);
-    return `<div class="fr-error" id="fr-error" hidden>Those aren't quite right. Try again.</div>
+    return `<div class="fr-error" id="fr-error" role="alert" tabindex="-1" hidden>Those aren't quite right. Try again.</div>
     <h2>Confirm three words</h2>
     <p>Click words ${a}, ${b} and ${c} from your phrase, in order.</p>
     <div class="fr-slots">${fr.positions.map((p, i) => `<button class="fr-slot" type="button" data-slot="${i}"><span>${p + 1}</span>${fr.picked[i] != null ? fr.bank[fr.picked[i]] : '—'}</button>`).join('')}</div>
@@ -139,7 +139,7 @@ function checkConfirm() {
   if (right) { fr.basics = 0; show('basics'); return; }
   $('#fr-error').hidden = false;
   layer.querySelectorAll('.fr-slot').forEach(s => s.classList.add('wrong'));
-  setTimeout(() => { if (fr.step === 'confirm') { fr.picked = []; show('confirm'); $('#fr-error').hidden = false; } }, 600);
+  setTimeout(() => { if (fr.step === 'confirm') { fr.picked = []; show('confirm'); $('#fr-error').hidden = false; $('#fr-error').focus(); } }, 600);
 }
 
 const restoreWords = () => phraseWords(layer);
