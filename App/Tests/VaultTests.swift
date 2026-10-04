@@ -292,7 +292,10 @@ final class VaultTests: XCTestCase {
         XCTAssertEqual(words.count, 12)
         XCTAssertEqual(Set(words).count, 12)
         XCTAssertTrue(Vault.isValid(words))
-        XCTAssertFalse(Vault.isValid(Array(words.reversed())), "a reordered phrase fails its checksum")
+        // Fixed vectors, not a shuffled phrase: the checksum is 4 bits, so 1 in 16 reorderings
+        // still pass (this test failed that way once in four runs).
+        XCTAssertTrue(Vault.isValid(Array(repeating: "abandon", count: 11) + ["about"]))
+        XCTAssertFalse(Vault.isValid(Array(repeating: "abandon", count: 12)), "a wrong last word fails its checksum")
         XCTAssertFalse(Vault.isValid(Array(words.dropLast())))
     }
 
@@ -392,6 +395,7 @@ final class VaultTests: XCTestCase {
             func storeMasterKey(_ raw: Data) throws { try inner.storeMasterKey(raw) }
             func masterKey(reason: String) throws -> SymmetricKey { keyRequests += 1; return try inner.masterKey(reason: reason) }
             func phrase(reason: String) -> [String]? { inner.phrase(reason: reason) }
+            func deleteMasterKey() { inner.deleteMasterKey() }
             func deleteAll() { inner.deleteAll() }
         }
         let secrets = Counting()
@@ -415,6 +419,7 @@ final class VaultTests: XCTestCase {
             func storeMasterKey(_ raw: Data) throws { if failKey { throw KeychainError.storeFailed(-1) }; try inner.storeMasterKey(raw) }
             func masterKey(reason: String) throws -> SymmetricKey { try inner.masterKey(reason: reason) }
             func phrase(reason: String) -> [String]? { inner.phrase(reason: reason) }
+            func deleteMasterKey() { inner.deleteMasterKey() }
             func deleteAll() { inner.deleteAll() }
         }
         let secrets = FailingKey()
@@ -454,6 +459,7 @@ final class VaultTests: XCTestCase {
             func storeMasterKey(_ raw: Data) throws { try inner.storeMasterKey(raw) }
             func masterKey(reason: String) throws -> SymmetricKey { try inner.masterKey(reason: reason) }
             func phrase(reason: String) -> [String]? { inner.phrase(reason: reason) }
+            func deleteMasterKey() { inner.deleteMasterKey() }
             func deleteAll() { inner.deleteAll() }
         }
         let secrets = FailingPhrase()
@@ -465,6 +471,42 @@ final class VaultTests: XCTestCase {
         let key = try secrets.masterKey(reason: "").withUnsafeBytes { Data($0) }
         XCTAssertEqual(key, MasterKeyDerivation.deriveRaw(from: words), "the key matches the phrase that was kept")
         XCTAssertEqual(secrets.phrase(reason: ""), words)
+    }
+
+    /// #44 review: when the old key can't be put back either, the new key goes, so the phrase the
+    /// owner has still restores the library.
+    func testAFailedRollbackLeavesNoKeyRatherThanAMismatchedOne() throws {
+        final class FailingBoth: Secrets {
+            let inner = MemorySecrets(); var failing = false; var keyWrites = 0
+            var hasAccount: Bool { inner.hasAccount }
+            func storePhrase(_ words: [String]) throws { if failing { throw KeychainError.storeFailed(-1) }; try inner.storePhrase(words) }
+            func storeMasterKey(_ raw: Data) throws {
+                keyWrites += 1
+                if failing && keyWrites > 1 { throw KeychainError.storeFailed(-2) }   // the rollback write fails
+                try inner.storeMasterKey(raw)
+            }
+            func masterKey(reason: String) throws -> SymmetricKey { try inner.masterKey(reason: reason) }
+            func phrase(reason: String) -> [String]? { inner.phrase(reason: reason) }
+            func deleteMasterKey() { inner.deleteMasterKey() }
+            func deleteAll() { inner.deleteAll() }
+        }
+        let secrets = FailingBoth()
+        let words = try Vault.newPhrase()
+        let vault = Vault(secrets: secrets, directory: dir)
+        try vault.createAccount(words: words, restored: false)
+        let id = UUID()
+        _ = try vault.library!.saveTakes([["id": id.uuidString, "at": "2026-07-01T09:00:00Z", "isNote": true, "blocks": [["k": "text", "text": "Mine"]]]])
+        secrets.failing = true; secrets.keyWrites = 0
+        XCTAssertThrowsError(try vault.replaceAccount(words: try Vault.newPhrase()))
+        XCTAssertFalse(secrets.hasAccount, "no key is left beside the old phrase")
+        XCTAssertEqual(secrets.phrase(reason: ""), words)
+
+        // Next launch: first run; restoring with the phrase the owner has reopens the library.
+        secrets.failing = false
+        let next = Vault(secrets: secrets, directory: dir)
+        XCTAssertEqual("\(try next.start())", "\(Vault.State.noAccount)")
+        try next.createAccount(words: words, restored: true)
+        XCTAssertNotNil(try next.library!.store.take(id: id))
     }
 
     /// #44 review: damaged Scripts must not move readable Takes aside on a correct-phrase restore.

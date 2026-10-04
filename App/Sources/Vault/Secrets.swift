@@ -16,6 +16,8 @@ protocol Secrets: AnyObject {
     /// `KeychainError.notFound`, without asking, when there is no key.
     func masterKey(reason: String) throws -> SymmetricKey
     func phrase(reason: String) -> [String]?
+    /// The key alone, for the one case where a key without its phrase is worse than none.
+    func deleteMasterKey()
     func deleteAll()
 }
 
@@ -27,6 +29,7 @@ final class KeychainSecrets: Secrets {
     func storeMasterKey(_ raw: Data) throws { try MasterKeyKeychain.store(raw) }
     func masterKey(reason: String) throws -> SymmetricKey { try MasterKeyKeychain.retrieve(reason: reason) }
     func phrase(reason: String) -> [String]? { MnemonicKeychain.retrieve(reason: reason) }
+    func deleteMasterKey() { MasterKeyKeychain.delete() }
     func deleteAll() {
         MasterKeyKeychain.delete()
         MnemonicKeychain.delete()
@@ -45,5 +48,6 @@ final class MemorySecrets: Secrets {
         return SymmetricKey(data: raw)
     }
     func phrase(reason: String) -> [String]? { words }
+    func deleteMasterKey() { raw = nil }
     func deleteAll() { words = nil; raw = nil }
 }

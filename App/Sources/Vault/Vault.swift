@@ -103,7 +103,13 @@ final class Vault {
                 // key write failed, and the old words can't be read back without a prompt.
                 try secrets.storeMasterKey(raw)
                 do { try secrets.storePhrase(words) } catch {
-                    try? secrets.storeMasterKey(previousKey)
+                    do { try secrets.storeMasterKey(previousKey) } catch {
+                        // The new key now sits beside the old phrase. Remove it: with no key the
+                        // next launch is first run, and restoring with the phrase the owner has
+                        // reopens this library. A key beside the wrong phrase has no way back.
+                        Self.log.fault("the old key could not be put back; the new key is removed so the phrase restores this library")
+                        secrets.deleteMasterKey()
+                    }
                     throw error
                 }
             } else {
