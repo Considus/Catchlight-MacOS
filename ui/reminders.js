@@ -215,7 +215,8 @@ function doneReminder() {
   const t = reminderFor;
   if (rs.tab === 'place') {
     if (!rs.place) return;
-    t.reminder = { kind: 'place', name: rs.place.name || '', mode: rs.place.mode, radius: rs.place.radius, notify: rs.place.notify, done: false };
+    // An edit keeps a place reminder's done state; a new one starts not done.
+    t.reminder = { kind: 'place', name: rs.place.name || '', mode: rs.place.mode, radius: rs.place.radius, notify: rs.place.notify, done: isPlaceR(t.reminder) ? !!t.reminder.done : false };
   } else {
     const d = new Date(rs.date);
     if (rs.allDay) d.setHours(9, 0, 0, 0);   // an all-day reminder fires at 09:00

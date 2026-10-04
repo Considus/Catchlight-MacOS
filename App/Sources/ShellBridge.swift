@@ -138,6 +138,11 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
 
     // MARK: The library and the account
 
+    private func libraryContents(_ vault: Vault) throws -> [String: Any] {
+        guard let library = vault.library else { return ["takes": [Any](), "scripts": [Any]()] }
+        return ["takes": try library.pageTakes(), "scripts": try library.pageScripts()]
+    }
+
     private func handleLibrary(_ cmd: String, _ body: [String: Any], _ reply: @escaping (Any?, String?) -> Void) {
         guard let vault else { return reply(nil, "no library in this build") }
         let words = (body["words"] as? [String]) ?? []
@@ -160,16 +165,19 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                 }
             case "validatePhrase":
                 reply(Vault.isValid(words), nil)
+            // Both answer with the library now open, so after a restore the page shows what the
+            // phrase opened rather than saving its own empty list over it.
             case "createAccount":
                 try vault.createAccount(words: words, restored: body["restored"] as? Bool ?? false)
-                reply(true, nil)
+                libraryUnreadable = false
+                reply(try libraryContents(vault), nil)
             case "replaceAccount":
-                // Settings ▸ Second device, as the iPhone: this account's Takes here go, the
-                // phrase given opens (or will receive) the other one.
+                // Settings ▸ Second device, as the iPhone, but nothing is erased first
+                // (Vault.replaceAccount).
                 guard Vault.isValid(words) else { return reply(nil, "invalid phrase") }
-                try vault.eraseEverything()
-                try vault.createAccount(words: words, restored: true)
-                reply(true, nil)
+                try vault.replaceAccount(words: words)
+                libraryUnreadable = false
+                reply(try libraryContents(vault), nil)
             case "revealPhrase":
                 reply(vault.phrase() as Any? ?? NSNull(), nil)
             case "eraseEverything":

@@ -329,16 +329,20 @@ async function secondDeviceRestore() {
   if (!await shell.phraseLooksValid(words)) { paintSecondDevice("That doesn't look right. Check the words and try again."); return; }
   // In the Mac app the shell swaps the account first: this one's Keychain items and library go,
   // the phrase given becomes the account here. Nothing on the page changes unless that worked.
+  // It answers with the library now open, which welcomeBack's finish() shows without saving.
   if (window.catchlightBridge?.library) {
-    try { await shell.replaceAccount(words); } catch (e) { paintSecondDevice(`Couldn't add this Mac: ${e}`); return; }
+    try { fr.opened = await shell.replaceAccount(words); } catch (e) { paintSecondDevice(`Couldn't add this Mac: ${e}`); return; }
   }
   if (draft) discardEdit();   // a Take being written belongs to the account being replaced
   // As on iOS, this replaces the account here: Takes stored only on this device go, and so
   // does the phrase kept from first run, which is no longer this account's.
   // The old cloud folder belongs to the account being replaced, so it goes too (AppModel).
   store.set('account', { ...store.get('account', {}), restored: true, phrase: undefined, folder: null });
-  takes = []; saveTakes(); renderTakes();
-  scripts = []; current = null; save(); renderScripts(); renderDoc(); $('#script-heading').textContent = '';
+  if (window.catchlightBridge?.library) adoptLibrary(fr.opened);
+  else {
+    takes = []; saveTakes(); renderTakes();
+    scripts = []; current = null; save(); renderScripts(); renderDoc(); $('#script-heading').textContent = '';
+  }
   closeSettings();
   welcomeBack();   // first-run.js: Welcome back, Not now or Connect cloud folder
 }

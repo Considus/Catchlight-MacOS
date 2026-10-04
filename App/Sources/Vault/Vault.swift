@@ -70,19 +70,30 @@ final class Vault {
         return (try? bip39.validate(mnemonic: cleaned(words))) != nil
     }
 
-    /// Store the phrase, then the key, then open the library. `restored` keeps an existing
-    /// library in place (the same phrase opens it); a new phrase moves any old one aside, since
-    /// a different key can't read it and it should never be deleted on the way in.
+    /// Store the phrase, then the key, then open the library. A library already on disk stays
+    /// only when it is a restore AND the phrase's key opens it; otherwise it is moved aside,
+    /// never deleted, because a different key can't read it and nothing may be lost on the way in.
+    /// `restored` comes from the page, so it is checked against the disk rather than trusted.
     func createAccount(words: [String], restored: Bool) throws {
         let words = Self.cleaned(words)
         let raw: Data
         do { raw = try PhraseRecovery.recoverMasterKey(from: words, bip39: try Self.englishBIP39()) }
         catch { throw Failure.invalidPhrase }
-        if !restored { try moveAsideExistingLibrary() }
+        let keys = KeyHierarchy(masterKeyBytes: raw)
+        if !(restored && existingLibraryOpens(with: keys)) { try moveAsideExistingLibrary() }
+        state = .noAccount   // the open library, if any, belongs to the account being replaced
         try secrets.storePhrase(words)
         try secrets.storeMasterKey(raw)
         state = .open(try openLibrary(keys: KeyHierarchy(masterKeyBytes: raw)))
         Self.log.info("account created (restored: \(restored, privacy: .public))")
+    }
+
+    /// Settings ▸ Second device: this Mac takes the account the phrase opens. Nothing is erased
+    /// first. The Keychain items are replaced in place (update-or-add), and the library stays if
+    /// the phrase opens it, else it is moved aside. If anything fails, the old library is still
+    /// on disk.
+    func replaceAccount(words: [String]) throws {
+        try createAccount(words: words, restored: true)
     }
 
     func phrase() -> [String]? { secrets.phrase(reason: "Show your Privacy phrase") }
@@ -104,6 +115,20 @@ final class Vault {
         let store = try EncryptedTakeStore(keys: keys, directoryURL: directory)
         let scripts = try ScriptVault(keys: keys, directory: directory.appendingPathComponent("Scripts", isDirectory: true))
         return Library(store: store, scripts: scripts)
+    }
+
+    /// Whether the library on disk, if there is one, opens under `keys`: every Take decrypts.
+    /// No library at all counts as opening (there is nothing to protect).
+    private func existingLibraryOpens(with keys: KeyHierarchy) -> Bool {
+        let database = directory.appendingPathComponent("Database/catchlight.db")
+        guard FileManager.default.fileExists(atPath: database.path) else { return true }
+        do {
+            _ = try EncryptedTakeStore(keys: keys, directoryURL: directory).allTakes()
+            return true
+        } catch {
+            Self.log.info("the library on disk does not open with this phrase; it will be moved aside")
+            return false
+        }
     }
 
     private func moveAsideExistingLibrary() throws {

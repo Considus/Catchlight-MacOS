@@ -249,6 +249,21 @@ final class ScriptVaultTests: XCTestCase {
         XCTAssertEqual(try vault.all().map { $0["id"] as? String }, [b["id"] as? String])
     }
 
+    /// Greptile on #43: one damaged Script made the whole library unreadable.
+    func testADamagedScriptIsSkippedAndKept() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("catchlight-mac-scripts-\(UUID())")
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let vault = try ScriptVault(keys: KeyHierarchy(masterKey: SymmetricKey(size: .bits256)), directory: dir)
+        let good: [String: Any] = ["id": UUID().uuidString, "at": "2026-06-12", "mode": "a4", "blocks": ["Fine"]]
+        try vault.replaceAll(with: [good])
+        let damaged = dir.appendingPathComponent("\(UUID().uuidString.lowercased()).sealed")
+        try Data("not a sealed box".utf8).write(to: damaged)
+
+        XCTAssertEqual(try vault.all().map { $0["id"] as? String }, [good["id"] as? String])
+        try vault.replaceAll(with: [])
+        XCTAssertTrue(FileManager.default.fileExists(atPath: damaged.path), "a damaged Script is never deleted")
+    }
+
     func testAScriptFileDoesNotOpenUnderAnotherID() throws {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("catchlight-mac-scripts-\(UUID())")
         defer { try? FileManager.default.removeItem(at: dir) }
@@ -325,6 +340,43 @@ final class VaultTests: XCTestCase {
         XCTAssertEqual(try fresh.library!.store.allTakes().count, 0)
         let siblings = try FileManager.default.contentsOfDirectory(atPath: dir.deletingLastPathComponent().path)
         XCTAssertTrue(siblings.contains { $0.hasPrefix("Catchlight-before-") }, "\(siblings)")
+    }
+
+    /// Greptile on #43: `restored` comes from the page, so a phrase that can't open the library
+    /// on disk must move it aside rather than leave it under a key the app no longer holds.
+    func testARestoreWithAPhraseThatDoesNotOpenTheLibraryMovesItAside() throws {
+        let first = Vault(secrets: MemorySecrets(), directory: dir)
+        try first.createAccount(words: try Vault.newPhrase(), restored: false)
+        _ = try first.library!.saveTakes([["id": UUID().uuidString, "at": "2026-07-01T09:00:00Z", "isNote": true, "blocks": [["k": "text", "text": "Other account"]]]])
+
+        let other = Vault(secrets: MemorySecrets(), directory: dir)
+        try other.createAccount(words: try Vault.newPhrase(), restored: true)
+        XCTAssertEqual(try other.library!.store.allTakes().count, 0)
+        let siblings = try FileManager.default.contentsOfDirectory(atPath: dir.deletingLastPathComponent().path)
+        XCTAssertTrue(siblings.contains { $0.hasPrefix("Catchlight-before-") }, "\(siblings)")
+    }
+
+    /// Greptile on #43: Second device erased the old account before the new one existed.
+    func testReplaceAccountErasesNothingFirst() throws {
+        let secrets = MemorySecrets()
+        let words = try Vault.newPhrase()
+        let vault = Vault(secrets: secrets, directory: dir)
+        try vault.createAccount(words: words, restored: false)
+        let id = UUID()
+        _ = try vault.library!.saveTakes([["id": id.uuidString, "at": "2026-07-01T09:00:00Z", "isNote": true, "blocks": [["k": "text", "text": "Mine"]]]])
+
+        // The same account again: the library stays.
+        try vault.replaceAccount(words: words)
+        XCTAssertNotNil(try vault.library!.store.take(id: id))
+
+        // Another account: the old library is moved aside, not deleted, and the secrets are the new ones.
+        let other = try Vault.newPhrase()
+        try vault.replaceAccount(words: other)
+        XCTAssertEqual(secrets.phrase(reason: ""), other)
+        XCTAssertEqual(try vault.library!.store.allTakes().count, 0)
+        let aside = try FileManager.default.contentsOfDirectory(atPath: dir.deletingLastPathComponent().path).first { $0.hasPrefix("Catchlight-before-") }
+        let moved = try XCTUnwrap(aside)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: dir.deletingLastPathComponent().appendingPathComponent(moved).appendingPathComponent("Database/catchlight.db").path))
     }
 
     func testAnInvalidPhraseStoresNothing() throws {

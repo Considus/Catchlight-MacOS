@@ -1,6 +1,7 @@
 import XCTest
 import WebKit
 import CatchlightCore
+import SQLite3
 
 /// The real `ui/` in a WKWebView with the real bridge and a Vault on a temporary folder: what the
 /// page shows comes out of the encrypted library, and what it saves goes back into it.
@@ -77,16 +78,46 @@ final class PageLibraryTests: XCTestCase {
     func testAnUnreadableLibraryRefusesEverySave() throws {
         let vault = Vault(secrets: MemorySecrets(), directory: dir)
         try vault.createAccount(words: try Vault.newPhrase(), restored: true)
-        try vault.library!.saveScripts([["id": UUID().uuidString, "at": "2026-06-12", "mode": "a4", "blocks": ["Kept"]]])
-        try Data("not a sealed box".utf8).write(to: vault.library!.scripts.directory.appendingPathComponent("\(UUID().uuidString.lowercased()).sealed"))
+        let id = UUID()
+        _ = try vault.library!.saveTakes([["id": id.uuidString, "at": "2026-07-01T09:00:00Z", "isNote": true, "blocks": [["k": "text", "text": "Kept"]]]])
+        // A Take whose sealed payload no longer opens: the library can't be read.
+        var db: OpaquePointer?
+        XCTAssertEqual(sqlite3_open(dir.appendingPathComponent("Database/catchlight.db").path, &db), SQLITE_OK)
+        XCTAssertEqual(sqlite3_exec(db, "UPDATE takes SET payload = x'00';", nil, nil, nil), SQLITE_OK)
+        sqlite3_close(db)
         let (harness, bridge) = page(with: vault)
 
         XCTAssertTrue(bridge.libraryUnreadable)
         let result = try harness.run("""
-            try { await window.webkit.messageHandlers.catchlight.postMessage({cmd: 'save', kind: 'scripts', list: []}); return 'saved'; }
+            try { await window.webkit.messageHandlers.catchlight.postMessage({cmd: 'save', kind: 'takes', list: []}); return 'saved'; }
             catch (e) { return 'refused'; }
             """, in: self) as? String
         XCTAssertEqual(result, "refused")
-        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: vault.library!.scripts.directory.path).count, 2, "nothing was deleted")
+        XCTAssertEqual(try vault.library!.store.tombstones().count, 0, "nothing was deleted")
+    }
+
+    /// Greptile on #43: a restore saved the page's empty list over the library it had reopened.
+    func testARestoreShowsTheReopenedLibraryAndSavesNothingOverIt() throws {
+        let words = try Vault.newPhrase()
+        let earlier = Vault(secrets: MemorySecrets(), directory: dir)
+        try earlier.createAccount(words: words, restored: false)
+        let id = UUID()
+        _ = try earlier.library!.saveTakes([["id": id.uuidString, "at": "2026-07-01T09:00:00Z", "isNote": true, "blocks": [["k": "text", "text": "Still here"]]]])
+
+        // The Keychain is gone, the library is not: first run, restore with the same phrase.
+        let vault = Vault(secrets: MemorySecrets(), directory: dir)
+        try vault.start()
+        let (harness, bridge) = page(with: vault)
+        _ = bridge
+        let shown = try harness.run("""
+            fr.restore = true; fr.restoreWords = \(String(data: try JSONSerialization.data(withJSONObject: words), encoding: .utf8)!);
+            fr.storage = 'local';
+            await finish();
+            \(settle)
+            return JSON.stringify(takes.map(t => t.blocks[0].text));
+            """, in: self) as? String
+        XCTAssertEqual(shown, #"["Still here"]"#)
+        XCTAssertNotNil(try vault.library!.store.take(id: id))
+        XCTAssertEqual(try vault.library!.store.tombstones().count, 0)
     }
 }

@@ -1,6 +1,7 @@
 import Foundation
 import CryptoKit
 import CatchlightCore
+import os
 
 /// Scripts on this Mac, one sealed file each in `Scripts/`.
 ///
@@ -19,6 +20,10 @@ final class ScriptVault {
 
     private let keys: KeyHierarchy
     let directory: URL
+    private static let log = Logger(subsystem: "com.considus.catchlight.mac", category: "scripts")
+    /// Files that would not open. They are kept, never overwritten by a save that doesn't name
+    /// their id and never deleted, so one damaged file costs that Script and nothing else.
+    private(set) var unreadable: Set<String> = []
 
     init(keys: KeyHierarchy, directory: URL) throws {
         self.keys = keys
@@ -29,9 +34,13 @@ final class ScriptVault {
     func all() throws -> [[String: Any]] {
         let files = try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)
             .filter { $0.pathExtension == "sealed" }
-        return try files.compactMap { url -> [String: Any]? in
+        return files.compactMap { url -> [String: Any]? in
             guard let id = UUID(uuidString: url.deletingPathExtension().lastPathComponent) else { return nil }
-            return try open(Data(contentsOf: url), id: id)
+            do { return try open(Data(contentsOf: url), id: id) } catch {
+                unreadable.insert(url.lastPathComponent)
+                Self.log.error("a Script did not open and is kept as it is: \(url.lastPathComponent, privacy: .public)")
+                return nil
+            }
         }
         .sorted { ($0["at"] as? String ?? "") < ($1["at"] as? String ?? "") }
     }
@@ -49,7 +58,7 @@ final class ScriptVault {
             try seal(script, id: id).write(to: url, options: .atomic)
         }
         for url in try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)
-        where url.pathExtension == "sealed" && !keep.contains(url.lastPathComponent) {
+        where url.pathExtension == "sealed" && !keep.contains(url.lastPathComponent) && !unreadable.contains(url.lastPathComponent) {
             try FileManager.default.removeItem(at: url)
         }
     }

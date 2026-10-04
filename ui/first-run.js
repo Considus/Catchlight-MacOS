@@ -177,6 +177,13 @@ function seedTakes() {
   ];
 }
 
+// The library the shell has just opened, shown as it is: nothing is saved back.
+function adoptLibrary({ takes: t = [], scripts: s = [] }) {
+  const lib = window.catchlightBridge.library;
+  takes = lib.takes = t; scripts = lib.scripts = s; current = null;
+  renderTakes(); renderScripts(); renderDoc(); $('#script-heading').textContent = '';
+}
+
 // Whether this device had an account when the page loaded; a replay over one changes no data.
 const freshAccount = !store.get('account', null);
 
@@ -187,8 +194,9 @@ async function finish() {
   const lib = window.catchlightBridge?.library;
   if (lib && !lib.account) {
     try {
-      await shell.createAccount(fr.restore ? fr.restoreWords : fr.words, fr.restore);
+      const opened = await shell.createAccount(fr.restore ? fr.restoreWords : fr.words, fr.restore);
       lib.account = true;
+      if (fr.restore) fr.opened = opened;
     } catch (e) {
       ask("Couldn't secure your account on this Mac", `Nothing was saved. Try again, and if it happens again, report it with this detail: ${e}`, [['OK', null, 'cancel']]);
       return;
@@ -201,11 +209,14 @@ async function finish() {
   // A new account: seeds after setup, none after a restore (AppModel), and no Scripts either way
   // (a restored account gets its own from the folder, D-313). A ?first-run replay over an
   // account that already exists is a look at the screens, so it leaves the Takes alone.
-  if (freshAccount || fr.secondDevice) {
+  // In the Mac app a restore shows what the phrase opened (Vault keeps a library it can read)
+  // and saves nothing, or the page's empty list would delete it.
+  if (lib && fr.restore && fr.opened) adoptLibrary(fr.opened);
+  else if (freshAccount || fr.secondDevice) {
     takes = fr.restore ? [] : seedTakes(); saveTakes(); renderTakes();
     scripts = []; current = null; save(); renderScripts(); renderDoc(); $('#script-heading').textContent = '';
   }
-  fr.secondDevice = false;
+  fr.secondDevice = false; fr.opened = null;
   layer.hidden = true; layer.innerHTML = '';
   document.body.classList.remove('first-running');
 }
