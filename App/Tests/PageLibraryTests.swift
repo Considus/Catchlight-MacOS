@@ -138,4 +138,53 @@ final class PageLibraryTests: XCTestCase {
         XCTAssertEqual(stored.count, 1)
         XCTAssertTrue("\(stored[0].blocks)".contains("Typed, never closed"))
     }
+
+    /// #43 review: a reload after a WebContent crash ran the launch snapshot, and the next save
+    /// deleted every Take written since. The reload now rebuilds the snapshot first.
+    func testAReloadShowsTheLibraryAsItIsNowNotAsItWasAtLaunch() throws {
+        let vault = Vault(secrets: MemorySecrets(), directory: dir)
+        try vault.createAccount(words: try Vault.newPhrase(), restored: true)
+        let (harness, bridge) = page(with: vault)
+        _ = try harness.run("""
+            newTake(); rows.querySelector('.etext').textContent = 'Written after launch';
+            return await window.catchlightBridge.flush();
+            """, in: self)
+        XCTAssertEqual(try vault.library!.store.allTakes().count, 1)
+
+        bridge.refreshUserScripts(in: harness.webView.configuration.userContentController)
+        harness.load("index.html", in: self)
+        let shown = try harness.run("return JSON.stringify(takes.map(t => t.blocks[0].text));", in: self) as? String
+        XCTAssertEqual(shown, #"["Written after launch"]"#)
+    }
+
+    /// #43 review: a Take the shell couldn't read was reported to the page as saved.
+    func testARejectedTakeIsShownToTheUser() throws {
+        let vault = Vault(secrets: MemorySecrets(), directory: dir)
+        try vault.createAccount(words: try Vault.newPhrase(), restored: true)
+        let (harness, bridge) = page(with: vault)
+        _ = bridge
+        let title = try harness.run("""
+            await window.catchlightBridge.save('takes', [{ id: crypto.randomUUID(), at: 'not a date', isNote: true, blocks: [] }]);
+            \(settle)
+            return document.querySelector('#alert, dialog[open]')?.querySelector('h2')?.textContent ?? null;
+            """, in: self) as? String
+        XCTAssertEqual(title, "A Take wasn't saved")
+    }
+
+    /// #44 review (Greptile): once the library is locked, a refused save must not look saved.
+    func testARefusedSaveIsShownAtOnce() throws {
+        let vault = Vault(secrets: MemorySecrets(), directory: dir)
+        try vault.createAccount(words: try Vault.newPhrase(), restored: true)
+        let (harness, bridge) = page(with: vault)
+        _ = bridge
+        try vault.eraseEverything()   // the shell's library is gone; the page still holds its lists
+        let title = try harness.run("""
+            takes.push({ id: crypto.randomUUID(), at: new Date().toISOString(), isNote: true, blocks: [{ k: 'text', text: 'After the lock' }] });
+            saveTakes();
+            \(settle)
+            await new Promise(r => setTimeout(r, 50));
+            return document.querySelector('dialog[open] h2')?.textContent ?? null;
+            """, in: self) as? String
+        XCTAssertEqual(title, "That change wasn't saved")
+    }
 }

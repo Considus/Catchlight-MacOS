@@ -45,9 +45,27 @@
   // The library. A save sends the whole list; the shell writes what changed and keeps the rest.
   // Saves go in order, one message each, so the last one sent is the one that stands.
   const library = window.catchlightLibrary;
-  const saveList = (kind, list) => post('save', { kind, list }).catch(e => console.error(`Saving ${kind} failed`, e));
+  // A Take the shell couldn't read keeps its stored version, so say so rather than let the edit
+  // look saved.
+  const saveList = (kind, list) => post('save', { kind, list })
+    .then(r => { if (r?.rejected?.length) ask("A Take wasn't saved", `Catchlight couldn't read ${r.rejected.length === 1 ? 'one Take' : `${r.rejected.length} Takes`}, so the last version of it is kept. Report it, with this detail: ${r.rejected.join(', ')}`, [['OK', null, 'cancel']]); })
+    .catch(e => {
+      console.error(`Saving ${kind} failed`, e);
+      // A refused save must never look saved: say so at once, with what to do.
+      if (!refusalShown) {
+        refusalShown = true;
+        ask("That change wasn't saved", /locked/.test(String(e?.message ?? e))
+          ? 'Your Takes are locked on this Mac, so nothing more can be saved now. Quit Catchlight, open it again, and choose I already use Catchlight with your current Privacy phrase. Everything saved before this is safe.'
+          : `Catchlight couldn't save it. Quit and open Catchlight again, and if this keeps happening, report it with this detail: ${e?.message ?? e}`,
+          [['OK', null, 'cancel']]);
+        alertBox.addEventListener('close', () => { refusalShown = false; }, { once: true });   // however it is dismissed
+      }
+    });
+  let refusalShown = false;
   // The shell couldn't read the library: say so, rather than show an empty Catchlight that
   // looks as if everything has gone. The shell refuses every save until it can read it.
+  if (library?.unreadableScripts) addEventListener('load', () => ask(`${library.unreadableScripts === 1 ? 'A Script' : `${library.unreadableScripts} Scripts`} couldn't be opened`,
+    'It is kept on this Mac as it was, nothing has been deleted, and the others are fine. Report it so it can be looked at.', [['OK', null, 'cancel']]));
   if (library?.loadError) addEventListener('load', () => ask("Catchlight couldn't read your Takes",
     `Nothing has been changed or deleted, and nothing you do now will be saved. Quit and open Catchlight again, and if this keeps happening, report it with this detail: ${library.loadError}`,
     [['OK', null, 'cancel']]));

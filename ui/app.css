@@ -353,8 +353,12 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 body.first-running .app { visibility: hidden; }
 .fr-column { width: min(440px, 100% - 32px); padding: 72px 0 40px; display: flex; flex-direction: column; align-items: center; text-align: center; }
 .fr-brand { display: flex; flex-direction: column; align-items: center; gap: 16px; margin-bottom: 40px; }
-.fr-iris .iris { width: 72px; height: 72px; display: block; }
-.fr-wordmark { font: 300 34px/1 "Cormorant Garamond", serif; letter-spacing: 6px; text-transform: uppercase; }
+.fr-icon img { width: 72px; height: 72px; display: block; }
+/* The real wordmark, as the iPhone draws it (catchlight-wordmark, 44 pt high). Icon and
+   wordmark each come in a Night and a Daylight image; the scene shows one. */
+.fr-wordmark img { height: 44px; width: auto; display: block; }
+.fr-brand .for-daylight, :root[data-scene="daylight"] .fr-brand .for-night { display: none; }
+:root[data-scene="daylight"] .fr-brand .for-daylight { display: block; }
 .fr-body { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 14px; animation: fr-in .18s ease-in-out; }
 @keyframes fr-in { from { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .fr-body { animation: none; } }
