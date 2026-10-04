@@ -187,4 +187,25 @@ final class PageLibraryTests: XCTestCase {
             """, in: self) as? String
         XCTAssertEqual(title, "That change wasn't saved")
     }
+
+    /// #44 review (Greptile): a save warning must wait for an open dialog, not replace it.
+    func testASaveWarningWaitsForAnOpenDialog() throws {
+        let vault = Vault(secrets: MemorySecrets(), directory: dir)
+        try vault.createAccount(words: try Vault.newPhrase(), restored: true)
+        let (harness, bridge) = page(with: vault)
+        _ = bridge
+        try vault.eraseEverything()
+        let titles = try harness.run("""
+            ask('Delete this Take?', 'This cannot be undone.', [['Delete', null, 'danger'], ['Cancel', null, 'cancel']]);
+            takes.push({ id: crypto.randomUUID(), at: new Date().toISOString(), isNote: true, blocks: [{ k: 'text', text: 'x' }] });
+            saveTakes();
+            \(settle)
+            await new Promise(r => setTimeout(r, 50));
+            const first = document.querySelector('dialog[open] h2')?.textContent;
+            document.querySelector('dialog[open]').close();
+            await new Promise(r => setTimeout(r, 50));
+            return JSON.stringify([first, document.querySelector('dialog[open] h2')?.textContent ?? null]);
+            """, in: self) as? String
+        XCTAssertEqual(titles, #"["Delete this Take?","That change wasn't saved"]"#)
+    }
 }

@@ -48,19 +48,28 @@
   // A Take the shell couldn't read keeps its stored version, so say so rather than let the edit
   // look saved.
   const saveList = (kind, list) => post('save', { kind, list })
-    .then(r => { if (r?.rejected?.length) ask("A Take wasn't saved", `Catchlight couldn't read ${r.rejected.length === 1 ? 'one Take' : `${r.rejected.length} Takes`}, so the last version of it is kept. Report it, with this detail: ${r.rejected.join(', ')}`, [['OK', null, 'cancel']]); })
+    .then(r => { if (r?.rejected?.length) whenNoDialog(() => ask("A Take wasn't saved", `Catchlight couldn't read ${r.rejected.length === 1 ? 'one Take' : `${r.rejected.length} Takes`}, so the last version of it is kept. Report it, with this detail: ${r.rejected.join(', ')}`, [['OK', null, 'cancel']])); })
     .catch(e => {
       console.error(`Saving ${kind} failed`, e);
-      // A refused save must never look saved: say so at once, with what to do.
-      if (!refusalShown) {
-        refusalShown = true;
+      // A refused save must never look saved: say so, with what to do. If another dialog is
+      // open (a delete confirmation, say), the warning waits for it rather than replacing it.
+      if (refusalShown) return;
+      refusalShown = true;
+      const warn = () => {
         ask("That change wasn't saved", /locked/.test(String(e?.message ?? e))
           ? 'Your Takes are locked on this Mac, so nothing more can be saved now. Quit Catchlight, open it again, and choose I already use Catchlight with your current Privacy phrase. Everything saved before this is safe.'
           : `Catchlight couldn't save it. Quit and open Catchlight again, and if this keeps happening, report it with this detail: ${e?.message ?? e}`,
           [['OK', null, 'cancel']]);
         alertBox.addEventListener('close', () => { refusalShown = false; }, { once: true });   // however it is dismissed
-      }
+      };
+      whenNoDialog(warn);
     });
+  // The page has one dialog (ask() in takes.js), and a second ask() would replace whatever it is
+  // showing, a delete confirmation say. A warning from a save waits for it to close instead.
+  const whenNoDialog = show => {
+    if (!alertBox.open) return show();
+    alertBox.addEventListener('close', () => setTimeout(() => whenNoDialog(show)), { once: true });
+  };
   let refusalShown = false;
   // The shell couldn't read the library: say so, rather than show an empty Catchlight that
   // looks as if everything has gone. The shell refuses every save until it can read it.
