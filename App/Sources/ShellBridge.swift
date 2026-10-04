@@ -64,6 +64,8 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                 do {
                     value["takes"] = try library.pageTakes()
                     value["scripts"] = try library.pageScripts()
+                    // A damaged Script is kept on disk but can't be shown: the page says so.
+                    if !library.scripts.unreadable.isEmpty { value["unreadableScripts"] = library.scripts.unreadable.count }
                 } catch {
                     Self.log.fault("the library did not load: \(String(describing: error), privacy: .public)")
                     value = ["account": true, "takes": [Any](), "scripts": [Any](), "loadError": String(describing: error)]
@@ -78,9 +80,22 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
     }
 
     func install(in controller: WKUserContentController) {
+        addUserScripts(to: controller)
+        controller.addScriptMessageHandler(self, contentWorld: .page, name: Self.name)
+    }
+
+    /// Rebuilds the document-start scripts from the library as it is NOW. Before any reload:
+    /// the library script is a snapshot, and a page reloaded on a stale one would save that
+    /// snapshot back over everything written since (the WebContent crash path, #43 review).
+    func refreshUserScripts(in controller: WKUserContentController) {
+        controller.removeAllUserScripts()
+        libraryUnreadable = false
+        addUserScripts(to: controller)
+    }
+
+    private func addUserScripts(to controller: WKUserContentController) {
         controller.addUserScript(Self.injectedValues())
         if vault != nil { controller.addUserScript(injectedLibrary()) }
-        controller.addScriptMessageHandler(self, contentWorld: .page, name: Self.name)
     }
 
     func userContentController(_ userContentController: WKUserContentController,

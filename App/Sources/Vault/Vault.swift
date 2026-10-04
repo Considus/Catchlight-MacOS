@@ -51,7 +51,9 @@ final class Vault {
     /// missing item answers not-found without a prompt, and only that means no account; a
     /// cancelled prompt is an error, never "no account", so it can't lead to a new phrase.
     @discardableResult
-    func start(reason: String = "Unlock your Takes") throws -> State {
+    /// macOS puts `reason` inside its own sentence ("Catchlight is trying to unlock your Takes."),
+    /// so it starts lower case.
+    func start(reason: String = "unlock your Takes") throws -> State {
         state = .locked
         let key: SymmetricKey
         do { key = try secrets.masterKey(reason: reason) }
@@ -87,31 +89,46 @@ final class Vault {
         do { raw = try PhraseRecovery.recoverMasterKey(from: words, bip39: try Self.englishBIP39()) }
         catch { throw Failure.invalidPhrase }
         let keys = KeyHierarchy(masterKeyBytes: raw)
-        if !(restored && existingLibraryOpens(with: keys)) { try moveAsideExistingLibrary() }
+        let aside = (restored && existingLibraryOpens(with: keys)) ? nil : try moveAsideExistingLibrary()
+        let previous = state
         state = .noAccount   // the open library, if any, belongs to the account being replaced
-        try secrets.storePhrase(words)
-        try secrets.storeMasterKey(raw)
+        do {
+            try secrets.storePhrase(words)
+            try secrets.storeMasterKey(raw)
+        } catch {
+            // The old key is still in the Keychain, so put its library back where it opens.
+            // The page stays on the old account, so its library stays open too.
+            if let aside, !FileManager.default.fileExists(atPath: directory.path) {
+                try? FileManager.default.moveItem(at: aside, to: directory)
+            }
+            state = previous
+            throw error
+        }
         state = .open(try openLibrary(keys: KeyHierarchy(masterKeyBytes: raw)))
         Self.log.info("account created (restored: \(restored, privacy: .public))")
     }
 
-    /// Settings ▸ Second device: this Mac takes the account the phrase opens. Nothing is erased
-    /// first. The Keychain items are replaced in place (update-or-add), and the library stays if
-    /// the phrase opens it, else it is moved aside. If anything fails, the old library is still
-    /// on disk.
+    /// Settings ▸ Second device: this Mac takes the account the phrase opens. Nothing is erased.
+    /// The Keychain items are replaced in place (update-or-add), and the library stays if the
+    /// phrase opens it, else it is moved aside; if a Keychain write fails, it is moved back.
     func replaceAccount(words: [String]) throws {
         try createAccount(words: words, restored: true)
     }
 
-    func phrase() -> [String]? { secrets.phrase(reason: "Show your Privacy phrase") }
+    func phrase() -> [String]? { secrets.phrase(reason: "show your Privacy phrase") }
 
-    /// Settings ▸ Erase everything: the Keychain items and the library, as the iPhone's reset.
+    /// Settings ▸ Erase everything: the library, any earlier library moved aside, then the
+    /// Keychain items, as the iPhone's reset. The files go first: if removing one fails, the key
+    /// that opens them is still there.
     func eraseEverything() throws {
         state = .noAccount
-        secrets.deleteAll()
-        if FileManager.default.fileExists(atPath: directory.path) {
-            try FileManager.default.removeItem(at: directory)
+        let fm = FileManager.default
+        if fm.fileExists(atPath: directory.path) { try fm.removeItem(at: directory) }
+        let parent = directory.deletingLastPathComponent()
+        for name in (try? fm.contentsOfDirectory(atPath: parent.path)) ?? [] where name.hasPrefix("\(directory.lastPathComponent)-before-") {
+            try fm.removeItem(at: parent.appendingPathComponent(name))
         }
+        secrets.deleteAll()
     }
 
     // MARK: Private
@@ -124,29 +141,46 @@ final class Vault {
         return Library(store: store, scripts: scripts)
     }
 
-    /// Whether the library on disk, if there is one, opens under `keys`: every Take decrypts.
-    /// No library at all counts as opening (there is nothing to protect).
+    /// Whether the library on disk, if there is one, opens under `keys`: every Take decrypts,
+    /// and if there are Scripts, at least one opens. Nothing on disk counts as opening (there is
+    /// nothing to protect).
     private func existingLibraryOpens(with keys: KeyHierarchy) -> Bool {
+        let fm = FileManager.default
         let database = directory.appendingPathComponent("Database/catchlight.db")
-        guard FileManager.default.fileExists(atPath: database.path) else { return true }
-        do {
-            _ = try EncryptedTakeStore(keys: keys, directoryURL: directory).allTakes()
-            return true
-        } catch {
-            Self.log.info("the library on disk does not open with this phrase; it will be moved aside")
-            return false
+        if fm.fileExists(atPath: database.path) {
+            // Sequences too: a library with no Takes left still holds them, sealed under its key.
+            do {
+                let store = try EncryptedTakeStore(keys: keys, directoryURL: directory)
+                _ = try store.allTakes()
+                _ = try store.allSequences()
+            } catch {
+                Self.log.info("the Takes on disk do not open with this phrase; the library will be moved aside")
+                return false
+            }
         }
+        let scriptsDir = directory.appendingPathComponent("Scripts", isDirectory: true)
+        let sealed = ((try? fm.contentsOfDirectory(atPath: scriptsDir.path)) ?? []).filter { $0.hasSuffix(".sealed") }
+        if !sealed.isEmpty {
+            guard let vault = try? ScriptVault(keys: keys, directory: scriptsDir), let opened = try? vault.all(), !opened.isEmpty else {
+                Self.log.info("the Scripts on disk do not open with this phrase; the library will be moved aside")
+                return false
+            }
+        }
+        return true
     }
 
-    private func moveAsideExistingLibrary() throws {
+    /// Where it went, or nil when there was nothing to move.
+    @discardableResult
+    private func moveAsideExistingLibrary() throws -> URL? {
         let fm = FileManager.default
         guard fm.fileExists(atPath: directory.path),
-              let contents = try? fm.contentsOfDirectory(atPath: directory.path), !contents.isEmpty else { return }
+              let contents = try? fm.contentsOfDirectory(atPath: directory.path), !contents.isEmpty else { return nil }
         let stamp = ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: ":", with: "-")
         let aside = directory.deletingLastPathComponent().appendingPathComponent("Catchlight-before-\(stamp)", isDirectory: true)
         try fm.moveItem(at: directory, to: aside)
         try? Self.excludeFromBackup(aside)
         Self.log.info("an earlier library was moved aside to \(aside.lastPathComponent, privacy: .public)")
+        return aside
     }
 
     static func excludeFromBackup(_ url: URL) throws {

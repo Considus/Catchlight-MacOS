@@ -45,7 +45,7 @@ if (window.catchlightBridge) Object.assign(shell, window.catchlightBridge.shell)
 const fr = { step: null, storage: null, words: [], positions: [], picked: [], bank: [], basics: 0, folder: null, restore: false };
 const layer = $('#first-run');
 
-const BRAND = () => `<div class="fr-brand" aria-hidden="true"><span class="fr-iris">${iris(['note', 'task', 'remind', 'important'])}</span><span class="fr-wordmark">Catchlight</span></div>`;
+const BRAND = () => `<div class="fr-brand" aria-hidden="true"><span class="fr-iris">${iris(['note', 'task', 'remind', 'important'])}</span><span class="fr-wordmark"><img class="wm-night" src="brand/wordmark-night.svg" alt=""><img class="wm-daylight" src="brand/wordmark-daylight.svg" alt=""></span></div>`;
 const pill = (act, label, cls = '') => `<button class="fr-pill${cls}" type="button" data-fr="${act}">${label}</button>`;
 
 const SCREENS = {

@@ -327,8 +327,9 @@ async function secondDeviceRestore() {
   if (sheet.querySelector('[data-act="sd-restore"]').disabled) return;
   const words = phraseWords(sheet).map(w => w.toLowerCase());
   if (!await shell.phraseLooksValid(words)) { paintSecondDevice("That doesn't look right. Check the words and try again."); return; }
-  // In the Mac app the shell swaps the account first: this one's Keychain items and library go,
-  // the phrase given becomes the account here. Nothing on the page changes unless that worked.
+  // In the Mac app the shell swaps the account first (Vault.replaceAccount): nothing is erased,
+  // the library stays if the phrase opens it and is moved aside if not, and the phrase becomes
+  // the account here. Nothing on the page changes unless that worked.
   // It answers with the library now open, which welcomeBack's finish() shows without saving.
   if (window.catchlightBridge?.library) {
     try { fr.opened = await shell.replaceAccount(words); } catch (e) { paintSecondDevice(`Couldn't add this Mac: ${e}`); return; }

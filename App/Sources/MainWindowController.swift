@@ -111,8 +111,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
     /// Asks the page to save what is on screen (`catchlightBridge.flush()` in `ui/bridge.js`):
     /// a Take open in the editor, a Script edit still waiting on its debounce. `completion` runs
     /// once, when the page answers or after `timeout`, so a page that never answers can't stop
-    /// the app quitting.
-    func flushPage(timeout: TimeInterval = 3, completion: @escaping () -> Void) {
+    /// the app quitting. A save is milliseconds; the timeout is for a hung page, and is logged.
+    func flushPage(timeout: TimeInterval = 10, completion: @escaping () -> Void) {
         var done = false
         let finish = { if !done { done = true; completion() } }
         webView.callAsyncJavaScript("return await (window.catchlightBridge?.flush?.() ?? false);", arguments: [:], in: nil, in: .page) { result in
@@ -205,6 +205,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
             return
         }
         Self.log.error("web content process terminated; reloading")
+        bridge.refreshUserScripts(in: webView.configuration.userContentController)
         webView.reload()
     }
 

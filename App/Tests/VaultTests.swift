@@ -307,6 +307,7 @@ final class VaultTests: XCTestCase {
         _ = try vault.library!.saveTakes([["id": id.uuidString, "at": "2026-07-01T09:00:00Z", "isNote": true, "blocks": [["k": "text", "text": "Kept"]]]])
 
         // Relaunch: a new Vault on the same folder and secrets.
+        XCTAssertNotNil(try vault.library?.store.take(id: id), "the running app stays on the old account")
         let again = Vault(secrets: secrets, directory: dir)
         try again.start()
         XCTAssertNotNil(try again.library!.store.take(id: id))
@@ -403,6 +404,54 @@ final class VaultTests: XCTestCase {
         XCTAssertNotNil(vault.library)
         XCTAssertEqual(secrets.keyRequests, 1)
         XCTAssertEqual(secrets.existenceChecks, 0)
+    }
+
+    /// #43 review: a failed Keychain write left the old library moved aside under the old key.
+    func testAFailedKeychainWritePutsTheOldLibraryBack() throws {
+        final class FailingKey: Secrets {
+            let inner = MemorySecrets(); var failKey = false
+            var hasAccount: Bool { inner.hasAccount }
+            func storePhrase(_ words: [String]) throws { try inner.storePhrase(words) }
+            func storeMasterKey(_ raw: Data) throws { if failKey { throw KeychainError.storeFailed(-1) }; try inner.storeMasterKey(raw) }
+            func masterKey(reason: String) throws -> SymmetricKey { try inner.masterKey(reason: reason) }
+            func phrase(reason: String) -> [String]? { inner.phrase(reason: reason) }
+            func deleteAll() { inner.deleteAll() }
+        }
+        let secrets = FailingKey()
+        let vault = Vault(secrets: secrets, directory: dir)
+        try vault.createAccount(words: try Vault.newPhrase(), restored: false)
+        let id = UUID()
+        _ = try vault.library!.saveTakes([["id": id.uuidString, "at": "2026-07-01T09:00:00Z", "isNote": true, "blocks": [["k": "text", "text": "Mine"]]]])
+
+        secrets.failKey = true
+        XCTAssertThrowsError(try vault.replaceAccount(words: try Vault.newPhrase()))
+        let again = Vault(secrets: secrets, directory: dir)
+        try again.start()
+        XCTAssertNotNil(try again.library!.store.take(id: id), "the old key opens its library where it was")
+    }
+
+    /// #43 review (Greptile): a library holding only Scripts passed the restore check under any key.
+    func testAScriptsOnlyLibraryUnderAnotherKeyIsMovedAside() throws {
+        let first = Vault(secrets: MemorySecrets(), directory: dir)
+        try first.createAccount(words: try Vault.newPhrase(), restored: false)
+        try first.library!.saveScripts([["id": UUID().uuidString, "at": "2026-06-12", "mode": "a4", "blocks": ["Theirs"]]])
+        try FileManager.default.removeItem(at: dir.appendingPathComponent("Database"))
+
+        let other = Vault(secrets: MemorySecrets(), directory: dir)
+        try other.createAccount(words: try Vault.newPhrase(), restored: true)
+        XCTAssertEqual(try other.library!.pageScripts().count, 0)
+        XCTAssertTrue(try FileManager.default.contentsOfDirectory(atPath: dir.deletingLastPathComponent().path).contains { $0.hasPrefix("Catchlight-before-") })
+    }
+
+    /// #43 review: Erase left moved-aside libraries behind.
+    func testEraseEverythingAlsoRemovesLibrariesMovedAside() throws {
+        let vault = Vault(secrets: MemorySecrets(), directory: dir)
+        try vault.createAccount(words: try Vault.newPhrase(), restored: false)
+        _ = try vault.library!.saveTakes([["id": UUID().uuidString, "at": "2026-07-01T09:00:00Z", "isNote": true, "blocks": [["k": "text", "text": "Old"]]]])
+        try vault.createAccount(words: try Vault.newPhrase(), restored: false)   // moves the first aside
+        try vault.eraseEverything()
+        let left = try FileManager.default.contentsOfDirectory(atPath: dir.deletingLastPathComponent().path)
+        XCTAssertFalse(left.contains { $0.hasPrefix("Catchlight") }, "\(left)")
     }
 
     func testAnInvalidPhraseStoresNothing() throws {
