@@ -15,9 +15,20 @@ final class Vault {
         case open(Library)
     }
 
-    enum Failure: Error {
+    enum Failure: Error, LocalizedError {
         case invalidPhrase
         case noAccount
+        /// Second device failed and the old key could not be put back, so the new key was removed:
+        /// the library is closed and only a restore with the existing phrase reopens it.
+        case restoreNeeded
+
+        var errorDescription: String? {
+            switch self {
+            case .invalidPhrase: return "That isn't a valid Privacy phrase."
+            case .noAccount: return "There is no account on this Mac."
+            case .restoreNeeded: return "Catchlight couldn't finish adding this Mac and has locked your Takes to keep them safe. Quit Catchlight, open it again, and choose I already use Catchlight with your current Privacy phrase. Your Takes will be there."
+            }
+        }
     }
 
     private static let log = Logger(subsystem: "com.considus.catchlight.mac", category: "vault")
@@ -107,8 +118,11 @@ final class Vault {
                         // The new key now sits beside the old phrase. Remove it: with no key the
                         // next launch is first run, and restoring with the phrase the owner has
                         // reopens this library. A key beside the wrong phrase has no way back.
+                        // The session closes too, so nothing more is written that the next
+                        // launch couldn't open until the restore; the page says what to do.
                         Self.log.fault("the old key could not be put back; the new key is removed so the phrase restores this library")
                         secrets.deleteMasterKey()
+                        throw Failure.restoreNeeded
                     }
                     throw error
                 }
@@ -118,12 +132,12 @@ final class Vault {
                 try secrets.storeMasterKey(raw)
             }
         } catch {
-            // The old key and phrase are still the Keychain's, so put their library back where
-            // it opens, and keep it open: the page stays on the old account.
+            // Put the old library back where it opens. Keep it open (the page stays on the old
+            // account) unless its key is gone, in which case it stays closed until the restore.
             if let aside, !FileManager.default.fileExists(atPath: directory.path) {
                 try? FileManager.default.moveItem(at: aside, to: directory)
             }
-            state = previous
+            if case Failure.restoreNeeded = error { openKey = nil } else { state = previous }
             throw error
         }
         openKey = raw
@@ -150,8 +164,11 @@ final class Vault {
         let parent = directory.deletingLastPathComponent()
         let earlier = try fm.contentsOfDirectory(atPath: parent.path).filter { $0.hasPrefix("\(directory.lastPathComponent)-before-") }
         for name in earlier { try fm.removeItem(at: parent.appendingPathComponent(name)) }
+        // Closed only once its files are gone: if removing them fails, the account stays open.
+        let previous = state
         state = .noAccount
-        if fm.fileExists(atPath: directory.path) { try fm.removeItem(at: directory) }
+        do { if fm.fileExists(atPath: directory.path) { try fm.removeItem(at: directory) } }
+        catch { state = previous; throw error }
         secrets.deleteAll()
         openKey = nil
     }

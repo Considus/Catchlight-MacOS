@@ -207,7 +207,7 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
             }
         } catch {
             Self.log.error("\(cmd, privacy: .public) failed: \(String(describing: error), privacy: .public)")
-            reply(nil, String(describing: error))
+            reply(nil, (error as? LocalizedError)?.errorDescription ?? String(describing: error))
         }
     }
 }

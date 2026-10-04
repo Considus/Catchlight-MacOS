@@ -497,7 +497,10 @@ final class VaultTests: XCTestCase {
         let id = UUID()
         _ = try vault.library!.saveTakes([["id": id.uuidString, "at": "2026-07-01T09:00:00Z", "isNote": true, "blocks": [["k": "text", "text": "Mine"]]]])
         secrets.failing = true; secrets.keyWrites = 0
-        XCTAssertThrowsError(try vault.replaceAccount(words: try Vault.newPhrase()))
+        XCTAssertThrowsError(try vault.replaceAccount(words: try Vault.newPhrase())) {
+            guard case Vault.Failure.restoreNeeded = $0 else { return XCTFail("\($0)") }
+        }
+        XCTAssertNil(vault.library, "the session closes with the key, so nothing more is written")
         XCTAssertFalse(secrets.hasAccount, "no key is left beside the old phrase")
         XCTAssertEqual(secrets.phrase(reason: ""), words)
 
@@ -532,6 +535,19 @@ final class VaultTests: XCTestCase {
         try vault.eraseEverything()
         let left = try FileManager.default.contentsOfDirectory(atPath: dir.deletingLastPathComponent().path)
         XCTAssertFalse(left.contains { $0.hasPrefix("Catchlight") }, "\(left)")
+    }
+
+    /// #44 review: a failed erase must leave the account open, not report no account.
+    func testAFailedEraseKeepsTheAccountOpen() throws {
+        let secrets = MemorySecrets()
+        let vault = Vault(secrets: secrets, directory: dir)
+        try vault.createAccount(words: try Vault.newPhrase(), restored: false)
+        let parent = dir.deletingLastPathComponent()
+        try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: parent.path)   // can't remove children
+        defer { try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: parent.path) }
+        XCTAssertThrowsError(try vault.eraseEverything())
+        XCTAssertNotNil(vault.library)
+        XCTAssertTrue(secrets.hasAccount)
     }
 
     func testAnInvalidPhraseStoresNothing() throws {
