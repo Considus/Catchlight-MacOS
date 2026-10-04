@@ -14,6 +14,8 @@ I'll acknowledge it within **3 business days** and keep you posted while it's be
 
 The Mac app, and how it stores, protects and syncs Takes on the Mac. The shared cryptographic design and the sync format sit in [Considus/Catchlight-Core](https://github.com/Considus/Catchlight-Core), and a report against any of the repos reaches the same inbox, so don't worry about picking the right one.
 
+Report a problem with the catchlight.app website to the same address. The policy that covers the site, alongside every Catchlight app and package, is at [catchlight.app/security](https://catchlight.app/security/).
+
 Generally out of scope, anything that needs a Mac that's already compromised, or physical access to one that's unlocked and signed in. Social engineering and denial of service are out too, along with findings in third-party platforms like Apple or whichever cloud provider the user picked, because those aren't mine to fix.
 
 ## Safe harbour
