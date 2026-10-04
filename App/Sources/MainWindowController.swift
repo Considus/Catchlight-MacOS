@@ -104,6 +104,37 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
         }
     }
 
+    // MARK: Saving on the way out
+
+    private var closeAfterFlush = false
+
+    /// Asks the page to save what is on screen (`catchlightBridge.flush()` in `ui/bridge.js`):
+    /// a Take open in the editor, a Script edit still waiting on its debounce. `completion` runs
+    /// once, when the page answers or after `timeout`, so a page that never answers can't stop
+    /// the app quitting.
+    func flushPage(timeout: TimeInterval = 3, completion: @escaping () -> Void) {
+        var done = false
+        let finish = { if !done { done = true; completion() } }
+        webView.callAsyncJavaScript("return await (window.catchlightBridge?.flush?.() ?? false);", arguments: [:], in: nil, in: .page) { result in
+            if case .failure(let error) = result { Self.log.error("flush failed: \(String(describing: error), privacy: .public)") }
+            finish()
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + timeout) {
+            if !done { Self.log.error("flush timed out; closing anyway") }
+            finish()
+        }
+    }
+
+    /// Closing the window ends the app (AppDelegate), so the page saves first.
+    func windowShouldClose(_ sender: NSWindow) -> Bool {
+        if closeAfterFlush { return true }
+        flushPage { [weak self] in
+            self?.closeAfterFlush = true
+            sender.close()
+        }
+        return false
+    }
+
     /// Calls a page function with one string argument, JSON-encoded so nothing in it is code.
     private func callPage(_ function: String, _ argument: String, completion: ((Any?) -> Void)? = nil) {
         guard let data = try? JSONSerialization.data(withJSONObject: [argument]),

@@ -45,7 +45,7 @@
   // The library. A save sends the whole list; the shell writes what changed and keeps the rest.
   // Saves go in order, one message each, so the last one sent is the one that stands.
   const library = window.catchlightLibrary;
-  const save = (kind, list) => post('save', { kind, list }).catch(e => console.error(`Saving ${kind} failed`, e));
+  const saveList = (kind, list) => post('save', { kind, list }).catch(e => console.error(`Saving ${kind} failed`, e));
   // The shell couldn't read the library: say so, rather than show an empty Catchlight that
   // looks as if everything has gone. The shell refuses every save until it can read it.
   if (library?.loadError) addEventListener('load', () => ask("Catchlight couldn't read your Takes",
@@ -55,7 +55,16 @@
   window.catchlightBridge = {
     pushMenu,
     library,
-    save,
+    save: saveList,
+    // The shell calls this as the app quits or the window closes: a Take being edited is saved
+    // as a click outside it would save it, and the Script editor's pending (debounced) save goes
+    // now. It answers once the shell has written everything sent before it.
+    async flush() {
+      if (typeof draft !== 'undefined' && draft) commitEdit();
+      if (typeof script === 'function' && script()) save();
+      await post('ping');
+      return true;
+    },
     shell: {
       osVersion: () => info.osVersion,
       systemInfo: () => `${info.osName} ${info.osVersion} · ${info.model}`,

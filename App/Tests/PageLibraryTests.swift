@@ -120,4 +120,22 @@ final class PageLibraryTests: XCTestCase {
         XCTAssertNotNil(try vault.library!.store.take(id: id))
         XCTAssertEqual(try vault.library!.store.tombstones().count, 0)
     }
+
+    /// Owner, 2026-10-04: quitting with the editor open lost the Take. The shell's flush saves
+    /// what is on screen, Take and Script alike.
+    func testFlushSavesATakeStillOpenInTheEditor() throws {
+        let vault = Vault(secrets: MemorySecrets(), directory: dir)
+        try vault.createAccount(words: try Vault.newPhrase(), restored: true)
+        let (harness, bridge) = page(with: vault)
+        _ = bridge
+        let flushed = try harness.run("""
+            newTake();
+            rows.querySelector('.etext').textContent = 'Typed, never closed';
+            return await window.catchlightBridge.flush();
+            """, in: self) as? Bool
+        XCTAssertEqual(flushed, true)
+        let stored = try vault.library!.store.allTakes()
+        XCTAssertEqual(stored.count, 1)
+        XCTAssertTrue("\(stored[0].blocks)".contains("Typed, never closed"))
+    }
 }

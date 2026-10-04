@@ -129,6 +129,9 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
             default: window?.performZoom(nil)
             }
             replyHandler(true, nil)
+        case "ping":
+            // A round trip: messages are handled in order, so everything sent before it is done.
+            replyHandler(true, nil)
         case "save", "validatePhrase", "createAccount", "replaceAccount", "revealPhrase", "eraseEverything":
             handleLibrary(cmd, body, replyHandler)
         default:
@@ -155,6 +158,7 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                 switch body["kind"] as? String {
                 case "takes":
                     let report = try library.saveTakes(list)
+                    Self.log.info("takes saved: \(report.upserted) written, \(report.deleted) deleted, \(report.rejected.count) rejected")
                     if !report.rejected.isEmpty { Self.log.error("save kept \(report.rejected.count) Takes it could not read") }
                     reply(["upserted": report.upserted, "deleted": report.deleted, "rejected": report.rejected], nil)
                 case "scripts":
