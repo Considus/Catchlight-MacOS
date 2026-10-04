@@ -154,8 +154,10 @@ function paintRestoreStatus(error) {
   status.textContent = error || (n === 12 ? 'Ready to restore.' : `${n} of 12 words`);
   layer.querySelector('[data-fr="do-restore"]').disabled = n < 12;
 }
-function doRestore() {
-  if (shell.phraseLooksValid(restoreWords().map(w => w.toLowerCase()))) { fr.restore = true; show('restored'); }
+// The shell's check is a promise; the prototype's stand-in answers at once.
+async function doRestore() {
+  const words = restoreWords().map(w => w.toLowerCase());
+  if (await shell.phraseLooksValid(words)) { fr.restore = true; fr.restoreWords = words; show('restored'); }
   else paintRestoreStatus("That doesn't look right. Check the words and try again.");
 }
 
@@ -167,30 +169,54 @@ function doRestore() {
 function seedTakes() {
   const now = Date.now(), at = s => new Date(now + s * 1000).toISOString();
   return [
-    { id: 'seed-note', at: at(-50), isNote: true, blocks: [{ k: 'text', text: "A Take is like memory, the place to keep your ideas and it's simply easy. Try clicking the Iris on a Take, you'll see how effortless shaping a Take really is. Make it an Obie, task or add a reminder - do all of them or none of them, you're in control." }] },
-    { id: 'seed-task', at: at(-40), isNote: true, blocks: [{ k: 'text', text: 'Sometimes you need more structure, so when you need a list or plan to work from, add a task to your Take, yes, any Take, and give yourself time.' }, { k: 'check', text: 'Give yourself time to act', done: false }] },
-    { id: 'seed-remind', at: at(-30), isNote: true, reminder: { when: at(86400), done: false }, blocks: [{ k: 'text', text: "When timing is everything, use a reminder. These can be added to any Take; doesn't matter if it's a note, a task or both. When you need to be nudged, poked or pushed, reminders are invaluable." }] },
-    { id: 'seed-obie', at: at(-20), isNote: true, obie: true, isImportant: true, blocks: [{ k: 'text', text: "Only one Take is ever an Obie, that special memory or activity that's above all others. That's because you can only ever have one thought that's your most important and this is where it lives, always." }] },
-    { id: 'seed-farewell', at: at(-10), isNote: true, blocks: [{ k: 'text', text: `Delete these introductory Takes whenever you're ready, easy as swiping left on a Take, or right-clicking it. This is your Catchlight, use it in the way that fits you perfectly. Oh and, if you need to check out customisation and settings, press ${PLATFORM.settingsKey} or choose ${PLATFORM.settingsWhere}.` }] },
+    { id: newId(), at: at(-50), isNote: true, blocks: [{ k: 'text', text: "A Take is like memory, the place to keep your ideas and it's simply easy. Try clicking the Iris on a Take, you'll see how effortless shaping a Take really is. Make it an Obie, task or add a reminder - do all of them or none of them, you're in control." }] },
+    { id: newId(), at: at(-40), isNote: true, blocks: [{ k: 'text', text: 'Sometimes you need more structure, so when you need a list or plan to work from, add a task to your Take, yes, any Take, and give yourself time.' }, { k: 'check', text: 'Give yourself time to act', done: false }] },
+    { id: newId(), at: at(-30), isNote: true, reminder: { when: at(86400), done: false }, blocks: [{ k: 'text', text: "When timing is everything, use a reminder. These can be added to any Take; doesn't matter if it's a note, a task or both. When you need to be nudged, poked or pushed, reminders are invaluable." }] },
+    { id: newId(), at: at(-20), isNote: true, obie: true, isImportant: true, blocks: [{ k: 'text', text: "Only one Take is ever an Obie, that special memory or activity that's above all others. That's because you can only ever have one thought that's your most important and this is where it lives, always." }] },
+    { id: newId(), at: at(-10), isNote: true, blocks: [{ k: 'text', text: `Delete these introductory Takes whenever you're ready, easy as swiping left on a Take, or right-clicking it. This is your Catchlight, use it in the way that fits you perfectly. Oh and, if you need to check out customisation and settings, press ${PLATFORM.settingsKey} or choose ${PLATFORM.settingsWhere}.` }] },
   ];
+}
+
+// The library the shell has just opened, shown as it is: nothing is saved back.
+function adoptLibrary({ takes: t = [], scripts: s = [] }) {
+  const lib = window.catchlightBridge.library;
+  takes = lib.takes = t; scripts = lib.scripts = s; current = null;
+  renderTakes(); renderScripts(); renderDoc(); $('#script-heading').textContent = '';
 }
 
 // Whether this device had an account when the page loaded; a replay over one changes no data.
 const freshAccount = !store.get('account', null);
 
-function finish() {
+async function finish() {
+  // In the Mac app the account is made here: the shell stores the phrase in the Keychain, then
+  // the key, then opens the encrypted library (Vault.createAccount). Nothing goes on until
+  // that has worked, and the phrase is never written to localStorage.
+  const lib = window.catchlightBridge?.library;
+  if (lib && !lib.account) {
+    try {
+      const opened = await shell.createAccount(fr.restore ? fr.restoreWords : fr.words, fr.restore);
+      lib.account = true;
+      if (fr.restore) fr.opened = opened;
+    } catch (e) {
+      ask("Couldn't secure your account on this Mac", `Nothing was saved. Try again, and if it happens again, report it with this detail: ${e}`, [['OK', null, 'cancel']]);
+      return;
+    }
+  }
   // The prototype keeps only its own placeholder words, so Settings → Privacy phrase shows the
   // same ones. Words someone typed in could be a real phrase and are never stored: a restored
   // account shows "Phrase isn't on this device". The real phrase lives only in the Keychain.
-  store.set('account', { storage: fr.storage || 'cloud', folder: fr.folder, restored: fr.restore, phrase: fr.restore ? undefined : fr.words });
+  store.set('account', { storage: fr.storage || 'cloud', folder: fr.folder, restored: fr.restore, phrase: fr.restore || lib ? undefined : fr.words });
   // A new account: seeds after setup, none after a restore (AppModel), and no Scripts either way
   // (a restored account gets its own from the folder, D-313). A ?first-run replay over an
   // account that already exists is a look at the screens, so it leaves the Takes alone.
-  if (freshAccount || fr.secondDevice) {
+  // In the Mac app a restore shows what the phrase opened (Vault keeps a library it can read)
+  // and saves nothing, or the page's empty list would delete it.
+  if (lib && fr.restore && fr.opened) adoptLibrary(fr.opened);
+  else if (freshAccount || fr.secondDevice) {
     takes = fr.restore ? [] : seedTakes(); saveTakes(); renderTakes();
     scripts = []; current = null; save(); renderScripts(); renderDoc(); $('#script-heading').textContent = '';
   }
-  fr.secondDevice = false;
+  fr.secondDevice = false; fr.opened = null;
   layer.hidden = true; layer.innerHTML = '';
   document.body.classList.remove('first-running');
 }

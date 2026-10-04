@@ -32,9 +32,33 @@ function glint(unit, core, bloom, bounce) {
 // ---------- small helpers ----------
 const $ = s => document.querySelector(s);
 const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+// In the Mac app, Takes and Scripts live in the encrypted library, not localStorage: the shell
+// hands the page the decrypted lists before any script runs (`catchlightBridge.library`) and
+// takes each save back (bridge.js). Whether an account exists is the shell's to say too, so
+// an erased Keychain can never leave the page thinking it has one. Everything else (the view,
+// the layout, Settings) stays in localStorage, which holds nothing private.
+const LIBRARY_KEYS = { takes2: 'takes', scripts: 'scripts' };
 const store = {
-  get(k, d) { try { const v = localStorage.getItem('cl.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
-  set(k, v) { try { localStorage.setItem('cl.' + k, JSON.stringify(v)); } catch { /* storage unavailable: session only */ } },
+  get(k, d) {
+    const lib = window.catchlightBridge?.library;
+    if (lib && k in LIBRARY_KEYS) return lib[LIBRARY_KEYS[k]] ?? d;
+    if (lib && k === 'account' && !lib.account) return d;
+    try { const v = localStorage.getItem('cl.' + k); return v == null ? (lib && k === 'account' ? {} : d) : JSON.parse(v); } catch { return d; }
+  },
+  set(k, v) {
+    const lib = window.catchlightBridge?.library;
+    if (lib && k in LIBRARY_KEYS) { lib[LIBRARY_KEYS[k]] = v; window.catchlightBridge.save(LIBRARY_KEYS[k], v); return; }
+    try { localStorage.setItem('cl.' + k, JSON.stringify(v)); } catch { /* storage unavailable: session only */ }
+  },
+};
+// Takes and Scripts are named by UUID, as Core names them (a Take's per-item key is derived
+// from its id, so the id must be the one Core and the iPhone expect).
+const newId = () => {
+  if (crypto.randomUUID) return crypto.randomUUID();
+  const b = crypto.getRandomValues(new Uint8Array(16));
+  b[6] = (b[6] & 0x0f) | 0x40; b[8] = (b[8] & 0x3f) | 0x80;
+  const h = [...b].map(x => x.toString(16).padStart(2, '0')).join('');
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
 };
 const monthKey = iso => { const d = new Date(iso.length === 10 ? iso + 'T00:00' : iso); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; };
 const monthLabel = iso => new Date(iso.length === 10 ? iso + 'T00:00' : iso).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }).toUpperCase();
@@ -674,7 +698,7 @@ function linesToBlocks(text) {
 // The other way: one block per line, code blocks and tables keeping their own lines.
 const blocksToText = blocks => blocks.join('\n');
 function newScript(blocks = ['']) {
-  const s = { id: 's' + Date.now(), at: new Date().toISOString().slice(0, 10), mode: newScriptMode(), blocks };
+  const s = { id: newId(), at: new Date().toISOString().slice(0, 10), mode: newScriptMode(), blocks };
   scripts.push(s); open(s.id); activate(0);
 }
 $('#new-script').addEventListener('click', () => newScript());

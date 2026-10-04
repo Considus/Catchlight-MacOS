@@ -14,11 +14,14 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
     let bridge = ShellBridge()
     let menuController = MenuController()
 
-    init() {
+    /// `vault` is nil only in tests that load the page without a library; the page then keeps
+    /// the browser prototype's localStorage behaviour.
+    init(vault: Vault?) {
         let configuration = WKWebViewConfiguration()
         configuration.setURLSchemeHandler(UIResourceSchemeHandler(), forURLScheme: UIResourceSchemeHandler.scheme)
         // Offline: no Safe Browsing lookups either.
         configuration.preferences.isFraudulentWebsiteWarningEnabled = false
+        bridge.vault = vault
         bridge.install(in: configuration.userContentController)
         webView = WKWebView(frame: .zero, configuration: configuration)
         #if DEBUG
@@ -99,6 +102,37 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
         menuController.refreshModel = { [weak self] in
             self?.webView.evaluateJavaScript("window.catchlightBridge?.pushMenu(true)")
         }
+    }
+
+    // MARK: Saving on the way out
+
+    private var closeAfterFlush = false
+
+    /// Asks the page to save what is on screen (`catchlightBridge.flush()` in `ui/bridge.js`):
+    /// a Take open in the editor, a Script edit still waiting on its debounce. `completion` runs
+    /// once, when the page answers or after `timeout`, so a page that never answers can't stop
+    /// the app quitting.
+    func flushPage(timeout: TimeInterval = 3, completion: @escaping () -> Void) {
+        var done = false
+        let finish = { if !done { done = true; completion() } }
+        webView.callAsyncJavaScript("return await (window.catchlightBridge?.flush?.() ?? false);", arguments: [:], in: nil, in: .page) { result in
+            if case .failure(let error) = result { Self.log.error("flush failed: \(String(describing: error), privacy: .public)") }
+            finish()
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + timeout) {
+            if !done { Self.log.error("flush timed out; closing anyway") }
+            finish()
+        }
+    }
+
+    /// Closing the window ends the app (AppDelegate), so the page saves first.
+    func windowShouldClose(_ sender: NSWindow) -> Bool {
+        if closeAfterFlush { return true }
+        flushPage { [weak self] in
+            self?.closeAfterFlush = true
+            sender.close()
+        }
+        return false
     }
 
     /// Calls a page function with one string argument, JSON-encoded so nothing in it is code.

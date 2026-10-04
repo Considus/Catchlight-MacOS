@@ -14,6 +14,10 @@
 // A reminder written before kinds existed ({ when, done }) is a time.
 
 const isTimeR = r => !!r && r.kind !== 'place';
+// The Mac app can't make a place reminder yet: Core needs coordinates and the Mac has no map
+// (owner 2026-10-03, places on desktop wait until asked for). One made on the iPhone still
+// opens here, with its name, mode and radius editable.
+const placeOffered = () => !window.catchlightBridge?.library || !!rs.place;
 const isPlaceR = r => !!r && r.kind === 'place';
 const repeats = r => isTimeR(r) && !!r.repeat && r.repeat !== 'none';
 const REPEAT_LABEL = { hourly: 'Hourly', daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', annually: 'Annually' };
@@ -201,7 +205,7 @@ function paintReminder() {
     <div class="sheet-bar rbar"><button type="button" class="slink" data-r="cancel">Cancel</button><span class="sheet-title">Reminder</span>
       <button type="button" class="slink strong" data-r="done"${placeless ? ' disabled' : ''}>Done</button></div>
     <div class="sheet-scroll rbody">
-      <div class="seg rtabs" role="radiogroup"><button type="button" role="radio" data-r="tab-time" aria-checked="${rs.tab === 'time'}">Time</button><button type="button" role="radio" data-r="tab-place" aria-checked="${rs.tab === 'place'}">Place</button></div>
+      ${placeOffered() ? `<div class="seg rtabs" role="radiogroup"><button type="button" role="radio" data-r="tab-time" aria-checked="${rs.tab === 'time'}">Time</button><button type="button" role="radio" data-r="tab-place" aria-checked="${rs.tab === 'place'}">Place</button></div>` : ''}
       ${rs.tab === 'time' ? timeTab() : placeTab()}
     </div></div>`;
   rsheet.querySelector('.sheet-scroll').scrollTop = scroll;
@@ -211,7 +215,8 @@ function doneReminder() {
   const t = reminderFor;
   if (rs.tab === 'place') {
     if (!rs.place) return;
-    t.reminder = { kind: 'place', name: rs.place.name || '', mode: rs.place.mode, radius: rs.place.radius, notify: rs.place.notify, done: false };
+    // An edit keeps a place reminder's done state; a new one starts not done.
+    t.reminder = { kind: 'place', name: rs.place.name || '', mode: rs.place.mode, radius: rs.place.radius, notify: rs.place.notify, done: isPlaceR(t.reminder) ? !!t.reminder.done : false };
   } else {
     const d = new Date(rs.date);
     if (rs.allDay) d.setHours(9, 0, 0, 0);   // an all-day reminder fires at 09:00

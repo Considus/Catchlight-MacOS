@@ -6,8 +6,8 @@
 #   brew install xcodegen   # one-time
 #   xcodegen generate       # produces Catchlight.xcodeproj
 #
-# Scope and decisions: Mac_Shell_Plan (M0) and D-343 — App Sandbox on, XcodeGen,
-# Core as a pinned package dependency on Catchlight-Core from M2 (not here yet).
+# Scope and decisions: Mac_Shell_Plan and D-343 — App Sandbox on, XcodeGen, and from M2
+# Core and the shared Apple storage as packages pinned to exact tags.
 
 name: Catchlight
 options:
@@ -30,6 +30,18 @@ settings:
       ONLY_ACTIVE_ARCH: NO
     Release:
       ARCHS: arm64
+
+packages:
+  # The platform-agnostic core (model, file format, crypto, sync), pinned to an exact tag so
+  # a Core change reaches the Mac only through a deliberate bump (D-344, D-350).
+  CatchlightCore:
+    url: https://github.com/Considus/Catchlight-Core
+    exactVersion: 1.0.1
+  # The encrypted SQLite store, the Keychain items and the BIP-39 wordlist, shared with the
+  # iPhone app so the two can't drift.
+  CatchlightAppleStorage:
+    url: https://github.com/Considus/Catchlight-AppleStorage
+    exactVersion: 1.0.0
 
 targets:
   Catchlight:
@@ -69,22 +81,29 @@ targets:
         # catchlight:// scheme, and MainWindowController refuses navigation to
         # any other scheme.
         com.apple.security.network.client: true
+        # The master key and the Privacy phrase live in the data-protection keychain under
+        # the same group the iPhone uses (Catchlight-AppleStorage, KeychainConfig). On macOS
+        # this is a restricted entitlement, granted only by a provisioning profile, which is
+        # why the app is signed for the team rather than ad hoc.
+        keychain-access-groups:
+          - $(AppIdentifierPrefix)com.considus.catchlight
+    dependencies:
+      - package: CatchlightCore
+        product: CatchlightCore
+      - package: CatchlightAppleStorage
+        product: CatchlightAppleStorage
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.considus.catchlight.mac
         PRODUCT_NAME: Catchlight
         CODE_SIGN_ENTITLEMENTS: App/Resources/Catchlight.entitlements
         ENABLE_HARDENED_RUNTIME: YES
-        # Ad-hoc ("Sign to Run Locally") until Developer ID signing in M5, so a
-        # build runs on this Mac with the sandbox and hardened runtime applied
-        # and needs no team or certificate. CI passes CODE_SIGNING_ALLOWED=NO.
-        CODE_SIGN_STYLE: Manual
-        CODE_SIGN_IDENTITY: "-"
-        DEVELOPMENT_TEAM: ""
-        # Xcode leaves the hardened runtime off an ad-hoc signature even with
-        # ENABLE_HARDENED_RUNTIME on, so ask codesign for it directly; otherwise
-        # local builds would run without the restrictions a release runs under.
-        OTHER_CODE_SIGN_FLAGS: "--options=runtime"
+        # Signed for the team (M2, owner 2026-10-03): the Keychain entitlement above
+        # needs a provisioning profile, which automatic signing fetches. Developer ID
+        # for distribution comes in M5. CI passes CODE_SIGNING_ALLOWED=NO and its
+        # tests use in-memory secrets, so it needs no certificate.
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: YTPP9HU9F9
         GENERATE_INFOPLIST_FILE: NO
         COMBINE_HIDPI_IMAGES: YES
 
@@ -98,6 +117,13 @@ targets:
         excludes:
           - main.swift
       - path: App/Tests
+    dependencies:
+      - package: CatchlightCore
+        product: CatchlightCore
+      - package: CatchlightCore
+        product: CatchlightCoreTestSupport
+      - package: CatchlightAppleStorage
+        product: CatchlightAppleStorage
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.considus.catchlight.mac.tests
