@@ -49,7 +49,19 @@
   // look saved.
   const saveList = (kind, list) => post('save', { kind, list })
     .then(r => { if (r?.rejected?.length) ask("A Take wasn't saved", `Catchlight couldn't read ${r.rejected.length === 1 ? 'one Take' : `${r.rejected.length} Takes`}, so the last version of it is kept. Report it, with this detail: ${r.rejected.join(', ')}`, [['OK', null, 'cancel']]); })
-    .catch(e => console.error(`Saving ${kind} failed`, e));
+    .catch(e => {
+      console.error(`Saving ${kind} failed`, e);
+      // A refused save must never look saved: say so at once, with what to do.
+      if (!refusalShown) {
+        refusalShown = true;
+        ask("That change wasn't saved", /locked/.test(String(e?.message ?? e))
+          ? 'Your Takes are locked on this Mac, so nothing more can be saved now. Quit Catchlight, open it again, and choose I already use Catchlight with your current Privacy phrase. Everything saved before this is safe.'
+          : `Catchlight couldn't save it. Quit and open Catchlight again, and if this keeps happening, report it with this detail: ${e?.message ?? e}`,
+          [['OK', null, 'cancel']]);
+        alertBox.addEventListener('close', () => { refusalShown = false; }, { once: true });   // however it is dismissed
+      }
+    });
+  let refusalShown = false;
   // The shell couldn't read the library: say so, rather than show an empty Catchlight that
   // looks as if everything has gone. The shell refuses every save until it can read it.
   if (library?.unreadableScripts) addEventListener('load', () => ask(`${library.unreadableScripts === 1 ? 'A Script' : `${library.unreadableScripts} Scripts`} couldn't be opened`,

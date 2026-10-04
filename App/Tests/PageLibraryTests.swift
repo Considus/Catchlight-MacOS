@@ -170,4 +170,21 @@ final class PageLibraryTests: XCTestCase {
             """, in: self) as? String
         XCTAssertEqual(title, "A Take wasn't saved")
     }
+
+    /// #44 review (Greptile): once the library is locked, a refused save must not look saved.
+    func testARefusedSaveIsShownAtOnce() throws {
+        let vault = Vault(secrets: MemorySecrets(), directory: dir)
+        try vault.createAccount(words: try Vault.newPhrase(), restored: true)
+        let (harness, bridge) = page(with: vault)
+        _ = bridge
+        try vault.eraseEverything()   // the shell's library is gone; the page still holds its lists
+        let title = try harness.run("""
+            takes.push({ id: crypto.randomUUID(), at: new Date().toISOString(), isNote: true, blocks: [{ k: 'text', text: 'After the lock' }] });
+            saveTakes();
+            \(settle)
+            await new Promise(r => setTimeout(r, 50));
+            return document.querySelector('dialog[open] h2')?.textContent ?? null;
+            """, in: self) as? String
+        XCTAssertEqual(title, "That change wasn't saved")
+    }
 }
