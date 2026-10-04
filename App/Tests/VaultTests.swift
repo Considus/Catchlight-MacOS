@@ -423,8 +423,10 @@ final class VaultTests: XCTestCase {
         let id = UUID()
         _ = try vault.library!.saveTakes([["id": id.uuidString, "at": "2026-07-01T09:00:00Z", "isNote": true, "blocks": [["k": "text", "text": "Mine"]]]])
 
+        let oldPhrase = secrets.phrase(reason: "")
         secrets.failKey = true
         XCTAssertThrowsError(try vault.replaceAccount(words: try Vault.newPhrase()))
+        XCTAssertEqual(secrets.phrase(reason: ""), oldPhrase, "the phrase still matches the key")
         let again = Vault(secrets: secrets, directory: dir)
         try again.start()
         XCTAssertNotNil(try again.library!.store.take(id: id), "the old key opens its library where it was")
@@ -441,6 +443,42 @@ final class VaultTests: XCTestCase {
         try other.createAccount(words: try Vault.newPhrase(), restored: true)
         XCTAssertEqual(try other.library!.pageScripts().count, 0)
         XCTAssertTrue(try FileManager.default.contentsOfDirectory(atPath: dir.deletingLastPathComponent().path).contains { $0.hasPrefix("Catchlight-before-") })
+    }
+
+    /// #44 review: the phrase write failing after the key was replaced must put the old key back.
+    func testAFailedPhraseWriteOnReplacePutsTheOldKeyBack() throws {
+        final class FailingPhrase: Secrets {
+            let inner = MemorySecrets(); var failPhrase = false
+            var hasAccount: Bool { inner.hasAccount }
+            func storePhrase(_ words: [String]) throws { if failPhrase { throw KeychainError.storeFailed(-1) }; try inner.storePhrase(words) }
+            func storeMasterKey(_ raw: Data) throws { try inner.storeMasterKey(raw) }
+            func masterKey(reason: String) throws -> SymmetricKey { try inner.masterKey(reason: reason) }
+            func phrase(reason: String) -> [String]? { inner.phrase(reason: reason) }
+            func deleteAll() { inner.deleteAll() }
+        }
+        let secrets = FailingPhrase()
+        let words = try Vault.newPhrase()
+        let vault = Vault(secrets: secrets, directory: dir)
+        try vault.createAccount(words: words, restored: false)
+        secrets.failPhrase = true
+        XCTAssertThrowsError(try vault.replaceAccount(words: try Vault.newPhrase()))
+        let key = try secrets.masterKey(reason: "").withUnsafeBytes { Data($0) }
+        XCTAssertEqual(key, MasterKeyDerivation.deriveRaw(from: words), "the key matches the phrase that was kept")
+        XCTAssertEqual(secrets.phrase(reason: ""), words)
+    }
+
+    /// #44 review: damaged Scripts must not move readable Takes aside on a correct-phrase restore.
+    func testDamagedScriptsDoNotHideReadableTakes() throws {
+        let words = try Vault.newPhrase()
+        let first = Vault(secrets: MemorySecrets(), directory: dir)
+        try first.createAccount(words: words, restored: false)
+        let id = UUID()
+        _ = try first.library!.saveTakes([["id": id.uuidString, "at": "2026-07-01T09:00:00Z", "isNote": true, "blocks": [["k": "text", "text": "Readable"]]]])
+        try Data("damaged".utf8).write(to: first.library!.scripts.directory.appendingPathComponent("\(UUID().uuidString.lowercased()).sealed"))
+
+        let restored = Vault(secrets: MemorySecrets(), directory: dir)
+        try restored.createAccount(words: words, restored: true)
+        XCTAssertNotNil(try restored.library!.store.take(id: id))
     }
 
     /// #43 review: Erase left moved-aside libraries behind.

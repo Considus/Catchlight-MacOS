@@ -51,6 +51,11 @@ const store = {
     try { localStorage.setItem('cl.' + k, JSON.stringify(v)); } catch { /* storage unavailable: session only */ }
   },
 };
+// The brand mark, as the iPhone's IntroBrandMark draws it: the app icon over the wordmark,
+// 72 pt and 44 pt high with 16 pt between, one image per scene (catchlight-icon and
+// catchlight-wordmark from Catchlight-iOS). First run and About share it.
+const brandMark = () => `<div class="fr-brand" aria-hidden="true"><span class="fr-icon"><img class="for-night" src="brand/icon-night.svg" alt=""><img class="for-daylight" src="brand/icon-daylight.svg" alt=""></span><span class="fr-wordmark"><img class="for-night" src="brand/wordmark-night.svg" alt=""><img class="for-daylight" src="brand/wordmark-daylight.svg" alt=""></span></div>`;
+
 // Takes and Scripts are named by UUID, as Core names them (a Take's per-item key is derived
 // from its id, so the id must be the one Core and the iPhone expect).
 const newId = () => {

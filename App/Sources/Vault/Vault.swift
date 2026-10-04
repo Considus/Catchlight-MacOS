@@ -28,6 +28,9 @@ final class Vault {
     /// restoring a backup onto another Mac would carry them there without the key's consent.
     let directory: URL
     private(set) var state: State = .noAccount
+    /// The open account's master key. It is in memory anyway (the library's keys come from it);
+    /// keeping the bytes lets a failed Second device put the old key back without a prompt.
+    private var openKey: Data?
 
     init(secrets: Secrets, directory: URL) {
         self.secrets = secrets
@@ -59,6 +62,7 @@ final class Vault {
         do { key = try secrets.masterKey(reason: reason) }
         catch KeychainError.notFound { state = .noAccount; return state }
         state = .open(try openLibrary(keys: KeyHierarchy(masterKey: key)))
+        openKey = key.withUnsafeBytes { Data($0) }
         return state
     }
 
@@ -90,20 +94,33 @@ final class Vault {
         catch { throw Failure.invalidPhrase }
         let keys = KeyHierarchy(masterKeyBytes: raw)
         let aside = (restored && existingLibraryOpens(with: keys)) ? nil : try moveAsideExistingLibrary()
-        let previous = state
+        let previous = state, previousKey = openKey
         state = .noAccount   // the open library, if any, belongs to the account being replaced
         do {
-            try secrets.storePhrase(words)
-            try secrets.storeMasterKey(raw)
+            if let previousKey {
+                // Replacing an open account: the key first, because the old one is in memory and
+                // can go back. Phrase first would leave the new words beside the old key if the
+                // key write failed, and the old words can't be read back without a prompt.
+                try secrets.storeMasterKey(raw)
+                do { try secrets.storePhrase(words) } catch {
+                    try? secrets.storeMasterKey(previousKey)
+                    throw error
+                }
+            } else {
+                // A new account: the phrase first (D-253), so a key never exists without one.
+                try secrets.storePhrase(words)
+                try secrets.storeMasterKey(raw)
+            }
         } catch {
-            // The old key is still in the Keychain, so put its library back where it opens.
-            // The page stays on the old account, so its library stays open too.
+            // The old key and phrase are still the Keychain's, so put their library back where
+            // it opens, and keep it open: the page stays on the old account.
             if let aside, !FileManager.default.fileExists(atPath: directory.path) {
                 try? FileManager.default.moveItem(at: aside, to: directory)
             }
             state = previous
             throw error
         }
+        openKey = raw
         state = .open(try openLibrary(keys: KeyHierarchy(masterKeyBytes: raw)))
         Self.log.info("account created (restored: \(restored, privacy: .public))")
     }
@@ -121,14 +138,16 @@ final class Vault {
     /// Keychain items, as the iPhone's reset. The files go first: if removing one fails, the key
     /// that opens them is still there.
     func eraseEverything() throws {
-        state = .noAccount
+        // Earlier libraries first and this one last: if anything fails, the open library and the
+        // key that opens it are both still there. A folder that can't be listed stops it too.
         let fm = FileManager.default
-        if fm.fileExists(atPath: directory.path) { try fm.removeItem(at: directory) }
         let parent = directory.deletingLastPathComponent()
-        for name in (try? fm.contentsOfDirectory(atPath: parent.path)) ?? [] where name.hasPrefix("\(directory.lastPathComponent)-before-") {
-            try fm.removeItem(at: parent.appendingPathComponent(name))
-        }
+        let earlier = try fm.contentsOfDirectory(atPath: parent.path).filter { $0.hasPrefix("\(directory.lastPathComponent)-before-") }
+        for name in earlier { try fm.removeItem(at: parent.appendingPathComponent(name)) }
+        state = .noAccount
+        if fm.fileExists(atPath: directory.path) { try fm.removeItem(at: directory) }
         secrets.deleteAll()
+        openKey = nil
     }
 
     // MARK: Private
@@ -149,10 +168,13 @@ final class Vault {
         let database = directory.appendingPathComponent("Database/catchlight.db")
         if fm.fileExists(atPath: database.path) {
             // Sequences too: a library with no Takes left still holds them, sealed under its key.
+            // The Takes and Sequences decide: all must decrypt, and if there are any, that settles
+            // it, so damaged Scripts never move readable Takes aside. Only a library holding
+            // neither falls back to its Scripts.
             do {
                 let store = try EncryptedTakeStore(keys: keys, directoryURL: directory)
-                _ = try store.allTakes()
-                _ = try store.allSequences()
+                let takes = try store.allTakes(), sequences = try store.allSequences()
+                if !takes.isEmpty || !sequences.isEmpty { return true }
             } catch {
                 Self.log.info("the Takes on disk do not open with this phrase; the library will be moved aside")
                 return false

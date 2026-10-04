@@ -166,7 +166,7 @@ const SUB = {
     </div>`];
   },
   about: () => ['About', `<div class="ssub-col">
-      <div class="fr-brand" aria-hidden="true"><span class="fr-iris">${iris(['note', 'task', 'remind', 'important'])}</span><span class="fr-wordmark">Catchlight</span></div>
+      ${brandMark()}
       <h2 class="ssub-heading">Privacy-first notes and reminders</h2>
       <p class="quiet sversion" tabindex="0" data-copy-info title="Right-click to copy version and device info">Version 0.1 (prototype)</p>
       <div class="scard"><h4>Open Source Licences</h4>
