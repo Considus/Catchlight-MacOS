@@ -43,12 +43,19 @@ final class Vault {
 
     // MARK: Launch
 
-    /// No account, or the library opened. Asks for the user when there is an account.
+    /// No account, or the library opened. Asks for the user once, when there is an account.
+    ///
+    /// It asks for the key straight away rather than checking that it exists first: on a Mac
+    /// without a Secure Enclave the key item itself carries user presence, so the existence
+    /// check prompted too, and a launch asked for the password twice (owner, 2026-10-04). A
+    /// missing item answers not-found without a prompt, and only that means no account; a
+    /// cancelled prompt is an error, never "no account", so it can't lead to a new phrase.
     @discardableResult
     func start(reason: String = "Unlock your Takes") throws -> State {
-        guard secrets.hasAccount else { state = .noAccount; return state }
         state = .locked
-        let key = try secrets.masterKey(reason: reason)
+        let key: SymmetricKey
+        do { key = try secrets.masterKey(reason: reason) }
+        catch KeychainError.notFound { state = .noAccount; return state }
         state = .open(try openLibrary(keys: KeyHierarchy(masterKey: key)))
         return state
     }

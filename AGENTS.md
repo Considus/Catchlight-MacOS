@@ -84,10 +84,10 @@ codesign -dv --entitlements - "$APP"                 # flags include runtime
 open "$APP"
 ```
 
-Run the unit tests. Read the count, not the word. There are 76 at M2:
+Run the unit tests. Read the count, not the word. There are 77 at M2:
 
 - 17 from M1: the shortcut parser, the navigation rule, the menu builder on a fixture and on the real `ui/` model with `collisions()` empty, and the rule list measured in a WKWebView against a local server that counts what reaches it.
-- 28 for the library: translation round trips of every shape the page produces, the save diff, sealed Scripts, the Vault's first run, relaunch, restore and erase, and the real `ui/` saving through the bridge into the encrypted store, the bridge refusing every save when the library could not be read, a restore showing the library it reopened, a restore or Second device moving a library the phrase cannot open aside instead of erasing it, and a damaged Script being skipped and kept.
+- 29 for the library: translation round trips of every shape the page produces, the save diff, sealed Scripts, the Vault's first run, relaunch, restore and erase, and the real `ui/` saving through the bridge into the encrypted store, the bridge refusing every save when the library could not be read, a restore showing the library it reopened, a restore or Second device moving a library the phrase cannot open aside instead of erasing it, a damaged Script being skipped and kept, and launch asking for the key once.
 - 31 from Core's `TakeStoreContractTests`, which `CatchlightCoreTestSupport` brings in.
 
 ```bash

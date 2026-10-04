@@ -379,6 +379,32 @@ final class VaultTests: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath: dir.deletingLastPathComponent().appendingPathComponent(moved).appendingPathComponent("Database/catchlight.db").path))
     }
 
+    /// Owner, 2026-10-04: a launch asked for the password twice, once for the existence check
+    /// and once for the key. Launch now makes one call that can prompt, and a missing key is
+    /// no account without any.
+    func testLaunchAsksForTheKeyOnceAndNeverChecksExistenceFirst() throws {
+        final class Counting: Secrets {
+            let inner = MemorySecrets()
+            var existenceChecks = 0, keyRequests = 0
+            var hasAccount: Bool { existenceChecks += 1; return inner.hasAccount }
+            func storePhrase(_ words: [String]) throws { try inner.storePhrase(words) }
+            func storeMasterKey(_ raw: Data) throws { try inner.storeMasterKey(raw) }
+            func masterKey(reason: String) throws -> SymmetricKey { keyRequests += 1; return try inner.masterKey(reason: reason) }
+            func phrase(reason: String) -> [String]? { inner.phrase(reason: reason) }
+            func deleteAll() { inner.deleteAll() }
+        }
+        let secrets = Counting()
+        XCTAssertEqual("\(try Vault(secrets: secrets, directory: dir).start())", "\(Vault.State.noAccount)")
+        try Vault(secrets: secrets, directory: dir).createAccount(words: try Vault.newPhrase(), restored: false)
+        secrets.existenceChecks = 0; secrets.keyRequests = 0
+
+        let vault = Vault(secrets: secrets, directory: dir)
+        try vault.start()
+        XCTAssertNotNil(vault.library)
+        XCTAssertEqual(secrets.keyRequests, 1)
+        XCTAssertEqual(secrets.existenceChecks, 0)
+    }
+
     func testAnInvalidPhraseStoresNothing() throws {
         let secrets = MemorySecrets()
         XCTAssertThrowsError(try Vault(secrets: secrets, directory: dir).createAccount(words: ["abandon"], restored: false))

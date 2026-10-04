@@ -6,11 +6,14 @@ import CatchlightAppleStorage
 /// Debug `-CLDebugAccount` launch use memory, because the data-protection keychain needs a signed,
 /// entitled process and CI builds unsigned.
 protocol Secrets: AnyObject {
-    /// Whether this Mac holds an account. Never prompts.
+    /// Whether this Mac holds an account. On the Keychain path this can prompt (an item with
+    /// user presence asks even to be found), so launch doesn't use it: `Vault.start` asks for
+    /// the key once and reads not-found as no account.
     var hasAccount: Bool { get }
     func storePhrase(_ words: [String]) throws
     func storeMasterKey(_ raw: Data) throws
-    /// Asks for the user (Touch ID or the login password) on the Keychain path.
+    /// Asks for the user (Touch ID or the login password) on the Keychain path. Throws
+    /// `KeychainError.notFound`, without asking, when there is no key.
     func masterKey(reason: String) throws -> SymmetricKey
     func phrase(reason: String) -> [String]?
     func deleteAll()
