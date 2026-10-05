@@ -89,13 +89,17 @@ function openConflicts() {
 async function resolveConflict(id, choice) {
   try {
     await catchlightBridge.resolveConflict(id, choice);
-    delete conflictChoice[id];
-    await catchlightBridge.refresh();   // the kept version, and with Keep both the other beside it
-    window.catchlightBridge.sync?.('save');   // the choice reaches the other devices
   } catch (e) {
+    // Only this means the choice wasn't written: the store is as it was.
     console.error('Saving a conflict choice failed', e);
     ask("Your choice wasn't saved", `Both versions are still there. Try again, and if it keeps happening, report it with this detail: ${e?.message ?? e}`, [['OK', null, 'cancel']]);
+    return loadConflicts();
   }
+  delete conflictChoice[id];
+  // The choice is written. Show it, and send it to the other devices; a failure in either is
+  // logged, and the next refresh or sync catches up.
+  await catchlightBridge.refresh().catch(e => console.error('Refreshing the Takes failed', e));
+  catchlightBridge.sync?.('save').catch?.(e => console.error('Sync after a conflict choice failed', e));
   await loadConflicts();
 }
 
