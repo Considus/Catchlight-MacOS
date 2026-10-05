@@ -192,6 +192,17 @@ final class ConflictQueue {
         }
     }
 
+    /// One pair, written to disk FIRST: a save calls this before replacing the other version in
+    /// the store, so if the write fails it throws and the save writes nothing.
+    func keep(_ pair: (local: Take, remote: Take)) throws {
+        if let directory, let keys, let url = fileURL(pair.local.id) {
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            try Self.seal(pair, keys: keys).write(to: url, options: .atomic)
+        }
+        if let i = pending.firstIndex(where: { $0.local.id == pair.local.id }) { pending[i] = pair }
+        else { pending.append(pair) }
+    }
+
     func enqueueUnverified(_ items: [UnverifiedCopy]) {
         for item in items {
             if let i = unverified.firstIndex(where: { $0.id == item.id }) { unverified[i] = item }

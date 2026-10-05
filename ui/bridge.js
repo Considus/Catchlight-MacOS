@@ -104,14 +104,21 @@
   // minutes, and on Sync Now. Manual syncs only on Sync Now; Disabled never.
   // `again`: a pass was asked for while one ran (a save written once the running pass ended, say),
   // so one more pass follows, or that save would wait for the next trigger to reach the cloud.
-  let syncing = null, again = null, saveTimer = 0, lastFocusSync = 0;
+  // `following`: the promise of that follow-up pass, so whoever asked (Sync Now) waits for it.
+  let syncing = null, again = null, following = null, saveTimer = 0, lastFocusSync = 0;
   const syncMode = () => (typeof settings !== 'undefined' && settings.syncMode) || 'automatic';
   const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
   function sync(trigger) {
     if (!library?.account || !store.get('account', {})?.folder) return Promise.resolve({ skipped: true });
     const mode = syncMode();
     if (mode === 'disabled' || (mode === 'manual' && trigger !== 'manual')) return Promise.resolve({ skipped: true });
-    if (syncing) { again = again || trigger; return syncing; }
+    if (syncing) {
+      again = again || trigger;
+      // `syncing` is the promise after `.finally`, which has started the follow-up by the time it
+      // settles, so this resolves with the follow-up's own result.
+      following = following || syncing.then(() => followUp);
+      return following;
+    }
     syncing = post('sync', { trigger })
       .then(async r => {
         // The iPhone's words (Notice.message), so both apps say the same thing.
@@ -126,10 +133,12 @@
       .catch(e => { console.error('Sync failed', e); return { error: String(e?.message ?? e) }; })
       .finally(() => {
         syncing = null;
-        if (again) { const t = again; again = null; sync(t); }
+        if (again) { const t = again; again = null; followUp = sync(t); }
+        following = null;
       });
     return syncing;
   }
+  let followUp = Promise.resolve({ skipped: true });
   function syncSoon() { clearTimeout(saveTimer); saveTimer = setTimeout(() => sync('save'), 5000); }
   addEventListener('load', () => setTimeout(() => sync('launch'), 1000));
   addEventListener('focus', () => { if (Date.now() - lastFocusSync > 60_000) { lastFocusSync = Date.now(); sync('focus'); } });

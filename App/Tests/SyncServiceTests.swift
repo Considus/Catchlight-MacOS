@@ -222,15 +222,16 @@ final class SyncServiceTests: XCTestCase {
             settings.syncMode = 'manual';
             const h = window.webkit.messageHandlers.catchlight, post = h.postMessage.bind(h);
             let n = 0;
-            h.postMessage = m => { if (m.cmd === 'sync') n++; return post(m); };
+            h.postMessage = m => m.cmd === 'sync' ? post(m).then(r => { n++; return r; }) : post(m);   // passes that have answered
             const first = catchlightBridge.sync('manual');
-            catchlightBridge.sync('manual');
+            const second = catchlightBridge.sync('manual');   // Sync Now during a pass
             await first;
-            for (let i = 0; i < 200 && n < 2; i++) await new Promise(r => setTimeout(r, 50));
+            await second;   // resolves only once the follow-up pass has answered
+            const atSecond = n;
             await new Promise(r => setTimeout(r, 300));
-            return n;
+            return atSecond * 10 + n;
             """, in: self) as? Int
-        XCTAssertEqual(passes, 2, "one pass, then exactly one more")
+        XCTAssertEqual(passes, 22, "one pass, then exactly one more, and the second request waits for it")
     }
 
     func testNoFolderMeansNoSync() throws {
