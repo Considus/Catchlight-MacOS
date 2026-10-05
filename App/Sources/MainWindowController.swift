@@ -23,6 +23,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
         configuration.preferences.isFraudulentWebsiteWarningEnabled = false
         bridge.vault = vault
         bridge.syncFolder = SyncFolder()
+        if let vault, let folder = bridge.syncFolder { bridge.sync = SyncService(vault: vault, folder: folder) }
         bridge.install(in: configuration.userContentController)
         webView = WKWebView(frame: .zero, configuration: configuration)
         #if DEBUG
@@ -114,6 +115,9 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
     /// once, when the page answers or after `timeout`, so a page that never answers can't stop
     /// the app quitting. A save is milliseconds; the timeout is for a hung page, and is logged.
     func flushPage(timeout: TimeInterval = 10, completion: @escaping () -> Void) {
+        // A running sync stops at its next Take, so the page's last save (which waits for a pass,
+        // SyncService.whenIdle) isn't kept waiting behind it, for a closing window as for quitting.
+        bridge.sync?.cancel()
         var done = false
         let finish = { if !done { done = true; completion() } }
         webView.callAsyncJavaScript("return await (window.catchlightBridge?.flush?.() ?? false);", arguments: [:], in: nil, in: .page) { result in

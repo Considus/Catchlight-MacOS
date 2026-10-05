@@ -292,14 +292,17 @@ final class PageLibraryTests: XCTestCase {
     }
 
     /// #50 review (Claude): a Take kept beside the page's edit shows without waiting for sync.
-    func testAKeptCopyShowsOnThePage() throws {
+    /// A Mac edit landing while sync changed the same Take goes to the conflict screen (owner,
+    /// 2026-10-05); the Mac's edit stands meanwhile and no copy appears.
+    func testAMidSyncEditGoesToTheConflictQueue() throws {
         let vault = Vault(secrets: MemorySecrets(), directory: dir)
         try vault.createAccount(words: try Vault.newPhrase(), restored: true)
         let id = UUID()
         _ = try vault.library!.saveTakes([["id": id.uuidString, "at": "2026-07-01T09:00:00Z", "isNote": true,
                                            "blocks": [["k": "text", "text": "Mine"]]]])
         let (harness, bridge) = page(with: vault)
-        _ = bridge
+        let sync = SyncService(vault: vault, folder: SyncFolder(defaults: UserDefaults(suiteName: "catchlight.tests.\(UUID())")!))
+        bridge.sync = sync
         var remote = try vault.library!.store.take(id: id)!
         remote.blocks = [.text(TextBlock(text: "From the iPhone"))]
         remote.modifiedAt = Date(timeIntervalSinceNow: 60)
@@ -307,37 +310,41 @@ final class PageLibraryTests: XCTestCase {
 
         let shown = try harness.run("""
             takes[0].blocks[0].text = 'From the Mac'; takes[0].modifiedAt = Date.now(); saveTakes();
-            for (let i = 0; i < 100 && takes.length < 2; i++) await new Promise(r => setTimeout(r, 50));
-            return JSON.stringify(takes.map(t => t.blocks[0].text).sort());
+            \(settle)
+            return JSON.stringify(takes.map(t => t.blocks[0].text));
             """, in: self) as? String
-        XCTAssertEqual(shown, #"["From the Mac","From the iPhone"]"#)
+        XCTAssertEqual(shown, #"["From the Mac"]"#)
+        XCTAssertEqual(sync.conflicts.pending.count, 1)
+        XCTAssertEqual(sync.conflicts.pending.first?.remote.plainText, "From the iPhone")
+        XCTAssertEqual(try vault.library!.store.allTakes().count, 1)
     }
 
-    /// #50 review (Greptile): a save that keeps a copy AND rejects a Take leaves the page's list
-    /// alone, so the rejected edit is still there to see.
+    /// #50 review (Greptile): a save that keeps a Take the page deleted AND rejects another leaves
+    /// the page's list alone, so the rejected edit is still there to see.
     func testARejectedEditIsNotRefreshedAway() throws {
         let vault = Vault(secrets: MemorySecrets(), directory: dir)
         try vault.createAccount(words: try Vault.newPhrase(), restored: true)
-        let a = UUID(), b = UUID()
+        let a = UUID(), b = UUID(), c = UUID()
         _ = try vault.library!.saveTakes([
             ["id": a.uuidString, "at": "2026-07-01T09:00:00Z", "isNote": true, "blocks": [["k": "text", "text": "A"]]],
             ["id": b.uuidString, "at": "2026-07-01T09:00:00Z", "isNote": true, "blocks": [["k": "text", "text": "B"]]],
+            ["id": c.uuidString, "at": "2026-07-01T09:00:00Z", "isNote": true, "blocks": [["k": "text", "text": "C"]]],
         ])
         let (harness, bridge) = page(with: vault)
         _ = bridge
-        var remote = try vault.library!.store.take(id: a)!
-        remote.blocks = [.text(TextBlock(text: "A, from the iPhone"))]
+        var remote = try vault.library!.store.take(id: b)!
+        remote.blocks = [.text(TextBlock(text: "B, from the iPhone"))]
         remote.modifiedAt = Date(timeIntervalSinceNow: 60)
         try vault.library!.store.upsert(remote)
 
         let shown = try harness.run("""
-            takes[0].blocks[0].text = 'A, from the Mac'; takes[0].modifiedAt = Date.now();
-            takes[1].at = 'not a date'; takes[1].blocks[0].text = 'B, unsaved';
+            takes = takes.filter(t => t.blocks[0].text !== 'B');   // deleted here, changed on the iPhone
+            const c = takes.find(t => t.blocks[0].text === 'C'); c.at = 'not a date'; c.blocks[0].text = 'C, unsaved';
             saveTakes();
             \(settle)
             await new Promise(r => setTimeout(r, 300));
             return JSON.stringify(takes.map(t => t.blocks[0].text).sort());
             """, in: self) as? String
-        XCTAssertEqual(shown, #"["A, from the Mac","B, unsaved"]"#, "the page keeps its list, the rejected edit included")
+        XCTAssertEqual(shown, #"["A","C, unsaved"]"#, "the page keeps its list, the rejected edit included")
     }
 }

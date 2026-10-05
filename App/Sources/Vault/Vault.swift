@@ -54,6 +54,11 @@ final class Vault {
     }
 
     var library: Library? { if case .open(let l) = state { return l } else { return nil } }
+    /// The open account's keys, for the sync engine (M3). Nil when locked or with no account.
+    var keys: KeyHierarchy? {
+        guard library != nil, let openKey else { return nil }
+        return KeyHierarchy(masterKeyBytes: openKey)
+    }
 
     // MARK: Launch
 
