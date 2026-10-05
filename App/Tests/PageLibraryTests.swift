@@ -290,4 +290,26 @@ final class PageLibraryTests: XCTestCase {
             """, in: self) as? Int
         XCTAssertEqual(after, 2, "the refresh that waited goes once the ring closes")
     }
+
+    /// #50 review (Claude): a Take kept beside the page's edit shows without waiting for sync.
+    func testAKeptCopyShowsOnThePage() throws {
+        let vault = Vault(secrets: MemorySecrets(), directory: dir)
+        try vault.createAccount(words: try Vault.newPhrase(), restored: true)
+        let id = UUID()
+        _ = try vault.library!.saveTakes([["id": id.uuidString, "at": "2026-07-01T09:00:00Z", "isNote": true,
+                                           "blocks": [["k": "text", "text": "Mine"]]]])
+        let (harness, bridge) = page(with: vault)
+        _ = bridge
+        var remote = try vault.library!.store.take(id: id)!
+        remote.blocks = [.text(TextBlock(text: "From the iPhone"))]
+        remote.modifiedAt = Date(timeIntervalSinceNow: 60)
+        try vault.library!.store.upsert(remote)
+
+        let shown = try harness.run("""
+            takes[0].blocks[0].text = 'From the Mac'; takes[0].modifiedAt = Date.now(); saveTakes();
+            for (let i = 0; i < 100 && takes.length < 2; i++) await new Promise(r => setTimeout(r, 50));
+            return JSON.stringify(takes.map(t => t.blocks[0].text).sort());
+            """, in: self) as? String
+        XCTAssertEqual(shown, #"["From the Mac","From the iPhone"]"#)
+    }
 }

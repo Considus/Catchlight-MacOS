@@ -51,7 +51,12 @@
   // A Take the shell couldn't read keeps its stored version, so say so rather than let the edit
   // look saved.
   const saveList = (kind, list) => (kind === 'takes' && takesSaves++, post('save', { kind, list, generation: library.generation }))
-    .then(r => { if (r?.rejected?.length) whenNoDialog(() => ask("A Take wasn't saved", `Catchlight couldn't read ${r.rejected.length === 1 ? 'one Take' : `${r.rejected.length} Takes`}, so the last version of it is kept. Report it, with this detail: ${r.rejected.join(', ')}`, [['OK', null, 'cancel']])); })
+    .then(r => {
+      // The shell kept a Take the page doesn't hold (both versions after a change on both sides,
+      // or one the page deleted that changed elsewhere): take the library again so it shows.
+      if (r?.keptBoth || r?.keptOverDelete) window.catchlightBridge.refresh().catch(e => console.error('Refreshing the Takes failed', e));
+      if (r?.rejected?.length) whenNoDialog(() => ask("A Take wasn't saved", `Catchlight couldn't read ${r.rejected.length === 1 ? 'one Take' : `${r.rejected.length} Takes`}, so the last version of it is kept. Report it, with this detail: ${r.rejected.join(', ')}`, [['OK', null, 'cancel']]));
+    })
     .catch(e => {
       console.error(`Saving ${kind} failed`, e);
       // A refused save must never look saved: say so, with what to do. If another dialog is
