@@ -102,26 +102,32 @@
   // at a time and answers a request during a pass as skipped. As the iPhone does: at launch, a
   // few seconds after a save, when the window comes forward (at most once a minute), every 15
   // minutes, and on Sync Now. Manual syncs only on Sync Now; Disabled never.
-  let syncing = null, saveTimer = 0, lastFocusSync = 0;
+  // `again`: a pass was asked for while one ran (a save written once the running pass ended, say),
+  // so one more pass follows, or that save would wait for the next trigger to reach the cloud.
+  let syncing = null, again = null, saveTimer = 0, lastFocusSync = 0;
   const syncMode = () => (typeof settings !== 'undefined' && settings.syncMode) || 'automatic';
   const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
   function sync(trigger) {
     if (!library?.account || !store.get('account', {})?.folder) return Promise.resolve({ skipped: true });
     const mode = syncMode();
     if (mode === 'disabled' || (mode === 'manual' && trigger !== 'manual')) return Promise.resolve({ skipped: true });
-    if (syncing) return syncing;
+    if (syncing) { again = again || trigger; return syncing; }
     syncing = post('sync', { trigger })
       .then(async r => {
         // The iPhone's words (Notice.message), so both apps say the same thing.
         if (r?.error) notice(r.error, 'sync');
         if (r?.applied || r?.deleted) await window.catchlightBridge.refresh().catch(e => console.error('Refreshing the Takes failed', e));
         if (r?.newConflicts) notice(`${plural(r.newConflicts, 'Take', 'Takes')} changed on another device.`, 'conflict');
+        if (r?.newUnverified) notice(`${plural(r.newUnverified, 'Take', 'Takes')} couldn't be verified and need a choice.`, 'conflict');
         if (r?.quarantined) notice(`${plural(r.quarantined, 'Take', 'Takes')} couldn't be verified and were skipped.`, 'quarantine');
         if (r?.heldBack) notice(`${plural(r.heldBack, 'Take', 'Takes')} not re-uploaded. This device was away too long to rule out deletion elsewhere. Edit a Take to sync it again.`, 'sync');
         return r;
       })
       .catch(e => { console.error('Sync failed', e); return { error: String(e?.message ?? e) }; })
-      .finally(() => { syncing = null; });
+      .finally(() => {
+        syncing = null;
+        if (again) { const t = again; again = null; sync(t); }
+      });
     return syncing;
   }
   function syncSoon() { clearTimeout(saveTimer); saveTimer = setTimeout(() => sync('save'), 5000); }

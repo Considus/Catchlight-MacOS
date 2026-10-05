@@ -177,7 +177,7 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
             replyHandler(true, nil)
         case "sync":
             guard let sync, !libraryUnreadable else { return replyHandler(["skipped": true], nil) }
-            let before = sync.conflicts.count
+            let before = (pending: sync.conflicts.pending.count, unverified: sync.conflicts.unverified.count)
             sync.run { outcome in
                 switch outcome {
                 case .skipped:
@@ -186,7 +186,9 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                     replyHandler(["error": SyncService.notice(for: error) as Any? ?? NSNull()], nil)
                 case .finished(let r):
                     replyHandler(["applied": r.applied.count, "deleted": r.deletedLocally.count, "uploaded": r.uploaded.count,
-                                  "conflicts": sync.conflicts.count, "newConflicts": max(0, sync.conflicts.count - before),
+                                  "conflicts": sync.conflicts.count,
+                                  "newConflicts": max(0, sync.conflicts.pending.count - before.pending),
+                                  "newUnverified": max(0, sync.conflicts.unverified.count - before.unverified),
                                   "quarantined": r.quarantined.count, "heldBack": r.heldBack.count], nil)
                 }
             }

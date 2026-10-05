@@ -57,8 +57,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// ⌘Q, or Quit from the Dock: the page saves what is on screen before the app goes.
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         guard let controller = windowController else { return .terminateNow }
-        // A running sync stops at its next Take, so the page's last save isn't kept waiting for it.
-        controller.bridge.sync?.cancel()
         controller.flushPage { NSApp.reply(toApplicationShouldTerminate: true) }
         return .terminateLater
     }

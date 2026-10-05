@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 import CatchlightCore
 import CatchlightAppleStorage
 import os
@@ -17,7 +18,19 @@ final class SyncService {
 
     let vault: Vault
     let folder: SyncFolder
-    let conflicts = ConflictQueue()
+    /// The queue for the library that is open now. A new library (first run, Second device) gets
+    /// its own, read from its own folder.
+    var conflicts: ConflictQueue {
+        let library = vault.library.map(ObjectIdentifier.init)
+        if library != queueLibrary {
+            queueLibrary = library
+            queue_ = ConflictQueue(directory: library == nil ? nil : vault.directory.appendingPathComponent("Conflicts", isDirectory: true),
+                                   keys: vault.keys)
+        }
+        return queue_
+    }
+    private var queue_ = ConflictQueue()
+    private var queueLibrary: ObjectIdentifier?
     private let defaults: UserDefaults
     private let queue = DispatchQueue(label: "com.considus.catchlight.mac.sync", qos: .utility)
     /// Main thread only.
@@ -131,14 +144,43 @@ final class SyncService {
     }
 }
 
-/// Conflicts waiting for the user, as the iPhone keeps them (`ConflictQueue`): not saved to disk,
-/// because the next sync finds the same ones again. A conflict is resolved by writing the chosen
-/// version stamped as a fresh edit, so the next push makes it the newest everywhere.
+/// Conflicts waiting for the user. Unlike the iPhone's (`ConflictQueue`, in memory), each pending
+/// pair is also kept on disk, sealed: a save that finds a conflict writes this Mac's version, and
+/// the pass after it uploads that version, so the other device's version may exist nowhere but
+/// here until the user chooses. Quitting must not lose it. One file per Take in the library's
+/// `Conflicts` folder, AES-256-GCM under Core's per-item key for the Take's id, with the format
+/// named in the additional data so it can never be opened as anything else (as `ScriptVault`).
+/// The folder sits inside the library, so Erase everything removes it and a library moved aside
+/// takes it along. A resolved conflict is stamped as a fresh edit so the next push makes the
+/// chosen version the newest everywhere.
+///
+/// Unverified copies stay in memory, as on the iPhone: the engine never writes them, so the next
+/// pass finds them again.
 final class ConflictQueue {
+    static let format = Data("catchlight.mac.conflict.v1".utf8)
+    private static let log = Logger(subsystem: "com.considus.catchlight.mac", category: "sync")
+
     private(set) var pending: [(local: Take, remote: Take)] = []
     private(set) var unverified: [UnverifiedCopy] = []
+    private let directory: URL?
+    private let keys: KeyHierarchy?
 
     var count: Int { pending.count + unverified.count }
+
+    /// - Parameters: `directory` and `keys` both nil keeps the queue in memory only (no library open).
+    init(directory: URL? = nil, keys: KeyHierarchy? = nil) {
+        self.directory = directory
+        self.keys = keys
+        guard let directory, let keys else { return }
+        let files = (try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)) ?? []
+        for url in files where url.pathExtension == "conflict" {
+            guard let id = UUID(uuidString: url.deletingPathExtension().lastPathComponent) else { continue }
+            do { pending.append(try Self.open(Data(contentsOf: url), id: id, keys: keys)) } catch {
+                // Kept as it is, never deleted: it may hold the only copy of the other version.
+                Self.log.error("a waiting conflict did not open and is kept: \(url.lastPathComponent, privacy: .public)")
+            }
+        }
+    }
 
     /// An incoming pair replaces a pending one for the same Take, so the choice is always made
     /// against the newest versions.
@@ -146,6 +188,7 @@ final class ConflictQueue {
         for pair in pairs {
             if let i = pending.firstIndex(where: { $0.local.id == pair.local.id }) { pending[i] = pair }
             else { pending.append(pair) }
+            persist(pair)
         }
     }
 
@@ -161,7 +204,7 @@ final class ConflictQueue {
     /// Write the user's choice (owner, 2026-10-05: keep this Mac's version, the other device's, or
     /// both). The kept version is stamped as a fresh edit so the next push makes it the newest
     /// everywhere and the conflict doesn't come back. Keep both keeps this Mac's version on its id
-    /// and the other beside it as a new Take.
+    /// and the other beside it as a new Take. The waiting file goes only once everything is written.
     @discardableResult
     func resolve(id: UUID, choice: Choice, store: TakeStore, now: Date = Date()) throws -> Take? {
         guard let i = pending.firstIndex(where: { $0.local.id == id }) else { return nil }
@@ -177,6 +220,7 @@ final class ConflictQueue {
             copy = other
         }
         pending.remove(at: i)
+        if let url = fileURL(id) { try? FileManager.default.removeItem(at: url) }
         return copy
     }
 
@@ -191,5 +235,36 @@ final class ConflictQueue {
                     isObie: false, timeReminder: reminder,
                     locationReminder: take.locationReminder, attachments: take.attachments,
                     isSeeded: false, isImportant: take.isImportant, manualOrder: take.manualOrder)
+    }
+
+    // MARK: On disk
+
+    private struct Pair: Codable { let local: Take; let remote: Take }
+
+    private func fileURL(_ id: UUID) -> URL? {
+        directory?.appendingPathComponent(id.uuidString.lowercased()).appendingPathExtension("conflict")
+    }
+
+    private func persist(_ pair: (local: Take, remote: Take)) {
+        guard let directory, let keys, let url = fileURL(pair.local.id) else { return }
+        do {
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            try Self.seal(pair, keys: keys).write(to: url, options: .atomic)
+        } catch {
+            Self.log.fault("a waiting conflict could not be kept on disk: \(String(describing: error), privacy: .public)")
+        }
+    }
+
+    static func seal(_ pair: (local: Take, remote: Take), keys: KeyHierarchy) throws -> Data {
+        let plain = try PlatformJSON.encode(Pair(local: pair.local, remote: pair.remote))
+        let id = pair.local.id
+        return try AES.GCM.seal(plain, using: keys.itemKey(takeUUID: id), authenticating: format + Data(id.uuidString.utf8)).combined!
+    }
+
+    static func open(_ sealed: Data, id: UUID, keys: KeyHierarchy) throws -> (local: Take, remote: Take) {
+        let box = try AES.GCM.SealedBox(combined: sealed)
+        let plain = try AES.GCM.open(box, using: keys.itemKey(takeUUID: id), authenticating: format + Data(id.uuidString.utf8))
+        let pair = try PlatformJSON.decode(Pair.self, from: plain)
+        return (pair.local, pair.remote)
     }
 }

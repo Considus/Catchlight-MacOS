@@ -175,6 +175,64 @@ final class SyncServiceTests: XCTestCase {
         XCTAssertTrue(ran, "with no pass running, work runs at once")
     }
 
+    /// #52 review (Greptile): a waiting conflict may hold the only copy of the other device's
+    /// version, so it is kept on disk, sealed, and survives a relaunch; resolving it removes it.
+    func testAWaitingConflictSurvivesARelaunch() throws {
+        let words = try Vault.newPhrase()
+        let a = try mac("A", words: words), b = try mac("B", words: words)
+        let id = try write("Original", on: a)
+        _ = try sync(a); _ = try sync(b)
+        for (s, text) in [(a, "Edited on A"), (b, "Edited on B")] {
+            var take = try s.vault.library!.store.take(id: id)!
+            take.blocks = [.text(TextBlock(text: text))]
+            take.modifiedAt = Date()
+            try s.vault.library!.store.upsert(take)
+        }
+        _ = try sync(a); _ = try sync(b)
+        XCTAssertEqual(b.conflicts.pending.count, 1)
+
+        let folder = b.vault.directory.appendingPathComponent("Conflicts")
+        let files = try FileManager.default.contentsOfDirectory(atPath: folder.path)
+        XCTAssertEqual(files.count, 1)
+        let sealed = try Data(contentsOf: folder.appendingPathComponent(files[0]))
+        XCTAssertNil(sealed.range(of: Data("Edited on A".utf8)), "kept sealed, never in the clear")
+
+        // A relaunch: a new SyncService over the same library reads the waiting pair back.
+        let relaunched = SyncService(vault: b.vault, folder: b.folder)
+        XCTAssertEqual(relaunched.conflicts.pending.first?.remote.plainText, "Edited on A")
+        try relaunched.conflicts.resolve(id: id, choice: .remote, store: b.vault.library!.store)
+        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: folder.path), [])
+        XCTAssertEqual(SyncService(vault: b.vault, folder: b.folder).conflicts.count, 0)
+    }
+
+    /// #52 review (Greptile): a pass asked for while one runs (a save written once it ended) gets
+    /// one more pass afterwards, so the save reaches the cloud without waiting for the next trigger.
+    func testASyncAskedForDuringAPassRunsOnceMoreAfterIt() throws {
+        let a = try mac("A", words: try Vault.newPhrase())
+        let harness = WebViewHarness(root: WebViewHarness.repoUI, ruleList: nil)
+        let bridge = ShellBridge()
+        bridge.vault = a.vault
+        bridge.syncFolder = a.folder
+        bridge.sync = a
+        bridge.install(in: harness.webView.configuration.userContentController)
+        harness.load("index.html", in: self)
+
+        let passes = try harness.run("""
+            localStorage.setItem('cl.account', JSON.stringify({ ...(JSON.parse(localStorage.getItem('cl.account')) || {}), folder: '~/Cloud' }));
+            settings.syncMode = 'manual';
+            const h = window.webkit.messageHandlers.catchlight, post = h.postMessage.bind(h);
+            let n = 0;
+            h.postMessage = m => { if (m.cmd === 'sync') n++; return post(m); };
+            const first = catchlightBridge.sync('manual');
+            catchlightBridge.sync('manual');
+            await first;
+            for (let i = 0; i < 200 && n < 2; i++) await new Promise(r => setTimeout(r, 50));
+            await new Promise(r => setTimeout(r, 300));
+            return n;
+            """, in: self) as? Int
+        XCTAssertEqual(passes, 2, "one pass, then exactly one more")
+    }
+
     func testNoFolderMeansNoSync() throws {
         let vault = Vault(secrets: MemorySecrets(), directory: root.appendingPathComponent("L"))
         try vault.createAccount(words: try Vault.newPhrase(), restored: true)
