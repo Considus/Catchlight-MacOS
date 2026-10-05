@@ -39,6 +39,13 @@ function runAutoCleanup(now = Date.now()) {
 // An Obie is always Important (Take.isObie's didSet, and the decoder ORs it back in on load).
 takes.forEach(t => { if (t.obie) t.isImportant = true; });
 const saveTakes = () => store.set('takes2', takes);
+// The shell's newer copy of the library (after a sync, M3) replaces the list. Called only when no
+// Take is being edited (bridge.js waits for endEdit), so an edit never loses the Take it belongs to.
+function replaceTakes(list) {
+  takes = list;
+  takes.forEach(t => { if (t.obie) t.isImportant = true; });
+  renderTakes();
+}
 
 // ---------- what a Take is (CatchlightCore's derived properties, Catchlight-Core) ----------
 const isTask = t => t.blocks.some(b => b.k === 'check');
@@ -169,6 +176,9 @@ function renderTakes() {
 // (KeyboardTakeEditor on iOS). Clicking outside, Escape and ⌘S save; only × discards.
 const sidebar = $('#sidebar'), editorCard = $('#take-editor'), rows = $('#take-rows');
 let draft = null, original = null, focusRing = null;
+// A Take is held open: in the editor, in a Focus-ring, or in the reminder picker. Each holds the
+// Take itself, so the list must not be replaced under it (bridge.js refresh waits for all three).
+const editingTake = () => !!(draft || focusRing || (typeof reminderFor !== 'undefined' && reminderFor));
 let draftComplete = false;   // was every item ticked at the last change? (All tasks done)
 
 function beginEdit(t, isNew = false) {
@@ -262,6 +272,7 @@ function endEdit() {
   rows.innerHTML = '';   // nothing of an edit outlives it, discarded or not
   sidebar.classList.remove('editing');
   saveTakes(); renderTakes();
+  window.catchlightBridge?.afterEdit();   // a refresh that waited for this edit goes now
   refocus();   // a11y.js: back to the card the keyboard edited
 }
 
@@ -535,6 +546,7 @@ function closeFocusRing(apply) {
   const ring = $('#focus-ring');
   ring.classList.remove('open');
   focusRing = null;
+  window.catchlightBridge?.afterEdit();   // a refresh that waited for the ring goes now
   setTimeout(() => { ring.hidden = true; ring.innerHTML = ''; sidebar.classList.remove('ringed'); }, still.matches ? 0 : 840);
   ringInert(false);
   if (fromEditor) {
