@@ -80,7 +80,11 @@ final class Library {
     func pageTakes() throws -> [[String: Any]] { try snapshot().takes }
 
     /// - Parameter generation: the snapshot the page's list came from; nil means the newest.
-    func saveTakes(_ page: [[String: Any]], generation: Int? = nil, now: Date = Date()) throws -> SaveReport {
+    /// - Parameter keepConflict: called for a Take changed here and by sync, BEFORE anything is
+    ///   written, so the other version is kept (on disk, by the conflict queue) before this Mac's
+    ///   edit replaces it in the store. If it throws, the save writes nothing and fails.
+    func saveTakes(_ page: [[String: Any]], generation: Int? = nil, now: Date = Date(),
+                   keepConflict: ((local: Take, remote: Take)) throws -> Void = { _ in }) throws -> SaveReport {
         let gen = generation ?? self.generation
         let stored = Dictionary(uniqueKeysWithValues: try store.allTakes().map { ($0.id, $0) })
         var base: [UUID: Take]
@@ -110,6 +114,8 @@ final class Library {
             }
             changed.append(take)
         }
+        // Each conflict is kept before anything is written: the write replaces the other version.
+        for pair in report.conflicts { try keepConflict(pair) }
         // The Obie last: upserting it demotes any other, so the page's choice is the one that stands.
         for take in changed.sorted(by: { !$0.isObie && $1.isObie }) {
             try store.upsert(take)

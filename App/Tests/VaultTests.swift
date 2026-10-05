@@ -286,6 +286,22 @@ final class LibraryTests: XCTestCase {
         XCTAssertEqual(try library.store.allTakes().count, 1)
     }
 
+    /// #52 review (Greptile): the other version is kept before this Mac's edit replaces it; if
+    /// keeping it fails, the save writes nothing and fails, so the page says so.
+    func testAConflictThatCannotBeKeptStopsTheSave() throws {
+        let a = page("A")
+        _ = try library.saveTakes([a])
+        let gen = try library.snapshot().generation
+        var remote = a
+        remote["blocks"] = [["k": "text", "text": "A, from the iPhone"]]
+        _ = try syncWrites(remote)
+        var mine = a
+        mine["blocks"] = [["k": "text", "text": "A, from the Mac"]]
+        struct Refused: Error {}
+        XCTAssertThrowsError(try library.saveTakes([mine], generation: gen, keepConflict: { _ in throw Refused() }))
+        XCTAssertEqual(try library.store.take(id: id(a))?.plainText, "A, from the iPhone", "nothing written")
+    }
+
     func testDeletingATakeSyncChangedKeepsTheChange() throws {
         let a = page("A"), b = page("B")
         _ = try library.saveTakes([a, b])

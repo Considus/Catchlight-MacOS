@@ -248,9 +248,10 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                 guard let list = body["list"] as? [[String: Any]] else { return reply(nil, "save needs a list") }
                 switch body["kind"] as? String {
                 case "takes":
-                    let report = try library.saveTakes(list, generation: body["generation"] as? Int)
-                    // A Take changed here and by sync since the page's snapshot: the user chooses.
-                    sync?.conflicts.enqueue(report.conflicts)
+                    // A Take changed here and by sync since the page's snapshot: the user chooses,
+                    // and the other version is on disk before this Mac's edit replaces it.
+                    let report = try library.saveTakes(list, generation: body["generation"] as? Int,
+                                                       keepConflict: { [sync] pair in try sync?.conflicts.keep(pair) })
                     Self.log.info("takes saved: \(report.upserted) written, \(report.deleted) deleted, \(report.rejected.count) rejected, \(report.conflicts.count) to the conflict screen, \(report.keptOverDelete.count) kept over a delete")
                     if !report.rejected.isEmpty { Self.log.error("save kept \(report.rejected.count) Takes it could not read") }
                     reply(["upserted": report.upserted, "deleted": report.deleted, "rejected": report.rejected,
