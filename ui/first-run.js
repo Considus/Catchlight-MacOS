@@ -208,6 +208,8 @@ async function finish() {
   // The prototype keeps only its own placeholder words, so Settings → Privacy phrase shows the
   // same ones. Words someone typed in could be a real phrase and are never stored: a restored
   // account shows "Phrase isn't on this device". The real phrase lives only in the Keychain.
+  // An account saved with no folder has none in the shell either, whatever was picked on the way.
+  if (!fr.folder) shell.forgetFolder?.();
   store.set('account', { storage: fr.storage || 'cloud', folder: fr.folder, restored: fr.restore, phrase: fr.restore || lib ? undefined : fr.words });
   // A new account: seeds after setup, none after a restore (AppModel), and no Scripts either way
   // (a restored account gets its own from the folder, D-313). A ?first-run replay over an
@@ -234,16 +236,18 @@ layer.addEventListener('click', e => {
     case 'create': fr.restore = false; show('storage'); break;
     case 'restore': show('restore'); break;
     case 'back-welcome': show('welcome'); break;
-    case 'local': fr.storage = 'local'; fr.folder = null; show('localWarning'); break;
+    // The shell bookmarks a folder the moment it is picked, so choosing local lets it go there too.
+    case 'local': fr.storage = 'local'; fr.folder = null; shell.forgetFolder?.(); show('localWarning'); break;
     case 'cloud': fr.storage = 'cloud'; show('folder'); break;
     case 'back-storage': show('storage'); break;
-    case 'pick-folder': fr.folder = shell.chooseFolder(); show('folder'); break;
+    // The Mac's open panel answers later (a promise), the browser stand-in at once; a cancel keeps what was there.
+    case 'pick-folder': Promise.resolve(shell.chooseFolder()).then(f => { if (f) fr.folder = f; show('folder'); }).catch(folderRefused); break;
     case 'risk': case 'folder-done': fr.words = shell.newPhrase(); show('reveal'); break;
     case 'written': newConfirm(); show('confirm'); break;
     case 'show-again': show('reveal'); break;
     case 'basics-next': if (fr.basics === 0) { fr.basics = 1; show('basics'); } else show('complete'); break;
     case 'do-restore': doRestore(); break;
-    case 'connect-folder': fr.folder = shell.chooseFolder(); finish(); break;
+    case 'connect-folder': Promise.resolve(shell.chooseFolder()).then(f => { if (!f) return; fr.folder = f; finish(); }).catch(folderRefused); break;
     case 'finish': finish(); break;
   }
 });

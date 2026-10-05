@@ -289,8 +289,8 @@ sheet.addEventListener('click', async e => {
   const open = e.target.closest('[data-open]')?.dataset.open, act = e.target.closest('[data-act]')?.dataset.act;
   if (act === 'close') closeSettings();
   else if (act === 'back') { subStack.pop(); paintSettings(); }
-  else if (act === 'pick-folder') { store.set('account', { ...store.get('account', {}), folder: shell.chooseFolder() }); paintSettings(); }
-  else if (act === 'remove-folder') { store.set('account', { ...store.get('account', {}), folder: null }); paintSettings(); }
+  else if (act === 'pick-folder') Promise.resolve(shell.chooseFolder()).then(f => { if (f) { store.set('account', { ...store.get('account', {}), folder: f }); paintSettings(); } }).catch(folderRefused);
+  else if (act === 'remove-folder') { shell.forgetFolder?.(); store.set('account', { ...store.get('account', {}), folder: null }); paintSettings(); }
   else if (act === 'sync-now') { e.target.textContent = 'Syncing…'; e.target.disabled = true; setTimeout(() => paintSettings(), 2000); }
   else if (act === 'sd-restore') secondDeviceRestore();
   else if (act === 'reveal-phrase') {
@@ -399,6 +399,10 @@ function startOver() {
     ['Cancel', null, 'cancel'],
   ]);
 }
+// The shell couldn't keep access to the folder picked (it couldn't make a bookmark to it): say so,
+// rather than let the panel close as if nothing had been chosen.
+const folderRefused = e => ask("Catchlight can't use that folder", `Choose another folder, or the same one again. If this keeps happening, report it with this detail: ${e?.message ?? e}`, [['OK', null, 'cancel']]);
+
 async function eraseEverything() {
   // In the Mac app the Keychain items and the encrypted library go first; if that fails, the
   // page says so and keeps everything as it was.

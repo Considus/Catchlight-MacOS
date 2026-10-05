@@ -89,6 +89,15 @@
     `Nothing has been changed or deleted, and nothing you do now will be saved. Quit and open Catchlight again, and if this keeps happening, report it with this detail: ${library.loadError}`,
     [['OK', null, 'cancel']]));
 
+  // The shell is the authority on the sync folder: the page's account record shows the folder
+  // the shell can actually open, or none, so a deleted folder or a lost bookmark never looks connected.
+  try {
+    const account = JSON.parse(localStorage.getItem('cl.account'));
+    if (account && (account.folder ?? null) !== (info.folder ?? null)) {
+      localStorage.setItem('cl.account', JSON.stringify({ ...account, folder: info.folder ?? null }));
+    }
+  } catch { /* no account record yet, or storage unavailable */ }
+
   window.catchlightBridge = {
     pushMenu,
     library,
@@ -120,6 +129,10 @@
     },
     shell: {
       osVersion: () => info.osVersion,
+      // The sync folder: the Mac's open panel. The answer is the path to show, or null on cancel;
+      // the bookmark that gives access stays in the shell (SyncFolder.swift).
+      chooseFolder: () => post('chooseFolder'),
+      forgetFolder: () => post('forgetFolder'),
       systemInfo: () => `${info.osName} ${info.osVersion} · ${info.model}`,
       copyText: text => post('copy', { text }),
       ...(library && {
