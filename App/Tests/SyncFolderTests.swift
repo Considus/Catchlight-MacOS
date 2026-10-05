@@ -133,4 +133,24 @@ final class SyncFolderTests: XCTestCase {
         _ = try harness.run("return await catchlightBridge.shell.replaceAccount(\(json));", in: self)
         XCTAssertFalse(f.hasFolder)
     }
+
+    /// #51 review (Claude): a folder picked in first run, then local storage chosen instead,
+    /// must not come back as connected.
+    func testChoosingLocalStorageLetsAPickedFolderGo() throws {
+        let f = folder(picking: root.appendingPathComponent("Cloud/Catchlight"))
+        let harness = WebViewHarness(root: WebViewHarness.repoUI, ruleList: nil)
+        let bridge = ShellBridge()
+        bridge.syncFolder = f
+        bridge.install(in: harness.webView.configuration.userContentController)
+        harness.load("index.html", in: self)
+
+        _ = try harness.run("""
+            await catchlightBridge.shell.chooseFolder();
+            const b = document.createElement('button'); b.dataset.fr = 'local';
+            layer.append(b); b.click();
+            await window.webkit.messageHandlers.catchlight.postMessage({cmd: 'ping'});
+            return true;
+            """, in: self)
+        XCTAssertFalse(f.hasFolder)
+    }
 }
