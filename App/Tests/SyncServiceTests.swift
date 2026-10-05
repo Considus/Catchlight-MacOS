@@ -119,13 +119,13 @@ final class SyncServiceTests: XCTestCase {
         remote.blocks = [.text(TextBlock(text: "iPhone"))]
 
         queue.enqueue([(local: local, remote: remote)])
-        try queue.resolve(id: local.id, choice: .remote, store: store, now: Date(timeIntervalSinceNow: 5))
-        XCTAssertEqual(try store.take(id: local.id)?.plainText, "iPhone")
+        try queue.resolve(id: local.id, choice: .local, store: store, now: Date(timeIntervalSinceNow: 5))
+        XCTAssertEqual(try store.take(id: local.id)?.plainText, "Mac")
         XCTAssertGreaterThan(try store.take(id: local.id)!.modifiedAt, local.modifiedAt, "stamped as a fresh edit so it wins the next push")
 
         queue.enqueue([(local: local, remote: remote)])
-        try queue.resolve(id: local.id, choice: .local, store: store, now: Date(timeIntervalSinceNow: 10))
-        XCTAssertEqual(try store.take(id: local.id)?.plainText, "Mac")
+        try queue.resolve(id: local.id, choice: .remote, store: store, now: Date(timeIntervalSinceNow: 10))
+        XCTAssertEqual(try store.take(id: local.id)?.plainText, "iPhone")
         XCTAssertEqual(try store.allTakes().count, 1)
     }
 
@@ -232,6 +232,34 @@ final class SyncServiceTests: XCTestCase {
             return atSecond * 10 + n;
             """, in: self) as? Int
         XCTAssertEqual(passes, 22, "one pass, then exactly one more, and the second request waits for it")
+    }
+
+    /// #53 review (Claude): Local means this Mac's version as it is NOW. An edit made after the
+    /// conflict was queued must not be replaced by the older queued copy.
+    func testKeepLocalKeepsAnEditMadeAfterTheConflict() throws {
+        let vault = Vault(secrets: MemorySecrets(), directory: root.appendingPathComponent("E"))
+        try vault.createAccount(words: try Vault.newPhrase(), restored: true)
+        let store = vault.library!.store
+        var local = Take(blocks: [.text(TextBlock(text: "Mac, first"))])
+        try store.upsert(local)
+        local = try store.take(id: local.id)!
+        var remote = local
+        remote.blocks = [.text(TextBlock(text: "iPhone"))]
+        let queue = ConflictQueue()
+        queue.enqueue([(local: local, remote: remote)])
+
+        var later = local
+        later.blocks = [.text(TextBlock(text: "Mac, edited again"))]
+        later.modifiedAt = Date(timeIntervalSinceNow: 2)
+        try store.upsert(later)
+
+        try queue.resolve(id: local.id, choice: .local, store: store, now: Date(timeIntervalSinceNow: 5))
+        XCTAssertEqual(try store.take(id: local.id)?.plainText, "Mac, edited again")
+
+        queue.enqueue([(local: local, remote: remote)])
+        let copy = try XCTUnwrap(try queue.resolve(id: local.id, choice: .both, store: store, now: Date(timeIntervalSinceNow: 10)))
+        XCTAssertEqual(try store.take(id: local.id)?.plainText, "Mac, edited again", "Keep both keeps the current one too")
+        XCTAssertEqual(try store.take(id: copy.id)?.plainText, "iPhone")
     }
 
     func testNoFolderMeansNoSync() throws {

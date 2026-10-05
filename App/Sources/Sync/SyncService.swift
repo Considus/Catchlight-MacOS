@@ -220,7 +220,10 @@ final class ConflictQueue {
     func resolve(id: UUID, choice: Choice, store: TakeStore, now: Date = Date()) throws -> Take? {
         guard let i = pending.firstIndex(where: { $0.local.id == id }) else { return nil }
         let pair = pending[i]
-        var kept = choice == .remote ? pair.remote : pair.local
+        // This Mac's version is the Take as it is NOW: an edit made after the conflict was queued
+        // must not be replaced by the older queued copy. Only if it has gone does the copy stand in.
+        let current = try store.take(id: id) ?? pair.local
+        var kept = choice == .remote ? pair.remote : current
         kept.modifiedAt = now
         try store.upsert(kept)
         var copy: Take?
