@@ -208,4 +208,60 @@ final class PageLibraryTests: XCTestCase {
             """, in: self) as? String
         XCTAssertEqual(titles, #"["Delete this Take?","That change wasn't saved"]"#)
     }
+    // MARK: M3: sync writes the store while the page holds its list
+
+    private func syncAdds(_ text: String, to vault: Vault) throws -> UUID {
+        let take = Take(blocks: [.text(TextBlock(text: text))], isNote: true)
+        try vault.library!.store.upsert(take)
+        return take.id
+    }
+
+    func testAPageSaveKeepsATakeSyncAddedAndARefreshShowsIt() throws {
+        let vault = Vault(secrets: MemorySecrets(), directory: dir)
+        try vault.createAccount(words: try Vault.newPhrase(), restored: true)
+        let id = UUID()
+        _ = try vault.library!.saveTakes([["id": id.uuidString, "at": "2026-07-01T09:00:00Z", "isNote": true,
+                                           "blocks": [["k": "text", "text": "Mine"]]]])
+        let (harness, bridge) = page(with: vault)
+        _ = bridge
+        let fromPhone = try syncAdds("From the iPhone", to: vault)
+
+        _ = try harness.run("""
+            takes[0].blocks[0].text = 'Mine, edited'; takes[0].modifiedAt = Date.now(); saveTakes();
+            \(settle) return true;
+            """, in: self)
+        XCTAssertNotNil(try vault.library!.store.take(id: fromPhone), "the page's save must not delete a Take it never saw")
+        XCTAssertEqual(try vault.library!.store.take(id: id)?.plainText, "Mine, edited")
+
+        let shown = try harness.run("""
+            await catchlightBridge.refresh();
+            return JSON.stringify(takes.map(t => t.blocks[0].text).sort());
+            """, in: self) as? String
+        XCTAssertEqual(shown, #"["From the iPhone","Mine, edited"]"#)
+    }
+
+    func testARefreshWaitsForTheTakeBeingEdited() throws {
+        let vault = Vault(secrets: MemorySecrets(), directory: dir)
+        try vault.createAccount(words: try Vault.newPhrase(), restored: true)
+        _ = try vault.library!.saveTakes([["id": UUID().uuidString, "at": "2026-07-01T09:00:00Z", "isNote": true,
+                                           "blocks": [["k": "text", "text": "Mine"]]]])
+        let (harness, bridge) = page(with: vault)
+        _ = bridge
+        _ = try syncAdds("From the iPhone", to: vault)
+
+        let during = try harness.run("""
+            beginEdit(takes[0]);
+            const applied = await catchlightBridge.refresh();
+            return JSON.stringify([applied, takes.length]);
+            """, in: self) as? String
+        XCTAssertEqual(during, "[false,1]", "nothing replaces the list while a Take is open")
+
+        let after = try harness.run("""
+            commitEdit();
+            \(settle)
+            await new Promise(r => setTimeout(r, 50));
+            return takes.length;
+            """, in: self) as? Int
+        XCTAssertEqual(after, 2, "the refresh that waited goes once the edit ends")
+    }
 }

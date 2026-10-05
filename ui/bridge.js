@@ -43,11 +43,14 @@
   window.open = url => { post('openURL', { url: new URL(url, location.href).href }); return null; };
 
   // The library. A save sends the whole list; the shell writes what changed and keeps the rest.
-  // Saves go in order, one message each, so the last one sent is the one that stands.
+  // Saves go in order, one message each, so the last one sent is the one that stands. A Takes
+  // save names the snapshot its list came from (`generation`), and the shell diffs against that
+  // snapshot, so a Take sync added since is never read as one the page deleted (Library.swift).
   const library = window.catchlightLibrary;
+  let takesSaves = 0, refreshWaiting = false;
   // A Take the shell couldn't read keeps its stored version, so say so rather than let the edit
   // look saved.
-  const saveList = (kind, list) => post('save', { kind, list })
+  const saveList = (kind, list) => (kind === 'takes' && takesSaves++, post('save', { kind, list, generation: library.generation }))
     .then(r => { if (r?.rejected?.length) whenNoDialog(() => ask("A Take wasn't saved", `Catchlight couldn't read ${r.rejected.length === 1 ? 'one Take' : `${r.rejected.length} Takes`}, so the last version of it is kept. Report it, with this detail: ${r.rejected.join(', ')}`, [['OK', null, 'cancel']])); })
     .catch(e => {
       console.error(`Saving ${kind} failed`, e);
@@ -83,6 +86,21 @@
     pushMenu,
     library,
     save: saveList,
+    // Take the library as the shell holds it now. While a Take is open in the editor this waits
+    // for the edit to end, and if a save went out while the request was in flight it asks again,
+    // so the list the page keeps always includes its own latest save.
+    async refresh() {
+      if (typeof draft !== 'undefined' && draft) { refreshWaiting = true; return false; }
+      refreshWaiting = false;
+      const before = takesSaves;
+      const r = await post('reload');
+      if (takesSaves !== before || (typeof draft !== 'undefined' && draft)) return this.refresh();
+      library.takes = r.takes;
+      library.generation = r.generation;
+      replaceTakes(r.takes);
+      return true;
+    },
+    afterEdit() { if (refreshWaiting) this.refresh().catch(e => console.error('Refreshing the Takes failed', e)); },
     // The shell calls this as the app quits or the window closes: a Take being edited is saved
     // as a click outside it would save it, and the Script editor's pending (debounced) save goes
     // now. It answers once the shell has written everything sent before it.

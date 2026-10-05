@@ -224,6 +224,148 @@ final class LibraryTests: XCTestCase {
         let obies = try library.store.allTakes().filter(\.isObie)
         XCTAssertEqual(obies.map(\.id), [UUID(uuidString: second["id"] as! String)!])
     }
+
+    // MARK: Saves diff against the page's snapshot, not the store (M3: sync writes the store too)
+
+    /// What sync does to the store while the page holds its list: write a Take directly.
+    private func syncWrites(_ item: [String: Any], modified: Date = Date(timeIntervalSinceNow: 60)) throws -> Take {
+        let id = UUID(uuidString: item["id"] as! String)!
+        var take = try TakeTranslation.core(from: item, existing: try library.store.take(id: id), now: modified)
+        take.modifiedAt = modified
+        try library.store.upsert(take)
+        return try library.store.take(id: id)!
+    }
+
+    private func id(_ item: [String: Any]) -> UUID { UUID(uuidString: item["id"] as! String)! }
+
+    func testATakeSyncAddedSurvivesASaveOfTheOlderList() throws {
+        let a = page("A")
+        _ = try library.saveTakes([a])
+        let gen = try library.snapshot().generation
+        let fromPhone = page("From the iPhone")
+        _ = try syncWrites(fromPhone)
+
+        var a2 = a
+        a2["blocks"] = [["k": "text", "text": "A, edited"]]
+        let report = try library.saveTakes([a2], generation: gen)
+        XCTAssertEqual(report.upserted, 1)
+        XCTAssertEqual(report.deleted, 0)
+        XCTAssertNotNil(try library.store.take(id: id(fromPhone)), "a Take sync added is not the page's to delete")
+    }
+
+    func testATakeSyncUpdatedIsNotRevertedByTheStaleCopy() throws {
+        let a = page("A"), b = page("B")
+        _ = try library.saveTakes([a, b])
+        let gen = try library.snapshot().generation
+        var bRemote = b
+        bRemote["blocks"] = [["k": "text", "text": "B, edited on the iPhone"]]
+        _ = try syncWrites(bRemote)
+
+        var a2 = a
+        a2["blocks"] = [["k": "text", "text": "A, edited"]]
+        let report = try library.saveTakes([a2, b], generation: gen)   // b as the page last saw it
+        XCTAssertEqual(report, Library.SaveReport(upserted: 1, unchanged: 1))
+        XCTAssertEqual(try library.store.take(id: id(b))?.plainText, "B, edited on the iPhone")
+    }
+
+    func testBothSidesChangedKeepsBoth() throws {
+        let a = page("A")
+        _ = try library.saveTakes([a])
+        let gen = try library.snapshot().generation
+        var remote = a
+        remote["blocks"] = [["k": "text", "text": "A, from the iPhone"]]
+        _ = try syncWrites(remote)
+
+        var mine = a
+        mine["blocks"] = [["k": "text", "text": "A, from the Mac"]]
+        let report = try library.saveTakes([mine], generation: gen)
+        XCTAssertEqual(report.keptBoth.count, 1)
+        XCTAssertEqual(try library.store.take(id: id(a))?.plainText, "A, from the Mac")
+        XCTAssertEqual(try library.store.take(id: report.keptBoth[0])?.plainText, "A, from the iPhone")
+        XCTAssertEqual(try library.store.allTakes().count, 2)
+    }
+
+    func testDeletingATakeSyncChangedKeepsTheChange() throws {
+        let a = page("A"), b = page("B")
+        _ = try library.saveTakes([a, b])
+        let gen = try library.snapshot().generation
+        var bRemote = b
+        bRemote["blocks"] = [["k": "text", "text": "B, edited on the iPhone"]]
+        _ = try syncWrites(bRemote)
+
+        let report = try library.saveTakes([a], generation: gen)   // the page deleted b
+        XCTAssertEqual(report.deleted, 0)
+        XCTAssertEqual(report.keptOverDelete, [id(b)])
+        XCTAssertEqual(try library.store.take(id: id(b))?.plainText, "B, edited on the iPhone")
+    }
+
+    func testASaveFromTheOlderSnapshotIsDiffedAgainstIt() throws {
+        let a = page("A")
+        _ = try library.saveTakes([a])
+        let older = try library.snapshot().generation
+        let fromPhone = page("From the iPhone")
+        _ = try syncWrites(fromPhone)
+        let newer = try library.snapshot().generation   // the page asked for a refresh...
+        XCTAssertGreaterThan(newer, older)
+
+        // ...but a save it sent before the refresh arrived still describes the older list.
+        let report = try library.saveTakes([a], generation: older)
+        XCTAssertEqual(report, Library.SaveReport(unchanged: 1))
+        XCTAssertNotNil(try library.store.take(id: id(fromPhone)))
+    }
+
+    func testASnapshotTooOldIsRefusedAndWritesNothing() throws {
+        let a = page("A")
+        _ = try library.saveTakes([a])
+        let oldest = try library.snapshot().generation
+        for _ in 0..<8 { _ = try library.snapshot() }
+        XCTAssertThrowsError(try library.saveTakes([], generation: oldest)) {
+            XCTAssertEqual($0 as? Library.Failure, .staleSnapshot(oldest))
+        }
+        XCTAssertEqual(try library.store.allTakes().count, 1)
+    }
+
+    func testATakeSyncDeletedIsNotBroughtBackByLaterSaves() throws {
+        let a = page("A"), b = page("B")
+        _ = try library.saveTakes([a, b])
+        let gen = try library.snapshot().generation
+        try library.store.delete(id: id(b))   // sync applied another device's deletion
+
+        var a2 = a
+        a2["blocks"] = [["k": "text", "text": "A, edited"]]
+        _ = try library.saveTakes([a2, b], generation: gen)   // the page still lists b
+        var a3 = a2
+        a3["blocks"] = [["k": "text", "text": "A, edited again"]]
+        _ = try library.saveTakes([a3, b], generation: gen)
+        XCTAssertNil(try library.store.take(id: id(b)), "a Take deleted elsewhere stays deleted")
+    }
+
+    func testGenerationsNeverRepeatAcrossLibraries() throws {
+        let first = try library.snapshot().generation
+        let keys = KeyHierarchy(masterKey: SymmetricKey(size: .bits256))
+        let other = Library(store: try EncryptedTakeStore(keys: keys, directoryURL: dir.appendingPathComponent("other")),
+                            scripts: try ScriptVault(keys: keys, directory: dir.appendingPathComponent("other/Scripts")))
+        XCTAssertGreaterThan(try other.snapshot().generation, first)
+        XCTAssertThrowsError(try other.saveTakes([], generation: first), "another library's snapshot is never diffed against")
+    }
+
+    func testMovingTheObieIsNotReadAsAChangeElsewhere() throws {
+        let first = page("First", obie: true), second = page("Second")
+        _ = try library.saveTakes([first, second])
+        let gen = try library.snapshot().generation
+        var promoted = second
+        promoted["obie"] = true
+        var demoted = first
+        demoted["obie"] = false
+        _ = try library.saveTakes([demoted, promoted], generation: gen)
+        // The store demoted `first` itself; the page's next edit of it is the only change.
+        var edited = demoted
+        edited["blocks"] = [["k": "text", "text": "First, edited"]]
+        let report = try library.saveTakes([edited, promoted], generation: gen)
+        XCTAssertEqual(report.keptBoth, [])
+        XCTAssertEqual(report.upserted, 1)
+        XCTAssertEqual(try library.store.allTakes().count, 2)
+    }
 }
 
 // MARK: - Scripts: sealed on disk, one file each

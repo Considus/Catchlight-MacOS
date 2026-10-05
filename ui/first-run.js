@@ -178,9 +178,10 @@ function seedTakes() {
 }
 
 // The library the shell has just opened, shown as it is: nothing is saved back.
-function adoptLibrary({ takes: t = [], scripts: s = [] }) {
+function adoptLibrary({ takes: t = [], scripts: s = [], generation }) {
   const lib = window.catchlightBridge.library;
   takes = lib.takes = t; scripts = lib.scripts = s; current = null;
+  if (generation) lib.generation = generation;
   renderTakes(); renderScripts(); renderDoc(); $('#script-heading').textContent = '';
 }
 
@@ -196,6 +197,8 @@ async function finish() {
     try {
       const opened = await shell.createAccount(fr.restore ? fr.restoreWords : fr.words, fr.restore);
       lib.account = true;
+      // The Takes the page saves next are diffed against the library the shell just opened.
+      if (opened?.generation) lib.generation = opened.generation;
       if (fr.restore) fr.opened = opened;
     } catch (e) {
       ask("Couldn't secure your account on this Mac", `Nothing was saved. Try again, and if it happens again, report it with this detail: ${e}`, [['OK', null, 'cancel']]);
