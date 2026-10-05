@@ -234,13 +234,14 @@ layer.addEventListener('click', e => {
     case 'local': fr.storage = 'local'; fr.folder = null; show('localWarning'); break;
     case 'cloud': fr.storage = 'cloud'; show('folder'); break;
     case 'back-storage': show('storage'); break;
-    case 'pick-folder': fr.folder = shell.chooseFolder(); show('folder'); break;
+    // The Mac's open panel answers later (a promise), the browser stand-in at once; a cancel keeps what was there.
+    case 'pick-folder': Promise.resolve(shell.chooseFolder()).then(f => { if (f) fr.folder = f; show('folder'); }).catch(folderRefused); break;
     case 'risk': case 'folder-done': fr.words = shell.newPhrase(); show('reveal'); break;
     case 'written': newConfirm(); show('confirm'); break;
     case 'show-again': show('reveal'); break;
     case 'basics-next': if (fr.basics === 0) { fr.basics = 1; show('basics'); } else show('complete'); break;
     case 'do-restore': doRestore(); break;
-    case 'connect-folder': fr.folder = shell.chooseFolder(); finish(); break;
+    case 'connect-folder': Promise.resolve(shell.chooseFolder()).then(f => { if (!f) return; fr.folder = f; finish(); }).catch(folderRefused); break;
     case 'finish': finish(); break;
   }
 });

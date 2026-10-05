@@ -36,12 +36,13 @@ packages:
   # a Core change reaches the Mac only through a deliberate bump (D-344, D-350).
   CatchlightCore:
     url: https://github.com/Considus/Catchlight-Core
-    exactVersion: 1.0.1
+    exactVersion: 1.0.2
   # The encrypted SQLite store, the Keychain items and the BIP-39 wordlist, shared with the
-  # iPhone app so the two can't drift.
+  # iPhone app so the two can't drift. 1.1.0 adds FileCloudFolder, the sync folder (M3);
+  # it needs Core 1.0.2 or later within 1.0.x, hence the Core pin above.
   CatchlightAppleStorage:
     url: https://github.com/Considus/Catchlight-AppleStorage
-    exactVersion: 1.0.0
+    exactVersion: 1.1.0
 
 targets:
   Catchlight:
@@ -87,6 +88,11 @@ targets:
         # why the app is signed for the team rather than ad hoc.
         keychain-access-groups:
           - $(AppIdentifierPrefix)com.considus.catchlight
+        # The sync folder (M3): read and write the folder the user picks in the open panel,
+        # and keep a security-scoped bookmark to it so the app can reach it again after a
+        # relaunch. Only that folder: the sandbox still keeps the rest of the disk out.
+        com.apple.security.files.user-selected.read-write: true
+        com.apple.security.files.bookmarks.app-scope: true
     dependencies:
       - package: CatchlightCore
         product: CatchlightCore

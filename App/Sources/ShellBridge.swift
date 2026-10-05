@@ -31,7 +31,8 @@ enum SystemInfo {
 /// - `dragWindow`, `titlebarDoubleClick`: the page's toolbar standing in for the title bar;
 /// - `save {kind: 'takes'|'scripts', list}`: the page's whole list, written to the library;
 /// - `validatePhrase {words}`, `createAccount {words, restored}`, `replaceAccount {words}`,
-///   `revealPhrase`, `eraseEverything`: the account, through the `Vault`.
+///   `revealPhrase`, `eraseEverything`: the account, through the `Vault`;
+/// - `chooseFolder`, `forgetFolder`: the sync folder, through `SyncFolder` (the open panel).
 final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
     static let name = "catchlight"
     private static let log = Logger(subsystem: "com.considus.catchlight.mac", category: "bridge")
@@ -40,14 +41,18 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
     var onMenuModel: (([MenuEntry]) -> Void)?
     var openExternally: (URL) -> Void = { NSWorkspace.shared.open($0) }
     var vault: Vault?
+    /// The sync folder. Nil in tests that don't need one, and then the page offers none.
+    var syncFolder: SyncFolder?
     /// Set when the library could not be read at launch. The page then holds empty lists, and
     /// a save from it would be applied as the whole library, so every save is refused.
     private(set) var libraryUnreadable = false
 
     /// Defines `window.catchlightShell` before any of the page's own scripts run, with the values
-    /// baked in, so `shell.systemInfo()` stays synchronous.
-    static func injectedValues() -> WKUserScript {
-        let values: [String: String] = ["platform": "mac", "osName": "macOS", "osVersion": SystemInfo.osVersion, "model": SystemInfo.model]
+    /// baked in, so `shell.systemInfo()` stays synchronous. `folder` is the sync folder's path as
+    /// the page shows it, or absent when none is chosen or its bookmark no longer opens.
+    static func injectedValues(folder: String? = nil) -> WKUserScript {
+        var values: [String: String] = ["platform": "mac", "osName": "macOS", "osVersion": SystemInfo.osVersion, "model": SystemInfo.model]
+        if let folder { values["folder"] = folder }
         let json = (try? JSONSerialization.data(withJSONObject: values, options: [.sortedKeys])).flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
         let source = "window.catchlightShell = Object.freeze(\(json));"
         return WKUserScript(source: source, injectionTime: .atDocumentStart, forMainFrameOnly: true, in: .page)
@@ -94,7 +99,7 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
     }
 
     private func addUserScripts(to controller: WKUserContentController) {
-        controller.addUserScript(Self.injectedValues())
+        controller.addUserScript(Self.injectedValues(folder: syncFolder?.displayPath))
         if vault != nil { controller.addUserScript(injectedLibrary()) }
     }
 
@@ -143,6 +148,19 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
             case "None": break
             default: window?.performZoom(nil)
             }
+            replyHandler(true, nil)
+        case "chooseFolder":
+            // The open panel, as a sheet on the window. The answer is the path to show, or null
+            // when the user cancels; the bookmark stays here.
+            guard let syncFolder else { return replyHandler(nil, "no sync folder in this build") }
+            syncFolder.choose(in: window) {
+                switch $0 {
+                case .success(let path): replyHandler(path ?? NSNull(), nil)
+                case .failure(let error): replyHandler(nil, error.localizedDescription)
+                }
+            }
+        case "forgetFolder":
+            syncFolder?.forget()
             replyHandler(true, nil)
         case "ping":
             // A round trip: messages are handled in order, so everything sent before it is done.
@@ -195,12 +213,15 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                 // (Vault.replaceAccount).
                 guard Vault.isValid(words) else { return reply(nil, "invalid phrase") }
                 try vault.replaceAccount(words: words)
+                // The old cloud folder belongs to the account being replaced (AppModel, as iOS).
+                syncFolder?.forget()
                 libraryUnreadable = false
                 reply(try libraryContents(vault), nil)
             case "revealPhrase":
                 reply(vault.phrase() as Any? ?? NSNull(), nil)
             case "eraseEverything":
                 try vault.eraseEverything()
+                syncFolder?.forget()   // nothing of the erased account stays connected
                 reply(true, nil)
             default:
                 reply(nil, "unknown command \(cmd)")

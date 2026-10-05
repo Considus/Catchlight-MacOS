@@ -22,6 +22,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
         // Offline: no Safe Browsing lookups either.
         configuration.preferences.isFraudulentWebsiteWarningEnabled = false
         bridge.vault = vault
+        bridge.syncFolder = SyncFolder()
         bridge.install(in: configuration.userContentController)
         webView = WKWebView(frame: .zero, configuration: configuration)
         #if DEBUG
