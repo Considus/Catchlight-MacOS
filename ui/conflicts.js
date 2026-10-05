@@ -18,8 +18,8 @@ document.body.append(conflictSheet);
 
 let conflictList = [];
 const conflictChoice = {};              // id → 'local' | 'remote', picked but not yet kept
-const conflictSkipped = new Set();
-const conflictSeen = {};               // id → the versions a pick was made against      // Skip for now: hidden until the next launch or sync finds it again
+const conflictSkipped = new Set();     // Skip for now: hidden until the next launch or sync finds it again
+const conflictSeen = {};               // id → the versions a pick was made against
 
 const conflictText = t => (t.blocks || []).map(b => (b.k === 'check' ? (b.done ? '☑ ' : '☐ ') : '') + b.text).join('\n').trim() || 'Untitled Take';
 const conflictWhen = t => {
