@@ -54,7 +54,9 @@
     .then(r => {
       // The shell kept a Take the page doesn't hold (both versions after a change on both sides,
       // or one the page deleted that changed elsewhere): take the library again so it shows.
-      if (r?.keptBoth || r?.keptOverDelete) window.catchlightBridge.refresh().catch(e => console.error('Refreshing the Takes failed', e));
+      // Not when a Take was rejected: the page still holds that unsaved edit, and a refresh would
+      // replace it with the stored version before the user could see it.
+      if ((r?.keptBoth || r?.keptOverDelete) && !r?.rejected?.length) window.catchlightBridge.refresh().catch(e => console.error('Refreshing the Takes failed', e));
       if (r?.rejected?.length) whenNoDialog(() => ask("A Take wasn't saved", `Catchlight couldn't read ${r.rejected.length === 1 ? 'one Take' : `${r.rejected.length} Takes`}, so the last version of it is kept. Report it, with this detail: ${r.rejected.join(', ')}`, [['OK', null, 'cancel']]));
     })
     .catch(e => {

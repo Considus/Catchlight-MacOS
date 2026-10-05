@@ -312,4 +312,32 @@ final class PageLibraryTests: XCTestCase {
             """, in: self) as? String
         XCTAssertEqual(shown, #"["From the Mac","From the iPhone"]"#)
     }
+
+    /// #50 review (Greptile): a save that keeps a copy AND rejects a Take leaves the page's list
+    /// alone, so the rejected edit is still there to see.
+    func testARejectedEditIsNotRefreshedAway() throws {
+        let vault = Vault(secrets: MemorySecrets(), directory: dir)
+        try vault.createAccount(words: try Vault.newPhrase(), restored: true)
+        let a = UUID(), b = UUID()
+        _ = try vault.library!.saveTakes([
+            ["id": a.uuidString, "at": "2026-07-01T09:00:00Z", "isNote": true, "blocks": [["k": "text", "text": "A"]]],
+            ["id": b.uuidString, "at": "2026-07-01T09:00:00Z", "isNote": true, "blocks": [["k": "text", "text": "B"]]],
+        ])
+        let (harness, bridge) = page(with: vault)
+        _ = bridge
+        var remote = try vault.library!.store.take(id: a)!
+        remote.blocks = [.text(TextBlock(text: "A, from the iPhone"))]
+        remote.modifiedAt = Date(timeIntervalSinceNow: 60)
+        try vault.library!.store.upsert(remote)
+
+        let shown = try harness.run("""
+            takes[0].blocks[0].text = 'A, from the Mac'; takes[0].modifiedAt = Date.now();
+            takes[1].at = 'not a date'; takes[1].blocks[0].text = 'B, unsaved';
+            saveTakes();
+            \(settle)
+            await new Promise(r => setTimeout(r, 300));
+            return JSON.stringify(takes.map(t => t.blocks[0].text).sort());
+            """, in: self) as? String
+        XCTAssertEqual(shown, #"["A, from the Mac","B, unsaved"]"#, "the page keeps its list, the rejected edit included")
+    }
 }
