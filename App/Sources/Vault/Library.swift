@@ -86,22 +86,24 @@ final class Library {
         for item in page {
             let id = (item["id"] as? String).flatMap(UUID.init(uuidString:))
             if let id { seen.insert(id) }
-            do {
-                let was = id.flatMap { base[$0] }
-                let take = try TakeTranslation.core(from: item, existing: was, now: now)
-                if was != nil, take == was { report.unchanged += 1; continue }
-                if let now = stored[take.id], let was, now != was, now != take {
-                    // Both changed it: keep the page's edit, and the synced version as a copy.
-                    let copy = Self.copy(of: now)
-                    try store.upsert(copy)
-                    report.keptBoth.append(copy.id)
-                    Self.log.info("a Take changed here and elsewhere: both versions kept")
-                }
-                changed.append(take)
-            } catch {
+            let was = id.flatMap { base[$0] }
+            let take: Take
+            do { take = try TakeTranslation.core(from: item, existing: was, now: now) } catch {
                 report.rejected.append(item["id"] as? String ?? "?")
                 Self.log.error("a Take did not translate: \(String(describing: error), privacy: .public)")
+                continue
             }
+            if was != nil, take == was { report.unchanged += 1; continue }
+            if let now = stored[take.id], let was, now != was, now != take {
+                // Both changed it: keep the page's edit, and the synced version as a copy. A
+                // store failure here fails the whole save, as any other write does, so the page
+                // says so; only a Take that can't be translated counts as rejected.
+                let copy = Self.copy(of: now)
+                try store.upsert(copy)
+                report.keptBoth.append(copy.id)
+                Self.log.info("a Take changed here and elsewhere: both versions kept")
+            }
+            changed.append(take)
         }
         // The Obie last: upserting it demotes any other, so the page's choice is the one that stands.
         for take in changed.sorted(by: { !$0.isObie && $1.isObie }) {

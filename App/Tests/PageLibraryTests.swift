@@ -264,4 +264,30 @@ final class PageLibraryTests: XCTestCase {
             """, in: self) as? Int
         XCTAssertEqual(after, 2, "the refresh that waited goes once the edit ends")
     }
+    /// #50 review (Greptile): a Focus-ring opened from the list holds the Take with no editor open.
+    func testARefreshWaitsForAFocusRingOpenFromTheList() throws {
+        let vault = Vault(secrets: MemorySecrets(), directory: dir)
+        try vault.createAccount(words: try Vault.newPhrase(), restored: true)
+        _ = try vault.library!.saveTakes([["id": UUID().uuidString, "at": "2026-07-01T09:00:00Z", "isNote": true,
+                                           "blocks": [["k": "text", "text": "Mine"]]]])
+        let (harness, bridge) = page(with: vault)
+        _ = bridge
+        _ = try syncAdds("From the iPhone", to: vault)
+
+        let during = try harness.run("""
+            const ir = document.querySelector(`[data-iris="${takes[0].id}"]`);
+            openFocusRing(takes[0], ir, false);
+            const applied = await catchlightBridge.refresh();
+            return JSON.stringify([applied, takes.length]);
+            """, in: self) as? String
+        XCTAssertEqual(during, "[false,1]", "nothing replaces the list while a Focus-ring holds a Take")
+
+        let after = try harness.run("""
+            closeFocusRing(true);
+            \(settle)
+            await new Promise(r => setTimeout(r, 50));
+            return takes.length;
+            """, in: self) as? Int
+        XCTAssertEqual(after, 2, "the refresh that waited goes once the ring closes")
+    }
 }

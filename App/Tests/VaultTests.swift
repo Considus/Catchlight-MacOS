@@ -708,3 +708,58 @@ final class VaultTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: dir.path))
     }
 }
+
+// MARK: - A store that fails on demand
+
+/// Delegates to a real store and throws from `upsert` once `failUpserts` is set.
+private final class FailingStore: TakeStore {
+    struct Refused: Error {}
+    let real: TakeStore
+    var failUpserts = false
+    init(_ real: TakeStore) { self.real = real }
+    func upsert(_ take: Take) throws { if failUpserts { throw Refused() }; try real.upsert(take) }
+    func delete(id: UUID) throws { try real.delete(id: id) }
+    func take(id: UUID) throws -> Take? { try real.take(id: id) }
+    func allTakes() throws -> [Take] { try real.allTakes() }
+    func takesModified(since date: Date?) throws -> [Take] { try real.takesModified(since: date) }
+    func search(_ query: String) throws -> [Take] { try real.search(query) }
+    func upsert(_ sequence: CatchlightSequence) throws { try real.upsert(sequence) }
+    func sequence(id: UUID) throws -> CatchlightSequence? { try real.sequence(id: id) }
+    func allSequences() throws -> [CatchlightSequence] { try real.allSequences() }
+    func deleteSequence(id: UUID) throws { try real.deleteSequence(id: id) }
+    func currentObie() throws -> Take? { try real.currentObie() }
+    func setObie(id: UUID, replaceExisting: Bool) throws { try real.setObie(id: id, replaceExisting: replaceExisting) }
+    func lastSyncDate() -> Date? { real.lastSyncDate() }
+    func setLastSyncDate(_ date: Date) { real.setLastSyncDate(date) }
+    func tombstones() throws -> [Tombstone] { try real.tombstones() }
+    func purgeTombstones(ids: [UUID]) throws { try real.purgeTombstones(ids: ids) }
+    func applyRemote(_ take: Take) throws -> Bool { try real.applyRemote(take) }
+    func release(id: UUID, ifNotModifiedAfter cutoff: Date) throws -> Bool { try real.release(id: id, ifNotModifiedAfter: cutoff) }
+}
+
+final class LibraryStoreFailureTests: XCTestCase {
+    /// #50 review (Greptile): when both sides changed a Take and writing the copy fails, the save
+    /// fails, as any store failure does, rather than reporting the Take as unreadable.
+    func testAFailedConflictCopyFailsTheSave() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("catchlight-mac-failing-\(UUID())")
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let keys = KeyHierarchy(masterKey: SymmetricKey(size: .bits256))
+        let store = FailingStore(try EncryptedTakeStore(keys: keys, directoryURL: dir))
+        let library = Library(store: store, scripts: try ScriptVault(keys: keys, directory: dir.appendingPathComponent("Scripts")))
+        let id = UUID()
+        let a: [String: Any] = ["id": id.uuidString, "at": "2026-07-01T09:00:00Z", "isNote": true, "blocks": [["k": "text", "text": "A"]]]
+        _ = try library.saveTakes([a])
+        let gen = try library.snapshot().generation
+        var remote = a
+        remote["blocks"] = [["k": "text", "text": "A, from the iPhone"]]
+        var synced = try TakeTranslation.core(from: remote, existing: try store.take(id: id), now: Date(timeIntervalSinceNow: 60))
+        synced.modifiedAt = Date(timeIntervalSinceNow: 60)
+        try store.upsert(synced)
+
+        var mine = a
+        mine["blocks"] = [["k": "text", "text": "A, from the Mac"]]
+        store.failUpserts = true
+        XCTAssertThrowsError(try library.saveTakes([mine], generation: gen))
+        XCTAssertEqual(try store.take(id: id)?.plainText, "A, from the iPhone", "nothing half-written")
+    }
+}

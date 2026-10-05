@@ -117,6 +117,7 @@ function closeReminder() {
   if (!wasOpen) return;   // endEdit tidies up a picker that wasn't open: nothing to hand back
   if (focusRing) { if (back?.isConnected) back.focus(); return; }   // back to the Remind Mark
   if (draft) restoreCaret(); else if (back?.isConnected) back.focus();
+  window.catchlightBridge?.afterEdit();   // a refresh that waited for the picker goes now
 }
 const cancelReminder = () => { const c = reminderCancel; closeReminder(); c && c(); };
 

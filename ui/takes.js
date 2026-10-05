@@ -176,6 +176,9 @@ function renderTakes() {
 // (KeyboardTakeEditor on iOS). Clicking outside, Escape and ⌘S save; only × discards.
 const sidebar = $('#sidebar'), editorCard = $('#take-editor'), rows = $('#take-rows');
 let draft = null, original = null, focusRing = null;
+// A Take is held open: in the editor, in a Focus-ring, or in the reminder picker. Each holds the
+// Take itself, so the list must not be replaced under it (bridge.js refresh waits for all three).
+const editingTake = () => !!(draft || focusRing || (typeof reminderFor !== 'undefined' && reminderFor));
 let draftComplete = false;   // was every item ticked at the last change? (All tasks done)
 
 function beginEdit(t, isNew = false) {
@@ -543,6 +546,7 @@ function closeFocusRing(apply) {
   const ring = $('#focus-ring');
   ring.classList.remove('open');
   focusRing = null;
+  window.catchlightBridge?.afterEdit();   // a refresh that waited for the ring goes now
   setTimeout(() => { ring.hidden = true; ring.innerHTML = ''; sidebar.classList.remove('ringed'); }, still.matches ? 0 : 840);
   ringInert(false);
   if (fromEditor) {

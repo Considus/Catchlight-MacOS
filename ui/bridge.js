@@ -86,15 +86,16 @@
     pushMenu,
     library,
     save: saveList,
-    // Take the library as the shell holds it now. While a Take is open in the editor this waits
-    // for the edit to end, and if a save went out while the request was in flight it asks again,
+    // Take the library as the shell holds it now. While a Take is held open (the editor, a
+    // Focus-ring, the reminder picker) this waits for it to close, and if a save went out while the request was in flight it asks again,
     // so the list the page keeps always includes its own latest save.
     async refresh() {
-      if (typeof draft !== 'undefined' && draft) { refreshWaiting = true; return false; }
+      const busy = () => typeof editingTake === 'function' && editingTake();
+      if (busy()) { refreshWaiting = true; return false; }
       refreshWaiting = false;
       const before = takesSaves;
       const r = await post('reload');
-      if (takesSaves !== before || (typeof draft !== 'undefined' && draft)) return this.refresh();
+      if (takesSaves !== before || busy()) return this.refresh();
       library.takes = r.takes;
       library.generation = r.generation;
       replaceTakes(r.takes);
