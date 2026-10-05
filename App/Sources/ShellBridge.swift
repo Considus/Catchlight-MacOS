@@ -62,7 +62,9 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
             if let library = vault.library {
                 value["account"] = true
                 do {
-                    value["takes"] = try library.pageTakes()
+                    let snapshot = try library.snapshot()
+                    value["takes"] = snapshot.takes
+                    value["generation"] = snapshot.generation
                     value["scripts"] = try library.pageScripts()
                     // A damaged Script is kept on disk but can't be shown: the page says so.
                     if !library.scripts.unreadable.isEmpty { value["unreadableScripts"] = library.scripts.unreadable.count }
@@ -147,7 +149,7 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
         case "ping":
             // A round trip: messages are handled in order, so everything sent before it is done.
             replyHandler(true, nil)
-        case "save", "validatePhrase", "createAccount", "replaceAccount", "revealPhrase", "eraseEverything":
+        case "save", "reload", "validatePhrase", "createAccount", "replaceAccount", "revealPhrase", "eraseEverything":
             handleLibrary(cmd, body, replyHandler)
         default:
             replyHandler(nil, "unknown command \(cmd)")
@@ -158,7 +160,8 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
 
     private func libraryContents(_ vault: Vault) throws -> [String: Any] {
         guard let library = vault.library else { return ["takes": [Any](), "scripts": [Any]()] }
-        return ["takes": try library.pageTakes(), "scripts": try library.pageScripts()]
+        let snapshot = try library.snapshot()
+        return ["takes": snapshot.takes, "generation": snapshot.generation, "scripts": try library.pageScripts()]
     }
 
     private func handleLibrary(_ cmd: String, _ body: [String: Any], _ reply: @escaping (Any?, String?) -> Void) {
@@ -172,16 +175,24 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                 guard let list = body["list"] as? [[String: Any]] else { return reply(nil, "save needs a list") }
                 switch body["kind"] as? String {
                 case "takes":
-                    let report = try library.saveTakes(list)
-                    Self.log.info("takes saved: \(report.upserted) written, \(report.deleted) deleted, \(report.rejected.count) rejected")
+                    let report = try library.saveTakes(list, generation: body["generation"] as? Int)
+                    Self.log.info("takes saved: \(report.upserted) written, \(report.deleted) deleted, \(report.rejected.count) rejected, \(report.keptBoth.count) kept both, \(report.keptOverDelete.count) kept over a delete")
                     if !report.rejected.isEmpty { Self.log.error("save kept \(report.rejected.count) Takes it could not read") }
-                    reply(["upserted": report.upserted, "deleted": report.deleted, "rejected": report.rejected], nil)
+                    reply(["upserted": report.upserted, "deleted": report.deleted, "rejected": report.rejected,
+                           "keptBoth": report.keptBoth.count, "keptOverDelete": report.keptOverDelete.count], nil)
                 case "scripts":
                     try library.saveScripts(list)
                     reply(true, nil)
                 default:
                     reply(nil, "save needs kind takes or scripts")
                 }
+            case "reload":
+                // The page asks for the library as it is now (after a sync, say). Everything it
+                // sent before this has been handled, because messages are handled in order.
+                guard let library = vault.library else { return reply(nil, "locked") }
+                guard !libraryUnreadable else { return reply(nil, "the library could not be read") }
+                let snapshot = try library.snapshot()
+                reply(["generation": snapshot.generation, "takes": snapshot.takes], nil)
             case "validatePhrase":
                 reply(Vault.isValid(words), nil)
             // Both answer with the library now open, so after a restore the page shows what the
