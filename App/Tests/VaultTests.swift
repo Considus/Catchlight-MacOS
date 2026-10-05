@@ -268,7 +268,7 @@ final class LibraryTests: XCTestCase {
         XCTAssertEqual(try library.store.take(id: id(b))?.plainText, "B, edited on the iPhone")
     }
 
-    func testBothSidesChangedKeepsBoth() throws {
+    func testBothSidesChangedGoesToTheConflictScreen() throws {
         let a = page("A")
         _ = try library.saveTakes([a])
         let gen = try library.snapshot().generation
@@ -279,10 +279,11 @@ final class LibraryTests: XCTestCase {
         var mine = a
         mine["blocks"] = [["k": "text", "text": "A, from the Mac"]]
         let report = try library.saveTakes([mine], generation: gen)
-        XCTAssertEqual(report.keptBoth.count, 1)
-        XCTAssertEqual(try library.store.take(id: id(a))?.plainText, "A, from the Mac")
-        XCTAssertEqual(try library.store.take(id: report.keptBoth[0])?.plainText, "A, from the iPhone")
-        XCTAssertEqual(try library.store.allTakes().count, 2)
+        XCTAssertEqual(report.conflicts.count, 1)
+        XCTAssertEqual(report.conflicts.first?.local.plainText, "A, from the Mac")
+        XCTAssertEqual(report.conflicts.first?.remote.plainText, "A, from the iPhone")
+        XCTAssertEqual(try library.store.take(id: id(a))?.plainText, "A, from the Mac", "the Mac's edit stands until the user chooses")
+        XCTAssertEqual(try library.store.allTakes().count, 1)
     }
 
     func testDeletingATakeSyncChangedKeepsTheChange() throws {
@@ -362,7 +363,7 @@ final class LibraryTests: XCTestCase {
         var edited = demoted
         edited["blocks"] = [["k": "text", "text": "First, edited"]]
         let report = try library.saveTakes([edited, promoted], generation: gen)
-        XCTAssertEqual(report.keptBoth, [])
+        XCTAssertTrue(report.conflicts.isEmpty)
         XCTAssertEqual(report.upserted, 1)
         XCTAssertEqual(try library.store.allTakes().count, 2)
     }
@@ -738,9 +739,9 @@ private final class FailingStore: TakeStore {
 }
 
 final class LibraryStoreFailureTests: XCTestCase {
-    /// #50 review (Greptile): when both sides changed a Take and writing the copy fails, the save
-    /// fails, as any store failure does, rather than reporting the Take as unreadable.
-    func testAFailedConflictCopyFailsTheSave() throws {
+    /// #50 review (Greptile): a store failure while saving a Take both sides changed fails the
+    /// whole save, as any store failure does, rather than reporting the Take as unreadable.
+    func testAStoreFailureOnAConflictFailsTheSave() throws {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("catchlight-mac-failing-\(UUID())")
         defer { try? FileManager.default.removeItem(at: dir) }
         let keys = KeyHierarchy(masterKey: SymmetricKey(size: .bits256))

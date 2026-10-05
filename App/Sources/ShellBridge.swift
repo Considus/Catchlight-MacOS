@@ -32,7 +32,8 @@ enum SystemInfo {
 /// - `save {kind: 'takes'|'scripts', list}`: the page's whole list, written to the library;
 /// - `validatePhrase {words}`, `createAccount {words, restored}`, `replaceAccount {words}`,
 ///   `revealPhrase`, `eraseEverything`: the account, through the `Vault`;
-/// - `chooseFolder`, `forgetFolder`: the sync folder, through `SyncFolder` (the open panel).
+/// - `chooseFolder`, `forgetFolder`: the sync folder, through `SyncFolder` (the open panel);
+/// - `sync {trigger}`: one sync pass through `SyncService`, answered with what it did.
 final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
     static let name = "catchlight"
     private static let log = Logger(subsystem: "com.considus.catchlight.mac", category: "bridge")
@@ -43,6 +44,8 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
     var vault: Vault?
     /// The sync folder. Nil in tests that don't need one, and then the page offers none.
     var syncFolder: SyncFolder?
+    /// Sync (M3). Nil in tests that don't need it, and then a `sync` request is answered as skipped.
+    var sync: SyncService?
     /// Set when the library could not be read at launch. The page then holds empty lists, and
     /// a save from it would be applied as the whole library, so every save is refused.
     private(set) var libraryUnreadable = false
@@ -115,6 +118,14 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
             replyHandler(nil, "refused")
             return
         }
+        // These must not overlap a sync pass (SyncService.whenIdle); the flush's `ping` waits too,
+        // so everything the page sent before quitting is written before the app goes.
+        if ["save", "reload", "createAccount", "replaceAccount", "eraseEverything", "ping"].contains(cmd), let sync, sync.isSyncing {
+            sync.whenIdle { [weak self] in
+                self?.userContentController(userContentController, didReceive: message, replyHandler: replyHandler)
+            }
+            return
+        }
         switch cmd {
         case "menu":
             guard let json = body["model"] as? String else { return replyHandler(nil, "menu needs a model") }
@@ -164,6 +175,21 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
         case "forgetFolder":
             syncFolder?.forget()
             replyHandler(true, nil)
+        case "sync":
+            guard let sync, !libraryUnreadable else { return replyHandler(["skipped": true], nil) }
+            let before = sync.conflicts.count
+            sync.run { outcome in
+                switch outcome {
+                case .skipped:
+                    replyHandler(["skipped": true], nil)
+                case .failed(let error):
+                    replyHandler(["error": SyncService.notice(for: error) as Any? ?? NSNull()], nil)
+                case .finished(let r):
+                    replyHandler(["applied": r.applied.count, "deleted": r.deletedLocally.count, "uploaded": r.uploaded.count,
+                                  "conflicts": sync.conflicts.count, "newConflicts": max(0, sync.conflicts.count - before),
+                                  "quarantined": r.quarantined.count, "heldBack": r.heldBack.count], nil)
+                }
+            }
         case "ping":
             // A round trip: messages are handled in order, so everything sent before it is done.
             replyHandler(true, nil)
@@ -194,10 +220,12 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                 switch body["kind"] as? String {
                 case "takes":
                     let report = try library.saveTakes(list, generation: body["generation"] as? Int)
-                    Self.log.info("takes saved: \(report.upserted) written, \(report.deleted) deleted, \(report.rejected.count) rejected, \(report.keptBoth.count) kept both, \(report.keptOverDelete.count) kept over a delete")
+                    // A Take changed here and by sync since the page's snapshot: the user chooses.
+                    sync?.conflicts.enqueue(report.conflicts)
+                    Self.log.info("takes saved: \(report.upserted) written, \(report.deleted) deleted, \(report.rejected.count) rejected, \(report.conflicts.count) to the conflict screen, \(report.keptOverDelete.count) kept over a delete")
                     if !report.rejected.isEmpty { Self.log.error("save kept \(report.rejected.count) Takes it could not read") }
                     reply(["upserted": report.upserted, "deleted": report.deleted, "rejected": report.rejected,
-                           "keptBoth": report.keptBoth.count, "keptOverDelete": report.keptOverDelete.count], nil)
+                           "conflicts": report.conflicts.count, "keptOverDelete": report.keptOverDelete.count], nil)
                 case "scripts":
                     try library.saveScripts(list)
                     reply(true, nil)

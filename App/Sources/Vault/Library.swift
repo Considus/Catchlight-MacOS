@@ -21,11 +21,19 @@ final class Library {
         var unchanged = 0
         /// Takes the page sent that could not be translated; the stored version is left alone.
         var rejected: [String] = []
-        /// Takes the page changed that sync had changed too since the page's snapshot. The
-        /// page's version is kept and the synced one is kept beside it as a copy (ids of the copies).
-        var keptBoth: [UUID] = []
+        /// Takes the page changed that sync had changed too since the page's snapshot: the page's
+        /// version is written, and each pair goes to the conflict screen, where the user keeps
+        /// this Mac's version, the synced one, or both (owner, 2026-10-05).
+        var conflicts: [(local: Take, remote: Take)] = []
         /// Takes the page deleted that sync had changed since: the change wins and the Take stays.
         var keptOverDelete: [UUID] = []
+
+        static func == (a: SaveReport, b: SaveReport) -> Bool {
+            a.upserted == b.upserted && a.deleted == b.deleted && a.unchanged == b.unchanged
+                && a.rejected == b.rejected && a.keptOverDelete == b.keptOverDelete
+                && a.conflicts.map(\.local) == b.conflicts.map(\.local)
+                && a.conflicts.map(\.remote) == b.conflicts.map(\.remote)
+        }
     }
 
     enum Failure: Error, LocalizedError, Equatable {
@@ -95,13 +103,10 @@ final class Library {
             }
             if was != nil, take == was { report.unchanged += 1; continue }
             if let now = stored[take.id], let was, now != was, now != take {
-                // Both changed it: keep the page's edit, and the synced version as a copy. A
-                // store failure here fails the whole save, as any other write does, so the page
-                // says so; only a Take that can't be translated counts as rejected.
-                let copy = Self.copy(of: now)
-                try store.upsert(copy)
-                report.keptBoth.append(copy.id)
-                Self.log.info("a Take changed here and elsewhere: both versions kept")
+                // Both changed it: the page's edit is written, and the user chooses on the
+                // conflict screen, as for a conflict sync finds.
+                report.conflicts.append((local: take, remote: now))
+                Self.log.info("a Take changed here and elsewhere: sent to the conflict screen")
             }
             changed.append(take)
         }
@@ -138,19 +143,6 @@ final class Library {
         }
         snapshots[gen] = base
         return report
-    }
-
-    /// The synced version kept beside the page's edit: a new id, and a new notification id for its
-    /// reminder so the two never cancel each other (as Core's own fork, `SyncEngine.fork`).
-    private static func copy(of take: Take) -> Take {
-        let id = UUID()
-        var reminder = take.timeReminder
-        reminder?.notificationIdentifier = id.uuidString
-        return Take(id: id, createdAt: take.createdAt, modifiedAt: take.modifiedAt,
-                    blocks: take.blocks, contentType: take.contentType, isNote: take.isNote,
-                    isObie: false, timeReminder: reminder,
-                    locationReminder: take.locationReminder, attachments: take.attachments,
-                    isSeeded: false, isImportant: take.isImportant, manualOrder: take.manualOrder)
     }
 
     func pageScripts() throws -> [[String: Any]] { try scripts.all() }

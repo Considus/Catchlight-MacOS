@@ -50,13 +50,13 @@
   let takesSaves = 0, refreshWaiting = false;
   // A Take the shell couldn't read keeps its stored version, so say so rather than let the edit
   // look saved.
-  const saveList = (kind, list) => (kind === 'takes' && takesSaves++, post('save', { kind, list, generation: library.generation }))
+  const saveList = (kind, list) => (kind === 'takes' && (takesSaves++, syncSoon()), post('save', { kind, list, generation: library.generation }))
     .then(r => {
-      // The shell kept a Take the page doesn't hold (both versions after a change on both sides,
-      // or one the page deleted that changed elsewhere): take the library again so it shows.
+      // The shell kept a Take the page deleted that changed elsewhere: take the library again
+      // so it shows. (A Take changed here and by sync goes to the conflict screen instead.)
       // Not when a Take was rejected: the page still holds that unsaved edit, and a refresh would
       // replace it with the stored version before the user could see it.
-      if ((r?.keptBoth || r?.keptOverDelete) && !r?.rejected?.length) window.catchlightBridge.refresh().catch(e => console.error('Refreshing the Takes failed', e));
+      if (r?.keptOverDelete && !r?.rejected?.length) window.catchlightBridge.refresh().catch(e => console.error('Refreshing the Takes failed', e));
       if (r?.rejected?.length) whenNoDialog(() => ask("A Take wasn't saved", `Catchlight couldn't read ${r.rejected.length === 1 ? 'one Take' : `${r.rejected.length} Takes`}, so the last version of it is kept. Report it, with this detail: ${r.rejected.join(', ')}`, [['OK', null, 'cancel']]));
     })
     .catch(e => {
@@ -98,6 +98,37 @@
     }
   } catch { /* no account record yet, or storage unavailable */ }
 
+  // Sync (M3). When to sync is decided here, where the sync setting lives; the shell runs one pass
+  // at a time and answers a request during a pass as skipped. As the iPhone does: at launch, a
+  // few seconds after a save, when the window comes forward (at most once a minute), every 15
+  // minutes, and on Sync Now. Manual syncs only on Sync Now; Disabled never.
+  let syncing = null, saveTimer = 0, lastFocusSync = 0;
+  const syncMode = () => (typeof settings !== 'undefined' && settings.syncMode) || 'automatic';
+  const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+  function sync(trigger) {
+    if (!library?.account || !store.get('account', {})?.folder) return Promise.resolve({ skipped: true });
+    const mode = syncMode();
+    if (mode === 'disabled' || (mode === 'manual' && trigger !== 'manual')) return Promise.resolve({ skipped: true });
+    if (syncing) return syncing;
+    syncing = post('sync', { trigger })
+      .then(async r => {
+        // The iPhone's words (Notice.message), so both apps say the same thing.
+        if (r?.error) notice(r.error, 'sync');
+        if (r?.applied || r?.deleted) await window.catchlightBridge.refresh().catch(e => console.error('Refreshing the Takes failed', e));
+        if (r?.newConflicts) notice(`${plural(r.newConflicts, 'Take', 'Takes')} changed on another device.`, 'conflict');
+        if (r?.quarantined) notice(`${plural(r.quarantined, 'Take', 'Takes')} couldn't be verified and were skipped.`, 'quarantine');
+        if (r?.heldBack) notice(`${plural(r.heldBack, 'Take', 'Takes')} not re-uploaded. This device was away too long to rule out deletion elsewhere. Edit a Take to sync it again.`, 'sync');
+        return r;
+      })
+      .catch(e => { console.error('Sync failed', e); return { error: String(e?.message ?? e) }; })
+      .finally(() => { syncing = null; });
+    return syncing;
+  }
+  function syncSoon() { clearTimeout(saveTimer); saveTimer = setTimeout(() => sync('save'), 5000); }
+  addEventListener('load', () => setTimeout(() => sync('launch'), 1000));
+  addEventListener('focus', () => { if (Date.now() - lastFocusSync > 60_000) { lastFocusSync = Date.now(); sync('focus'); } });
+  setInterval(() => sync('timer'), 15 * 60_000);
+
   window.catchlightBridge = {
     pushMenu,
     library,
@@ -117,6 +148,7 @@
       replaceTakes(r.takes);
       return true;
     },
+    sync,
     afterEdit() { if (refreshWaiting) this.refresh().catch(e => console.error('Refreshing the Takes failed', e)); },
     // The shell calls this as the app quits or the window closes: a Take being edited is saved
     // as a click outside it would save it, and the Script editor's pending (debounced) save goes

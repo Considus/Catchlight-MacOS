@@ -291,7 +291,12 @@ sheet.addEventListener('click', async e => {
   else if (act === 'back') { subStack.pop(); paintSettings(); }
   else if (act === 'pick-folder') Promise.resolve(shell.chooseFolder()).then(f => { if (f) { store.set('account', { ...store.get('account', {}), folder: f }); paintSettings(); } }).catch(folderRefused);
   else if (act === 'remove-folder') { shell.forgetFolder?.(); store.set('account', { ...store.get('account', {}), folder: null }); paintSettings(); }
-  else if (act === 'sync-now') { e.target.textContent = 'Syncing…'; e.target.disabled = true; setTimeout(() => paintSettings(), 2000); }
+  else if (act === 'sync-now') {
+    e.target.textContent = 'Syncing…'; e.target.disabled = true;
+    // In the Mac app a real pass, through the shell; in a browser the prototype's pause.
+    const pass = window.catchlightBridge ? catchlightBridge.sync('manual') : new Promise(r => setTimeout(r, 2000));
+    pass.finally(() => paintSettings());
+  }
   else if (act === 'sd-restore') secondDeviceRestore();
   else if (act === 'reveal-phrase') {
     // In the Mac app the words come from the Keychain, which asks for Touch ID or the password.

@@ -23,6 +23,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
         configuration.preferences.isFraudulentWebsiteWarningEnabled = false
         bridge.vault = vault
         bridge.syncFolder = SyncFolder()
+        if let vault, let folder = bridge.syncFolder { bridge.sync = SyncService(vault: vault, folder: folder) }
         bridge.install(in: configuration.userContentController)
         webView = WKWebView(frame: .zero, configuration: configuration)
         #if DEBUG
