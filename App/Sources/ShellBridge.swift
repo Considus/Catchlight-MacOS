@@ -33,7 +33,8 @@ enum SystemInfo {
 /// - `validatePhrase {words}`, `createAccount {words, restored}`, `replaceAccount {words}`,
 ///   `revealPhrase`, `eraseEverything`: the account, through the `Vault`;
 /// - `chooseFolder`, `forgetFolder`: the sync folder, through `SyncFolder` (the open panel);
-/// - `sync {trigger}`: one sync pass through `SyncService`, answered with what it did.
+/// - `sync {trigger}`: one sync pass through `SyncService`, answered with what it did;
+/// - `conflicts`, `resolveConflict {id, choice}`: the waiting conflicts and the user's choice.
 final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
     static let name = "catchlight"
     private static let log = Logger(subsystem: "com.considus.catchlight.mac", category: "bridge")
@@ -120,7 +121,7 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
         }
         // These must not overlap a sync pass (SyncService.whenIdle); the flush's `ping` waits too,
         // so everything the page sent before quitting is written before the app goes.
-        if ["save", "reload", "createAccount", "replaceAccount", "eraseEverything", "ping"].contains(cmd), let sync, sync.isSyncing {
+        if ["save", "reload", "createAccount", "replaceAccount", "eraseEverything", "resolveConflict", "ping"].contains(cmd), let sync, sync.isSyncing {
             sync.whenIdle { [weak self] in
                 self?.userContentController(userContentController, didReceive: message, replyHandler: replyHandler)
             }
@@ -175,6 +176,32 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
         case "forgetFolder":
             syncFolder?.forget()
             replyHandler(true, nil)
+        case "conflicts":
+            // Both versions in the page's shape, for the choice screen.
+            guard let sync, vault?.library != nil else { return replyHandler([Any](), nil) }
+            do {
+                replyHandler(try sync.conflicts.pending.map { pair -> [String: Any] in
+                    ["id": pair.local.id.uuidString.lowercased(),
+                     "local": try TakeTranslation.page(from: pair.local),
+                     "remote": try TakeTranslation.page(from: pair.remote)]
+                }, nil)
+            } catch {
+                Self.log.error("conflicts did not translate: \(String(describing: error), privacy: .public)")
+                replyHandler(nil, "the waiting conflicts could not be read")
+            }
+        case "resolveConflict":
+            guard let sync, let library = vault?.library,
+                  let id = (body["id"] as? String).flatMap(UUID.init(uuidString:)),
+                  let choice = (body["choice"] as? String).flatMap(ConflictQueue.Choice.init(rawValue:)) else {
+                return replyHandler(nil, "resolveConflict needs an id and a choice")
+            }
+            do {
+                try sync.conflicts.resolve(id: id, choice: choice, store: library.store)
+                replyHandler(true, nil)
+            } catch {
+                Self.log.error("a conflict choice was not saved: \(String(describing: error), privacy: .public)")
+                replyHandler(nil, (error as? LocalizedError)?.errorDescription ?? String(describing: error))
+            }
         case "sync":
             guard let sync, !libraryUnreadable else { return replyHandler(["skipped": true], nil) }
             let before = (pending: sync.conflicts.pending.count, unverified: sync.conflicts.unverified.count)

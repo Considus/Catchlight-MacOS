@@ -56,6 +56,7 @@
       // so it shows. (A Take changed here and by sync goes to the conflict screen instead.)
       // Not when a Take was rejected: the page still holds that unsaved edit, and a refresh would
       // replace it with the stored version before the user could see it.
+      if (r?.conflicts) window.loadConflicts?.();   // a Take changed here and by sync: the choice screen
       if (r?.keptOverDelete && !r?.rejected?.length) window.catchlightBridge.refresh().catch(e => console.error('Refreshing the Takes failed', e));
       if (r?.rejected?.length) whenNoDialog(() => ask("A Take wasn't saved", `Catchlight couldn't read ${r.rejected.length === 1 ? 'one Take' : `${r.rejected.length} Takes`}, so the last version of it is kept. Report it, with this detail: ${r.rejected.join(', ')}`, [['OK', null, 'cancel']]));
     })
@@ -117,6 +118,7 @@
         // The iPhone's words (Notice.message), so both apps say the same thing.
         if (r?.error) notice(r.error, 'sync');
         if (r?.applied || r?.deleted) await window.catchlightBridge.refresh().catch(e => console.error('Refreshing the Takes failed', e));
+        if (r?.conflicts) window.loadConflicts?.();
         if (r?.newConflicts) notice(`${plural(r.newConflicts, 'Take', 'Takes')} changed on another device.`, 'conflict');
         if (r?.newUnverified) notice(`${plural(r.newUnverified, 'Take', 'Takes')} couldn't be verified and need a choice.`, 'conflict');
         if (r?.quarantined) notice(`${plural(r.quarantined, 'Take', 'Takes')} couldn't be verified and were skipped.`, 'quarantine');
@@ -155,6 +157,8 @@
       return true;
     },
     sync,
+    conflicts: () => post('conflicts'),
+    resolveConflict: (id, choice) => post('resolveConflict', { id, choice }),
     afterEdit() { if (refreshWaiting) this.refresh().catch(e => console.error('Refreshing the Takes failed', e)); },
     // The shell calls this as the app quits or the window closes: a Take being edited is saved
     // as a click outside it would save it, and the Script editor's pending (debounced) save goes

@@ -622,3 +622,24 @@ body.with-menu-bar .app { height: calc(100vh - 26px); }
 .snotice-bar { display: flex; justify-content: flex-end; margin: -4px 0 6px; }
 .snotice .srow-icon.accent { color: var(--accent); }
 .snotice .srow-icon.ruby { color: var(--ruby); }
+
+/* Sync conflicts (conflicts.js): the banner in Dailies and the choice sheet, as the iPhone's
+   DailiesView banner and ConflictResolutionView. The visual pass may restyle both. */
+.conflict-banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 16px 10px; padding: 4px 6px 4px 14px; border: 1px solid var(--card-border); border-radius: 10px; background: var(--surface); color: var(--text); font-size: 13px; }
+.conflict-banner[hidden] { display: none; }
+.conflicts { width: min(720px, calc(100vw - 32px)); max-height: calc(100vh - 64px); overflow: auto; padding: 20px 22px 12px; border: 1px solid var(--card-border); border-radius: 14px; background: var(--bg); color: var(--text); box-shadow: 0 16px 48px rgba(0,0,0,.35); }
+.conflicts::backdrop { background: rgba(0,0,0,.35); }
+.conflicts h2 { margin: 0 0 6px; font: 600 12px "DM Sans", sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--text-2); }
+.cf-guide { margin: 0 0 16px; font-size: 13px; line-height: 1.45; color: var(--text-2); }
+.cf-item { padding: 14px 0; border-top: 1px solid var(--divider); }
+.cf-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.cf-version { display: grid; gap: 6px; padding: 12px; text-align: left; border: 1px solid var(--divider); border-radius: 10px; background: var(--surface); color: var(--text); transition: transform .2s; }
+.cf-version.picked { border: 2px solid var(--accent); padding: 11px; transform: scale(1.02); }
+.cf-label { font: 500 11px "DM Sans", sans-serif; letter-spacing: .06em; text-transform: uppercase; color: var(--text-2); }
+.cf-when { font-size: 11px; color: var(--text-2); }
+.cf-body { font-size: 15px; line-height: 1.4; white-space: pre-wrap; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.cf-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 12px; }
+.cf-actions .fr-pill:disabled { opacity: .38; }
+.cf-close { display: flex; justify-content: flex-end; border-top: 1px solid var(--divider); padding-top: 4px; }
+.cf-done { margin: 24px 0; text-align: center; font-size: 15px; }
+@media (prefers-reduced-motion: reduce) { .cf-version { transition: none; } .cf-version.picked { transform: none; } }
