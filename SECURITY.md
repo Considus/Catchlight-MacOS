@@ -6,15 +6,19 @@ Catchlight for Mac is the desktop version of a zero-knowledge, end-to-end encryp
 
 Please report security issues **privately**, and don't open a public issue or a pull request.
 
-Email **security@considus.com**. Tell me what you found, how to reproduce it, which version or commit it affects, and what it lets an attacker do.
+Email **security@considus.com**, or, if you'd rather keep it on GitHub, use the **Report a vulnerability** button on this repository's [Security tab](https://github.com/Considus/Catchlight-MacOS/security), which opens GitHub's private reporting. GitHub asks you to sign in first, and only you and I can see the report.
 
-I'll acknowledge it within **3 business days** and keep you posted while it's being looked at. This is coordinated disclosure, so please give me a reasonable amount of time to ship a fix before you make it public. You're welcome to the credit once it's out, or to stay anonymous, whichever you'd prefer.
+Tell me what you found, how to reproduce it, which version or commit it affects, and what it lets an attacker do. A proof of concept helps, but a clear description is plenty.
+
+I'll acknowledge your report within **3 business days** and keep you posted while I look into it. This is coordinated disclosure, so please give me a reasonable amount of time to ship a fix before you make it public. You're welcome to the credit once it's out, or to stay anonymous, whichever you'd prefer.
+
+The same terms cover every Considus project and both websites, catchlight.app and considus.com, and the policy page for this project is at [catchlight.app/security](https://catchlight.app/security/).
 
 ## What's in scope
 
-The Mac app, and how it stores, protects and syncs Takes on the Mac. The shared cryptographic design and the sync format sit in [Considus/Catchlight-Core](https://github.com/Considus/Catchlight-Core), and a report against any of the repos reaches the same inbox, so don't worry about picking the right one.
+The Mac app, and how it stores, protects and syncs Takes on the Mac. The shared cryptographic design and the sync format sit in [Considus/Catchlight-Core](https://github.com/Considus/Catchlight-Core), and an email about any of the repos reaches the same inbox, so don't worry about picking the right one.
 
-Report a problem with the catchlight.app website to the same address. The policy that covers the site, alongside every Catchlight app and package, is at [catchlight.app/security](https://catchlight.app/security/).
+Report a problem with the catchlight.app website by email, to security@considus.com.
 
 Generally out of scope, anything that needs a Mac that's already compromised, or physical access to one that's unlocked and signed in. Social engineering and denial of service are out too, along with findings in third-party platforms like Apple or whichever cloud provider the user picked, because those aren't mine to fix.
 
