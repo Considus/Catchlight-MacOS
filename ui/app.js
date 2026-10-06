@@ -780,11 +780,9 @@ async function scriptToTake(id) {
   const s = scripts.find(x => x.id === id);
   // The text moves as it is: "- [ ]" lines become checklist items, the rest stays text. Same id:
   // a change of kind, not a copy (D-313, changeKind in takes.js).
-  kindChanging++;
-  let shaped;
-  try { shaped = await changeKind({ ...takeFromScript(s), id: s.id }, 'takes'); }   // the shell stamps the change
-  finally { kindChanging--; }
-  if (!shaped) return;
+  kindChanging++;   // changeKind answers null on failure rather than throw; the shell stamps the change
+  const shaped = await changeKind({ ...takeFromScript(s), id: s.id }, 'takes');
+  if (!shaped) return endKindChange();
   // The text as it is now: typing while the request was on its way is kept, and the Takes save
   // that follows writes it (Greptile on #56).
   const now = scripts.find(x => x.id === id) ?? s;
@@ -792,7 +790,7 @@ async function scriptToTake(id) {
   scripts = scripts.filter(x => x.id !== id);
   if (!takes.some(x => x.id === t.id)) takes.push(t);
   if (current === s.id) current = scripts[0] ? scripts[0].id : null;
-  save(); saveTakes(); renderTakes(); renderScripts(); renderDoc();
+  endKindChange(); save(); saveTakes(); renderTakes(); renderScripts(); renderDoc();
   $('#script-heading').textContent = titleOf(script());
 }
 

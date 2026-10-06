@@ -213,6 +213,28 @@ final class PageLibraryTests: XCTestCase {
         XCTAssertEqual(try vault.library!.store.allTakes().first?.plainText, "Draft, typed on")
     }
 
+    /// Claude review on #56: a Takes save made while a change of kind is on its way would name an
+    /// id the store already holds as a Script, and be refused with an error. It waits instead.
+    func testATakesSaveDuringAChangeOfKindWaitsAndIsNotRefused() throws {
+        let vault = Vault(secrets: MemorySecrets(), directory: dir)
+        try vault.createAccount(words: try Vault.newPhrase(), restored: true)
+        let id = UUID()
+        _ = try vault.library!.saveTakes([["id": id.uuidString, "at": "2026-07-01T09:00:00Z", "isNote": true,
+                                           "blocks": [["k": "text", "text": "A thought"]]]])
+        let (harness, bridge) = page(with: vault)
+        _ = bridge
+        let state = try harness.run("""
+            const pending = expandIntoScript(takes[0]);   // runs up to the shell's answer
+            saveTakes();                                   // a save already on its way, say
+            await pending;
+            await window.catchlightBridge.flush();
+            \(settle)
+            return JSON.stringify([document.querySelector('dialog[open] h2')?.textContent ?? null, takes.length, scripts.length]);
+            """, in: self) as? String
+        XCTAssertEqual(state, "[null,0,1]")
+        XCTAssertTrue(try XCTUnwrap(try vault.library!.store.take(id: id)).isScript)
+    }
+
     func testFirstRunMakesTheAccountAndSeedsTheLibrary() throws {
         let secrets = MemorySecrets()
         let vault = Vault(secrets: secrets, directory: dir)

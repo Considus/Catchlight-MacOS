@@ -38,7 +38,12 @@ function runAutoCleanup(now = Date.now()) {
 }
 // An Obie is always Important (Take.isObie's didSet, and the decoder ORs it back in on load).
 takes.forEach(t => { if (t.obie) t.isImportant = true; });
-const saveTakes = () => store.set('takes2', takes);
+// A Takes save made while a change of kind is on its way waits for it (kindChanging, app.js): it
+// would name an id the store already holds as a Script, and be refused. The change saves the
+// Takes once it has moved the item out of the list, and a held save goes then too.
+let takesSaveHeld = false;
+const saveTakes = () => { if (kindChanging) { takesSaveHeld = true; return; } takesSaveHeld = false; store.set('takes2', takes); };
+function endKindChange() { kindChanging--; if (!kindChanging && takesSaveHeld) saveTakes(); }
 // The shell's newer copy of the library (after a sync, M3) replaces the list. Called only when no
 // Take is being edited (bridge.js waits for endEdit), so an edit never loses the Take it belongs to.
 function replaceTakes(list) {
@@ -892,18 +897,16 @@ async function changeKind(item, to) {
   }
 }
 async function expandIntoScript(t) {
-  kindChanging++;
-  let shaped;
-  try { shaped = await changeKind({ id: t.id, at: t.at, mode: newScriptMode(), blocks: linesToBlocks(textOf(t)) }, 'scripts'); }
-  finally { kindChanging--; }
-  if (!shaped) return;
+  kindChanging++;   // changeKind answers null on failure rather than throw
+  const shaped = await changeKind({ id: t.id, at: t.at, mode: newScriptMode(), blocks: linesToBlocks(textOf(t)) }, 'scripts');
+  if (!shaped) return endKindChange();
   // The text as it is now: an edit made while the request was on its way is kept, and the
   // Scripts save that follows writes it (Greptile on #56).
   const s = { ...shaped, blocks: linesToBlocks(textOf(takes.find(x => x.id === t.id) ?? t)) };
   // A refresh during the round trip may already show it as a Script.
   takes = takes.filter(x => x.id !== t.id);
   forgetExpanded(t.id);
-  saveTakes(); renderTakes();
+  endKindChange(); saveTakes(); renderTakes();
   if (!scripts.some(x => x.id === s.id)) scripts.push(s);
   open(s.id); activate(0);
 }
