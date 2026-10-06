@@ -142,8 +142,8 @@ const ITEMS = {
   newTake: { label: 'New Take', keys: { all: 'Mod+N' }, enabled: () => free() && !draft, run: newTake },
   newScript: { label: 'New Script', keys: { all: 'Mod+Shift+N' }, enabled: free, run: () => newScript() },
   exportTakes: { label: 'Export Takes…', keys: { all: 'Mod+Shift+E' }, enabled: () => free() && takes.length > 0, run: () => exportTakes(takes) },
-  importFile: { label: 'Import from a File…', enabled: free, run: () => ask('Import from a file', "The file picker belongs to the shell, which doesn't exist yet.", [['OK', null, 'cancel']]) },
-  importNotes: { label: 'Import Notes', enabled: () => free() && !!store.get('account', {})?.folder, run: () => ask('Import notes', "The Import folder is read by the shell, which doesn't exist yet.", [['OK', null, 'cancel']]) },
+  importFile: { label: 'Import from a File…', enabled: free, run: importFromFile },   // settings.js
+  importNotes: { label: 'Import Notes', enabled: () => free() && !!store.get('account', {})?.folder, run: importNotes },
   syncNow: { label: 'Sync Now', enabled: () => free() && settings.syncMode === 'manual' && !!store.get('account', {})?.folder, run: () => window.catchlightBridge ? catchlightBridge.sync('manual') : ask('Sync Now', "The sync runs in Core, through the shell, which doesn't exist yet.", [['OK', null, 'cancel']]) },
   undo: { label: 'Undo', keys: { all: 'Mod+Z' }, inPlace: true, run: () => active >= 0 ? undo() : document.execCommand('undo') },
   redo: { label: 'Redo', keys: { mac: 'Mod+Shift+Z', windows: 'Mod+Y', linux: 'Mod+Shift+Z' }, inPlace: true, run: () => active >= 0 ? redo() : document.execCommand('redo') },

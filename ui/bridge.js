@@ -196,6 +196,8 @@
     },
     sync,
     conflicts: () => post('conflicts'),
+    importNotes: () => post('importNotes'),
+    importFile: () => post('importFile'),
     // The item comes from the other list, so it names that list's snapshot.
     changeKind: (item, to) => post('changeKind', { item, to, generation: to === 'takes' ? scriptsGeneration ?? library.generation : library.generation })
       .then(r => { if (r?.conflicts) window.loadConflicts?.(); return r; }),

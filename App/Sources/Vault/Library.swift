@@ -202,6 +202,20 @@ final class Library {
         return report
     }
 
+    /// Imported notes (`NoteImport`), written as they are: Takes, or Scripts from a Catchlight
+    /// export. The page sees them on its next refresh; its older snapshot doesn't hold them, so a
+    /// save from it leaves them alone. One that can't be written is counted and the rest go on,
+    /// as the iPhone's `importTakes`.
+    func importItems(_ items: [Take]) -> (takes: Int, scripts: Int, failed: Int) {
+        var takes = 0, scripts = 0, failed = 0
+        for var item in items {
+            item.normaliseActivityFloor()
+            do { try store.upsert(item) } catch { failed += 1; continue }
+            if item.isScript { scripts += 1 } else { takes += 1 }
+        }
+        return (takes, scripts, failed)
+    }
+
     /// Take ⇄ Script as a change of kind on the same id (D-313): no copy and no deletion record,
     /// so sync sends one item whose kind changed. `page` is the item in its new list's shape. It is
     /// laid over the stored item, so what the page doesn't model (block ids, a reminder) is kept;

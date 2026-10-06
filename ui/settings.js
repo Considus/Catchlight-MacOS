@@ -312,9 +312,8 @@ sheet.addEventListener('click', async e => {
   }
   else if (open === 'notifications' && settings.notifications !== 'enabled') { settings.notifications = 'enabled'; saveSettings(); paintSettings(); }
   else if (open === 'export') exportTakes(takes);
-  else if (open === 'import-notes') ask('Import notes', 'Any items in the folder, that have previously been imported, will be imported again.', [
-    ['Proceed', () => ask('Import notes', "The Import folder is read by the shell, which doesn't exist yet.", [['OK', null, 'cancel']])], ['Cancel', null, 'cancel']]);
-  else if (open === 'import-file') ask('Import from a file', "The file picker belongs to the shell, which doesn't exist yet.", [['OK', null, 'cancel']]);
+  else if (open === 'import-notes') importNotes();
+  else if (open === 'import-file') importFromFile();
   else if (open === 'report') window.open(reportUrl(), '_blank', 'noopener');
   else if (open === 'diagnostics') ask('Export diagnostics', "The log is written by the shell, which doesn't exist yet.", [['OK', null, 'cancel']]);
   else if (open === 'start-over') startOver();
@@ -438,3 +437,31 @@ document.addEventListener('keydown', e => {
 
 $('#view-opts').addEventListener('click', () => openSettings('Script timeline'));
 applyScriptArea();
+
+// ---------- Import (SettingsView.importNotes / importFromFile on iOS) ----------
+// The shell reads the files and writes the Takes (NoteImport.swift); the page asks, then shows
+// what happened in the iPhone's words. A Catchlight export splits back into its Takes, and a
+// Script exported as one comes back as a Script.
+function importNotes() {
+  ask('Import notes', 'Any items in the folder, that have previously been imported, will be imported again.', [
+    ['Proceed', () => runImport('importNotes')], ['Cancel', null, 'cancel']]);
+}
+function importFromFile() { runImport('importFile'); }
+async function runImport(cmd) {
+  if (!window.catchlightBridge?.importNotes) {
+    return ask(cmd === 'importNotes' ? 'Import notes' : 'Import from a file', "Importing needs the app: the page alone can't read your files.", [['OK', null, 'cancel']]);
+  }
+  let r;
+  try { r = await catchlightBridge[cmd](); }
+  catch (e) { console.error('Import failed', e); return ask('Import', `Couldn't open those files. Please try again.`, [['OK', null, 'cancel']]); }
+  if (r?.cancelled) return;
+  const say = text => ask(cmd === 'importNotes' ? 'Import notes' : 'Import from a file', text, [['OK', null, 'cancel']]);
+  if (r?.noFolder) return say('Set up Cloud Storage first. The Import folder lives inside your sync folder.');
+  if (r?.unreadable) return say("The Import folder couldn't be read. Check your cloud folder in Settings → Cloud Storage and try again.");
+  const n = (r?.takes || 0) + (r?.scripts || 0);
+  if (!n) return say(cmd === 'importNotes' ? 'No recognised markdown or text files found in the Import folder.' : 'No notes to import from your selection.');
+  await catchlightBridge.refresh().catch(e => console.error('Refreshing after an import failed', e));
+  const words = [r.takes && `${r.takes} ${r.takes === 1 ? 'Take' : 'Takes'}`, r.scripts && `${r.scripts} ${r.scripts === 1 ? 'Script' : 'Scripts'}`].filter(Boolean).join(' and ');
+  say(`Import successful. ${words} added to your timeline.`);
+  catchlightBridge.sync?.('save').catch?.(e => console.error('Sync after an import failed', e));
+}
