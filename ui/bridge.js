@@ -48,11 +48,15 @@
   // snapshot, so a Take sync added since is never read as one the page deleted (Library.swift).
   const library = window.catchlightLibrary;
   let saves = 0, refreshWaiting = false;
+  // A Scripts save that failed or was refused leaves an edit only the page holds, so a refresh
+  // keeps the page's Scripts rather than replace them with the stored ones (Greptile on #55).
+  let scriptsUnsaved = false, lastScriptsSave = Promise.resolve();
   // A Take the shell couldn't read keeps its stored version, so say so rather than let the edit
   // look saved.
   // Scripts sync only once the shell says they do (SyncService.syncScriptsKey).
-  const saveList = (kind, list) => (saves++, (kind === 'takes' || library.syncScripts) && syncSoon(), post('save', { kind, list, generation: library.generation }))
+  const sendList = (kind, list) => (saves++, (kind === 'takes' || library.syncScripts) && syncSoon(), post('save', { kind, list, generation: library.generation }))
     .then(r => {
+      if (kind === 'scripts') scriptsUnsaved = !!r?.rejected?.length;
       // The shell kept a Take the page deleted that changed elsewhere: take the library again
       // so it shows. (A Take changed here and by sync goes to the conflict screen instead.)
       // Not when a Take was rejected: the page still holds that unsaved edit, and a refresh would
@@ -63,6 +67,7 @@
       if (r?.rejected?.length) whenNoDialog(() => ask(`A ${one} wasn't saved`, `Catchlight couldn't read ${r.rejected.length === 1 ? `one ${one}` : `${r.rejected.length} ${many}`}, so the last version of it is kept. Report it, with this detail: ${r.rejected.join(', ')}`, [['OK', null, 'cancel']]));
     })
     .catch(e => {
+      if (kind === 'scripts') scriptsUnsaved = true;
       console.error(`Saving ${kind} failed`, e);
       // A refused save must never look saved: say so, with what to do. If another dialog is
       // open (a delete confirmation, say), the warning waits for it rather than replacing it.
@@ -77,6 +82,11 @@
       };
       whenNoDialog(warn);
     });
+  const saveList = (kind, list) => {
+    const done = sendList(kind, list);
+    if (kind === 'scripts') lastScriptsSave = done;
+    return done;
+  };
   // The page has one dialog (ask() in takes.js), and a second ask() would replace whatever it is
   // showing, a delete confirmation say. A warning from a save waits for it to close instead.
   const whenNoDialog = show => {
@@ -161,15 +171,15 @@
       refreshWaiting = false;
       // A Script edit still waiting for its save goes first, so the list that comes back has it.
       if (typeof scriptSavePending !== 'undefined' && scriptSavePending) save();
+      await lastScriptsSave;   // so a refused save is known before the Scripts are replaced
       const before = saves;
       const r = await post('reload');
       // A Script typed into while the answer was on its way: save it, then ask again.
       if (saves !== before || busy() || (typeof scriptSavePending !== 'undefined' && scriptSavePending)) return this.refresh();
       library.takes = r.takes;
-      library.scripts = r.scripts;
       library.generation = r.generation;
       replaceTakes(r.takes);
-      replaceScripts(r.scripts);
+      if (!scriptsUnsaved) { library.scripts = r.scripts; replaceScripts(r.scripts); }
       return true;
     },
     sync,

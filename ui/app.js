@@ -132,7 +132,12 @@ function replaceScripts(list) {
   scripts.forEach(s => { s.pageCount ??= pageCounts[s.id]; });
   if (!script()) current = scripts[0] ? scripts[0].id : null;
   renderScripts();
-  if (shown(script()) !== before) { renderDoc(); $('#script-heading').textContent = titleOf(script()); }
+  if (shown(script()) !== before) {
+    // Undo history belongs to the text it was made on: replaying it now would save the old text
+    // over what sync brought in (Greptile on #55), so it starts again, as open() does.
+    Object.assign(edits, { undo: [], redo: [], typing: 0, id: current });
+    renderDoc(); $('#script-heading').textContent = titleOf(script());
+  }
 }
 
 // ---------- the two Dailies-style timelines ----------

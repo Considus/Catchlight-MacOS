@@ -110,6 +110,19 @@ final class SyncServiceTests: XCTestCase {
         XCTAssertEqual(shown, ##"[1,["# From Mac A"],"From Mac A\nFrame size"]"##)
     }
 
+    /// Greptile on #55: the page learns whether Scripts sync even when no library is open yet
+    /// (first run), because it keeps that object once the account is made.
+    func testThePageKnowsScriptsSyncBeforeTheAccountExists() throws {
+        let suite = "catchlight.tests.\(UUID())"
+        suites.append(suite)
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.set(true, forKey: SyncService.syncScriptsKey)
+        let bridge = ShellBridge()
+        bridge.vault = Vault(secrets: MemorySecrets(), directory: root.appendingPathComponent("New"))
+        bridge.sync = SyncService(vault: bridge.vault!, folder: SyncFolder(defaults: defaults), defaults: defaults)
+        XCTAssertTrue(bridge.injectedLibrary().source.contains(#""syncScripts":true"#))
+    }
+
     func testATakeWrittenOnOneMacArrivesOnTheOther() throws {
         let words = try Vault.newPhrase()
         let a = try mac("A", words: words), b = try mac("B", words: words)

@@ -93,6 +93,43 @@ final class PageLibraryTests: XCTestCase {
         XCTAssertEqual(try vault.library!.pageScripts().first?["blocks"] as? [String], ["# Draft, typed during the refresh"])
     }
 
+    /// Greptile on #55: a Script edit whose save failed must stay on the page through a refresh,
+    /// not be replaced by the stored version.
+    func testARefreshKeepsAScriptEditThatWasNotSaved() throws {
+        let vault = Vault(secrets: MemorySecrets(), directory: dir)
+        try vault.createAccount(words: try Vault.newPhrase(), restored: true)
+        let (harness, bridge) = page(with: vault)
+        _ = bridge
+        // A Script on the page whose id the store holds as a Take: its save is refused.
+        let id = UUID()
+        try vault.library!.store.upsert(Take(id: id, createdAt: Date(), modifiedAt: Date(), blocks: [.text(TextBlock(text: "A Take"))]))
+        let shown = try harness.run("""
+            scripts.push({ id: '\(id.uuidString.lowercased())', at: new Date().toISOString(), mode: 'a4', blocks: ['# Unsaved'] });
+            current = scripts.at(-1).id; renderDoc();
+            script().blocks[0] = '# Unsaved, edited'; changed();
+            await window.catchlightBridge.refresh();
+            return script()?.blocks[0] ?? null;
+            """, in: self) as? String
+        XCTAssertEqual(shown, "# Unsaved, edited")
+    }
+
+    /// Greptile on #55: once a sync changes the Script on screen, undo must not bring back the
+    /// text from before it and save that over the synced version.
+    func testUndoHistoryIsClearedWhenASyncChangesTheScriptOnScreen() throws {
+        let vault = Vault(secrets: MemorySecrets(), directory: dir)
+        try vault.createAccount(words: try Vault.newPhrase(), restored: true)
+        let (harness, bridge) = page(with: vault)
+        _ = bridge
+        let left = try harness.run("""
+            newScript(['# Mine']);
+            await window.catchlightBridge.flush();
+            edits.undo.push({ blocks: ['# Older'], active: 0, off: 0 }); edits.id = current;
+            replaceScripts([{ ...script(), blocks: ['# From the other Mac'] }]);
+            return edits.undo.length;
+            """, in: self) as? Int
+        XCTAssertEqual(left, 0)
+    }
+
     func testFirstRunMakesTheAccountAndSeedsTheLibrary() throws {
         let secrets = MemorySecrets()
         let vault = Vault(secrets: secrets, directory: dir)

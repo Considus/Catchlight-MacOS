@@ -76,7 +76,6 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                     value["takes"] = snapshot.takes
                     value["generation"] = snapshot.generation
                     value["scripts"] = snapshot.scripts
-                    value["syncScripts"] = sync?.holdsScripts ?? false
                     // A damaged Script is kept on disk but can't be shown: the page says so.
                     if !library.scripts.unreadable.isEmpty { value["unreadableScripts"] = library.scripts.unreadable.count }
                 } catch {
@@ -88,6 +87,9 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                 value["newPhrase"] = words
             }
         }
+        // Whether Scripts sync, with or without a library open yet: first run keeps this object
+        // (Greptile on #55).
+        value["syncScripts"] = sync?.holdsScripts ?? false
         let json = (try? JSONSerialization.data(withJSONObject: value)).flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
         return WKUserScript(source: "window.catchlightLibrary = \(json);", injectionTime: .atDocumentStart, forMainFrameOnly: true, in: .page)
     }
