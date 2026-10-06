@@ -61,6 +61,9 @@
   const sendList = (kind, list) => (saves++, (kind === 'takes' || library.syncScripts) && syncSoon(), post('save', { kind, list, generation: kind === 'scripts' ? scriptsGeneration ?? library.generation : library.generation }))
     .then(r => {
       if (kind === 'scripts') scriptsUnsaved = !!r?.rejected?.length;
+      // Kept Scripts saved at last: take the library again now, so their snapshot is let go
+      // before the Library drops it (it keeps eight) and refuses every save after (Claude review).
+      if (kind === 'scripts' && !scriptsUnsaved && scriptsGeneration != null) window.catchlightBridge.refresh().catch(e => console.error('Refreshing the Scripts failed', e));
       // The shell kept a Take the page deleted that changed elsewhere: take the library again
       // so it shows. (A Take changed here and by sync goes to the conflict screen instead.)
       // Not when a Take was rejected: the page still holds that unsaved edit, and a refresh would

@@ -135,6 +135,13 @@ final class PageLibraryTests: XCTestCase {
             \(settle) return true;
             """, in: self)
         XCTAssertNotNil(try vault.library!.store.take(id: synced.id), "a Script the page never saw was deleted")
+        // Claude review: once a save goes through, the page takes the library again, so the
+        // kept snapshot is let go before the Library drops it and the synced Script shows.
+        let shown = try harness.run("""
+            for (let i = 0; i < 40 && !scripts.some(s => s.blocks[0] === '# From the other Mac'); i++) await new Promise(r => setTimeout(r, 50));
+            return scripts.map(s => s.blocks[0]).join('|');
+            """, in: self) as? String
+        XCTAssertEqual(shown, "# From the other Mac")
     }
 
     /// Greptile on #55: once a sync changes the Script on screen, undo must not bring back the
