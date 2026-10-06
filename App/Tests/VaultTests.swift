@@ -284,6 +284,60 @@ final class LibraryTests: XCTestCase {
         XCTAssertEqual(try library.pageScripts().count, 1, "deleting the last Take left the Script")
     }
 
+    /// M3b step 2 (D-313): Take ⇄ Script is a change of kind on the same id. No copy, no
+    /// deletion record, and neither list's next save reads it as deleted or as new.
+    func testTakeToScriptAndBackIsAChangeOfKindOnTheSameId() throws {
+        let id = UUID()
+        try library.saveTakes([page("Captured\n- [ ] not a check here", id: id)])
+        let gen = try library.snapshot().generation
+        let blockID = try XCTUnwrap(try library.store.take(id: id)).blocks.first?.id
+
+        let asScript = script("# Captured", id: id)
+        try library.changeKind(asScript, to: .scripts)
+        let stored = try XCTUnwrap(try library.store.take(id: id))
+        XCTAssertTrue(stored.isScript)
+        XCTAssertEqual(stored.blocks.first?.id, blockID, "block ids are kept")
+        XCTAssertEqual(try library.store.tombstones().count, 0)
+        // The page's next saves, from the snapshot it held before: nothing deleted, nothing new.
+        XCTAssertEqual(try library.saveTakes([], generation: gen), Library.SaveReport())
+        XCTAssertEqual(try library.saveScripts([asScript], generation: gen), Library.SaveReport(unchanged: 1))
+        XCTAssertEqual(try library.pageScripts().count, 1)
+        XCTAssertEqual(try library.pageTakes().count, 0)
+
+        var asTake = page("# Captured", id: id)
+        asTake["modifiedAt"] = Date().timeIntervalSince1970 * 1000
+        try library.changeKind(asTake, to: .takes)
+        XCTAssertNil(try library.store.take(id: id)?.kind)
+        XCTAssertNil(try library.store.take(id: id)?.pageMode)
+        XCTAssertEqual(try library.saveScripts([]), Library.SaveReport())
+        XCTAssertEqual(try library.pageTakes().map { $0["id"] as? String }, [id.uuidString.lowercased()])
+        XCTAssertEqual(try library.store.tombstones().count, 0)
+    }
+
+    /// Code review: a change of kind made from a list older than a sync change must not write
+    /// over that change unseen; the other version goes to the conflict screen first, as a save's does.
+    func testAChangeOfKindFromAStaleListKeepsTheSyncedVersion() throws {
+        let id = UUID()
+        try library.saveTakes([page("Captured", id: id)])
+        let gen = try library.snapshot().generation
+        var synced = try XCTUnwrap(try library.store.take(id: id))
+        synced.blocks = [.text(TextBlock(text: "Captured, edited on the iPhone"))]
+        synced.modifiedAt = Date()
+        try library.store.upsert(synced)   // sync, while the page holds the older list
+
+        var kept: [(local: Take, remote: Take)] = []
+        try library.changeKind(script("# Captured", id: id), to: .scripts, generation: gen, keepConflict: { kept.append($0) })
+        XCTAssertEqual(kept.first?.remote.plainText, "Captured, edited on the iPhone")
+        XCTAssertTrue(kept.first?.local.isScript ?? false)
+    }
+
+    func testAScriptIsNeverTheObie() throws {
+        let id = UUID()
+        try library.saveTakes([page("The one", obie: true, id: id)])
+        try library.changeKind(script("The one", id: id), to: .scripts)
+        XCTAssertFalse(try XCTUnwrap(try library.store.take(id: id)).isObie)
+    }
+
     /// While Scripts don't sync, a Script's deletion stays on this Mac: no record goes to the folder.
     func testAScriptDeletedWhileScriptsDontSyncLeavesNoDeletionRecord() throws {
         let s = script("Mac only")

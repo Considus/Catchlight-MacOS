@@ -161,6 +161,37 @@ final class PageLibraryTests: XCTestCase {
         XCTAssertEqual(left, 0)
     }
 
+    /// M3b step 2 (D-313): the page's Expand into a Script and Make this a Take keep the id; the
+    /// store changes the item's kind and keeps no deletion record.
+    func testExpandIntoAScriptAndBackKeepsTheId() throws {
+        let vault = Vault(secrets: MemorySecrets(), directory: dir)
+        try vault.createAccount(words: try Vault.newPhrase(), restored: true)
+        let id = UUID()
+        _ = try vault.library!.saveTakes([["id": id.uuidString, "at": "2026-07-01T09:00:00Z", "isNote": true,
+                                           "blocks": [["k": "text", "text": "A thought"], ["k": "check", "text": "Frame size", "done": false]]]])
+        let (harness, bridge) = page(with: vault)
+        _ = bridge
+
+        let asScript = try harness.run("""
+            await expandIntoScript(takes[0]);
+            await window.catchlightBridge.flush();
+            return JSON.stringify([takes.length, script().id, script().blocks]);
+            """, in: self) as? String
+        XCTAssertEqual(asScript, #"[0,"\#(id.uuidString.lowercased())",["A thought","- [ ] Frame size"]]"#)
+        XCTAssertTrue(try XCTUnwrap(try vault.library!.store.take(id: id)).isScript)
+        XCTAssertEqual(try vault.library!.store.tombstones().count, 0)
+
+        let asTake = try harness.run("""
+            await scriptToTake('\(id.uuidString.lowercased())');
+            await window.catchlightBridge.flush();
+            return JSON.stringify([scripts.length, takes.map(t => t.id)]);
+            """, in: self) as? String
+        XCTAssertEqual(asTake, #"[0,["\#(id.uuidString.lowercased())"]]"#)
+        XCTAssertNil(try vault.library!.store.take(id: id)?.kind)
+        XCTAssertEqual(try vault.library!.store.allTakes().count, 1)
+        XCTAssertEqual(try vault.library!.store.tombstones().count, 0)
+    }
+
     func testFirstRunMakesTheAccountAndSeedsTheLibrary() throws {
         let secrets = MemorySecrets()
         let vault = Vault(secrets: secrets, directory: dir)

@@ -131,6 +131,47 @@ final class ConflictScreenTests: XCTestCase {
         XCTAssertEqual(state, #"["From the iPhone, edited again",false,true]"#)
     }
 
+    /// M3b step 2: a Take made a Script here, edited as a Take elsewhere (Catchlight-Core#22 reports
+    /// it as a conflict). The screen says Script and shows each side in its own kind; keeping the
+    /// other version makes it a Take again.
+    func testAScriptPairShowsAsAScriptAndKeepingTheOtherMakesItATake() throws {
+        let vault = Vault(secrets: MemorySecrets(), directory: root.appendingPathComponent("Library"))
+        try vault.createAccount(words: try Vault.newPhrase(), restored: true)
+        let store = vault.library!.store
+        let id = UUID()
+        let local = try ScriptTranslation.core(from: ["id": id.uuidString, "at": "2026-07-01T09:00:00.000Z", "mode": "a4", "blocks": ["# Winter series", "- [ ] Frame size"]], existing: nil)
+        try store.upsert(local)
+        let remote = Take(id: id, createdAt: local.createdAt, modifiedAt: Date(), blocks: [.text(TextBlock(text: "Winter series, edited on the iPhone"))])
+        let sync = SyncService(vault: vault, folder: SyncFolder(defaults: UserDefaults(suiteName: suite)!), defaults: UserDefaults(suiteName: suite)!)
+        sync.conflicts.enqueue([(local: try store.take(id: id)!, remote: remote)])
+
+        let harness = WebViewHarness(root: WebViewHarness.repoUI, ruleList: nil)
+        let bridge = ShellBridge()
+        bridge.vault = vault
+        bridge.sync = sync
+        bridge.install(in: harness.webView.configuration.userContentController)
+        harness.load("index.html", in: self)
+
+        let shown = try harness.run("""
+            for (let i = 0; i < 100 && conflictBanner.hidden; i++) await new Promise(r => setTimeout(r, 50));
+            openConflicts();
+            return JSON.stringify([conflictBanner.querySelector('span').textContent, conflictSheet.querySelector('.cf-guide').textContent.split(' were')[0],
+              ...[...conflictSheet.querySelectorAll('.cf-version')].map(b => [b.querySelector('.cf-label').textContent, b.querySelector('.cf-body').textContent])]);
+            """, in: self) as? String
+        XCTAssertEqual(shown, ##"["1 Script changed on another device.","These Scripts",["Local · Script","# Winter series\n- [ ] Frame size"],["Cloud · Take","Winter series, edited on the iPhone"]]"##)
+        try snapshot(harness, name: "conflict-sheet-script")
+
+        let after = try harness.run("""
+            conflictSheet.querySelector('[data-side="remote"]').click();
+            conflictSheet.querySelector('[data-cf="keep"]').click();
+            for (let i = 0; i < 100 && !takes.length; i++) await new Promise(r => setTimeout(r, 50));
+            return JSON.stringify([takes.map(t => t.blocks[0].text), scripts.length]);
+            """, in: self) as? String
+        XCTAssertEqual(after, #"[["Winter series, edited on the iPhone"],0]"#)
+        XCTAssertNil(try store.take(id: id)?.kind)
+        XCTAssertEqual(sync.conflicts.count, 0)
+    }
+
     /// Evidence for the PR: the sheet as drawn, saved beside the test results.
     private func snapshot(_ harness: WebViewHarness, name: String) throws {
         let done = expectation(description: "snapshot")

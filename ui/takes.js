@@ -813,11 +813,7 @@ function takeMenu(id) {
   if (!storyboard) {
     if (!t.obie) items.push(['Make Obie', () => makeObie(t)]);
     items.push(['Export Take', () => exportTake(t)]);
-    items.push(['Expand into a Script', () => {
-      takes = takes.filter(x => x !== t);
-      forgetExpanded(t.id);
-      saveTakes(); renderTakes(); newScript(linesToBlocks(textOf(t)));
-    }]);
+    items.push(['Expand into a Script', () => expandIntoScript(t)]);
   }
   items.push(['Delete Take', null, 'danger']);
   return items;
@@ -881,6 +877,29 @@ alertBox.addEventListener('click', e => {
 // The close event arrives after the action ran; if that action asked again, the new alert is
 // open and its actions must survive.
 alertBox.addEventListener('close', () => { if (alertBox.open) return; alertActions = []; refocus(); });
+
+// Take ⇄ Script is a change of kind on the same id (D-313): the shell changes the stored item
+// first, then both lists move it, so neither list's save reads it as deleted or as new and sync
+// sends one item whose kind changed. In a plain browser there is no shell, and only the lists move.
+async function changeKind(item, to) {
+  if (!window.catchlightBridge?.changeKind) return true;
+  try { await catchlightBridge.changeKind(item, to); return true; }
+  catch (e) {
+    console.error('Changing kind failed', e);
+    ask("That couldn't be changed", `Nothing has changed. Try again, and if it keeps happening, report it with this detail: ${e?.message ?? e}`, [['OK', null, 'cancel']]);
+    return false;
+  }
+}
+async function expandIntoScript(t) {
+  const s = { id: t.id, at: t.at, mode: newScriptMode(), blocks: linesToBlocks(textOf(t)) };
+  if (!await changeKind(s, 'scripts')) return;
+  // A refresh during the round trip may already show it as a Script.
+  takes = takes.filter(x => x.id !== t.id);
+  forgetExpanded(t.id);
+  saveTakes(); renderTakes();
+  if (!scripts.some(x => x.id === s.id)) scripts.push(s);
+  open(s.id); activate(0);
+}
 
 // A Script made back into a Take: "- [ ]" lines become checklist items, the rest text.
 function takeFromScript(s) {

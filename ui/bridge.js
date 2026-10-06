@@ -145,7 +145,11 @@
         if (r?.error) notice(r.error, 'sync');
         if (r?.applied || r?.deleted) await window.catchlightBridge.refresh().catch(e => console.error('Refreshing the Takes failed', e));
         if (r?.conflicts) window.loadConflicts?.();
-        if (r?.newConflicts) notice(`${plural(r.newConflicts, 'Take', 'Takes')} changed on another device.`, 'conflict');
+        if (r?.newConflicts) {
+          const scripts = r.newConflictScripts || 0, takes = r.newConflicts - scripts;
+          const what = [takes && plural(takes, 'Take', 'Takes'), scripts && plural(scripts, 'Script', 'Scripts')].filter(Boolean).join(' and ');
+          notice(`${what} changed on another device.`, 'conflict');
+        }
         if (r?.newUnverified) notice(`${plural(r.newUnverified, 'Take', 'Takes')} couldn't be verified and need a choice.`, 'conflict');
         if (r?.quarantined) notice(`${plural(r.quarantined, 'Take', 'Takes')} couldn't be verified and were skipped.`, 'quarantine');
         if (r?.heldBack) notice(`${plural(r.heldBack, 'Take', 'Takes')} not re-uploaded. This device was away too long to rule out deletion elsewhere. Edit a Take to sync it again.`, 'sync');
@@ -192,6 +196,9 @@
     },
     sync,
     conflicts: () => post('conflicts'),
+    // The item comes from the other list, so it names that list's snapshot.
+    changeKind: (item, to) => post('changeKind', { item, to, generation: to === 'takes' ? scriptsGeneration ?? library.generation : library.generation })
+      .then(r => { if (r?.conflicts) window.loadConflicts?.(); return r; }),
     resolveConflict: (id, choice) => post('resolveConflict', { id, choice }),
     afterEdit() { if (refreshWaiting) this.refresh().catch(e => console.error('Refreshing the Takes failed', e)); },
     // The shell calls this as the app quits or the window closes: a Take being edited is saved

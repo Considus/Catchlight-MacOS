@@ -123,6 +123,36 @@ final class SyncServiceTests: XCTestCase {
         XCTAssertTrue(bridge.injectedLibrary().source.contains(#""syncScripts":true"#))
     }
 
+    /// M3b step 2 (D-313): with Scripts syncing, a Take made a Script on one Mac is the same item,
+    /// now a Script, on the other. No deletion record goes to the folder.
+    func testATakeMadeAScriptArrivesAsAScriptWithTheSameId() throws {
+        let words = try Vault.newPhrase()
+        let a = try mac("A", words: words, syncScripts: true), b = try mac("B", words: words, syncScripts: true)
+        let id = try write("Captured on A", on: a)
+        _ = try sync(a); _ = try sync(b)
+        try a.vault.library!.changeKind(["id": id.uuidString, "at": "2026-07-01T09:00:00.000Z", "mode": "a4", "blocks": ["# Captured on A"]], to: .scripts)
+        XCTAssertEqual(try sync(a).uploaded, [id])
+        XCTAssertEqual(try sync(b).applied, [id])
+        XCTAssertEqual(try b.vault.library!.pageScripts().map { $0["id"] as? String }, [id.uuidString.lowercased()])
+        XCTAssertEqual(try b.vault.library!.pageTakes().count, 0)
+        XCTAssertEqual(try b.vault.library!.store.tombstones().count, 0)
+    }
+
+    /// With the switch off, the folder keeps the Take as it was (Catchlight-Core#22): the other
+    /// Mac still has it, and nothing is deleted anywhere.
+    func testATakeMadeAScriptStaysATakeElsewhereWhileTheSwitchIsOff() throws {
+        let words = try Vault.newPhrase()
+        let a = try mac("A", words: words), b = try mac("B", words: words)
+        let id = try write("Captured on A", on: a)
+        _ = try sync(a); _ = try sync(b)
+        try a.vault.library!.changeKind(["id": id.uuidString, "at": "2026-07-01T09:00:00.000Z", "mode": "a4", "blocks": ["# Expanded"]], to: .scripts)
+        XCTAssertEqual(try sync(a).uploaded, [])
+        let onB = try sync(b)
+        XCTAssertEqual(onB.applied + onB.deletedLocally, [])
+        XCTAssertEqual(try b.vault.library!.store.take(id: id)?.plainText, "Captured on A")
+        XCTAssertTrue(try XCTUnwrap(try a.vault.library!.store.take(id: id)).isScript)
+    }
+
     func testATakeWrittenOnOneMacArrivesOnTheOther() throws {
         let words = try Vault.newPhrase()
         let a = try mac("A", words: words), b = try mac("B", words: words)

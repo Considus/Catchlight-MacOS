@@ -773,11 +773,14 @@ document.addEventListener('pointerdown', e => {
 document.addEventListener('pointermove', e => { if (press && Math.hypot(e.clientX - press.x, e.clientY - press.y) > 10) { clearTimeout(press.t); press = null; } });
 document.addEventListener('pointerup', () => { if (press) { clearTimeout(press.t); press = null; } });
 document.addEventListener('mousedown', e => { if (!ctx.contains(e.target)) ctx.hidden = true; });
-function scriptToTake(id) {
+async function scriptToTake(id) {
   const s = scripts.find(x => x.id === id);
-  scripts = scripts.filter(x => x !== s);
-  // The text moves as it is: "- [ ]" lines become checklist items, the rest stays text (D-313).
-  takes.push(takeFromScript(s));
+  // The text moves as it is: "- [ ]" lines become checklist items, the rest stays text. Same id:
+  // a change of kind, not a copy (D-313, changeKind in takes.js).
+  const t = { ...takeFromScript(s), id: s.id };   // the shell stamps the change
+  if (!await changeKind(t, 'takes')) return;
+  scripts = scripts.filter(x => x.id !== id);
+  if (!takes.some(x => x.id === t.id)) takes.push(t);
   if (current === s.id) current = scripts[0] ? scripts[0].id : null;
   save(); saveTakes(); renderTakes(); renderScripts(); renderDoc();
   $('#script-heading').textContent = titleOf(script());
