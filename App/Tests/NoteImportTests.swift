@@ -1,4 +1,6 @@
 import XCTest
+import CryptoKit
+import CatchlightAppleStorage
 import WebKit
 import CatchlightCore
 
@@ -57,6 +59,17 @@ final class NoteImportTests: XCTestCase {
         XCTAssertEqual(outcome.items.count, 4)
         XCTAssertEqual(outcome.items.filter(\.isScript).count, 1, "a Script exported as one comes back as a Script")
         XCTAssertEqual(outcome.items.first(where: \.isScript)?.pageMode, Take.PageMode.a4)
+    }
+
+    /// Claude review on #57: a note the library can't write is counted, never lost silently.
+    func testANoteTheLibraryCannotWriteIsCounted() throws {
+        let keys = KeyHierarchy(masterKey: SymmetricKey(size: .bits256))
+        let store = FailingStore(try EncryptedTakeStore(keys: keys, directoryURL: root.appendingPathComponent("Failing")))
+        let library = Library(store: store, scripts: try ScriptVault(keys: keys, directory: root.appendingPathComponent("Failing/Scripts")))
+        store.failUpserts = true
+        let done = library.importItems([Take(blocks: [.text(TextBlock(text: "one"))]), Take(blocks: [.text(TextBlock(text: "two"))])])
+        XCTAssertEqual(done.takes, 0)
+        XCTAssertEqual(done.failed, 2)
     }
 
     // MARK: The real page

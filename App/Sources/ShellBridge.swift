@@ -246,7 +246,11 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                     let outcome = read()
                     DispatchQueue.main.async {
                         guard let outcome else { return replyHandler(["unreadable": true], nil) }
-                        let write: () -> Void = { self?.writeImport(outcome, replyHandler) }
+                        // Always answered: the page awaits it.
+                        let write: () -> Void = {
+                            guard let self else { return replyHandler(nil, "the window closed before the import was written") }
+                            self.writeImport(outcome, replyHandler)
+                        }
                         if let sync = self?.sync { sync.whenIdle(write) } else { write() }
                     }
                 }

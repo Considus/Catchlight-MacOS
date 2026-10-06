@@ -998,7 +998,7 @@ final class VaultTests: XCTestCase {
 // MARK: - A store that fails on demand
 
 /// Delegates to a real store and throws from `upsert` once `failUpserts` is set.
-private final class FailingStore: TakeStore {
+final class FailingStore: TakeStore {
     struct Refused: Error {}
     let real: TakeStore
     var failUpserts = false

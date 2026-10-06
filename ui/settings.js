@@ -459,9 +459,13 @@ async function runImport(cmd) {
   if (r?.noFolder) return say('Set up Cloud Storage first. The Import folder lives inside your sync folder.');
   if (r?.unreadable) return say("The Import folder couldn't be read. Check your cloud folder in Settings → Cloud Storage and try again.");
   const n = (r?.takes || 0) + (r?.scripts || 0);
+  // Notes read but not written (the library refused them) are never reported as missing files
+  // or hidden behind a success: re-importing brings everything in again, so say what didn't land.
+  const failed = r?.failed ? ` ${r.failed === 1 ? "One note couldn't" : `${r.failed} notes couldn't`} be saved. Import again to try them, and if it keeps happening, report it.` : '';
+  if (!n && r?.failed) return say(`Nothing was imported.${failed}`);
   if (!n) return say(cmd === 'importNotes' ? 'No recognised markdown or text files found in the Import folder.' : 'No notes to import from your selection.');
   await catchlightBridge.refresh().catch(e => console.error('Refreshing after an import failed', e));
   const words = [r.takes && `${r.takes} ${r.takes === 1 ? 'Take' : 'Takes'}`, r.scripts && `${r.scripts} ${r.scripts === 1 ? 'Script' : 'Scripts'}`].filter(Boolean).join(' and ');
-  say(`Import successful. ${words} added to your timeline.`);
+  say(`Import successful. ${words} added to your timeline.${failed}`);
   catchlightBridge.sync?.('save').catch?.(e => console.error('Sync after an import failed', e));
 }
