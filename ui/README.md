@@ -48,7 +48,7 @@ The copy promises things only the shell can make true. Each platform's shell own
 - lets the toolbar stand in for the title bar: a press on its empty space drags the window, and a double-click does what the system setting says. Its controls keep their clicks;
 - pushes the menu model (The menu bar, above).
 
-Messages are `{cmd, ...}`: `menu {model}`, `copy {text}`, `openURL {url}`, `dragWindow`, `titlebarDoubleClick`, `save {kind, list, generation}`, `changeKind {item, to}`, `reload`, `validatePhrase {words}`, `createAccount {words, restored}`, `replaceAccount {words}`, `revealPhrase`, `eraseEverything`. Each answers with a promise.
+Messages are `{cmd, ...}`: `menu {model}`, `copy {text}`, `openURL {url}`, `dragWindow`, `titlebarDoubleClick`, `save {kind, list, generation}`, `changeKind {item, to}`, `importNotes`, `importFile`, `reload`, `validatePhrase {words}`, `createAccount {words, restored}`, `replaceAccount {words}`, `revealPhrase`, `eraseEverything`. Each answers with a promise.
 
 **The Mac shell blocks every web address.** A content rule list blocks any load (fetch, images, fonts, WebSockets) that isn't the app's own `catchlight://`, and navigation off `catchlight://` is cancelled; a link the user follows opens in the browser instead. So nothing in `ui/` may rely on the network inside the app: a font, image or script has to be in the folder.
 

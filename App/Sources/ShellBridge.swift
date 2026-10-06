@@ -37,7 +37,9 @@ enum SystemInfo {
 /// - `chooseFolder`, `forgetFolder`: the sync folder, through `SyncFolder` (the open panel);
 /// - `sync {trigger}`: one sync pass through `SyncService`, answered with what it did;
 /// - `changeKind {item, to: 'takes'|'scripts'}`: Take ⇄ Script on the same id (D-313);
-/// - `conflicts`, `resolveConflict {id, choice}`: the waiting conflicts and the user's choice.
+/// - `conflicts`, `resolveConflict {id, choice}`: the waiting conflicts and the user's choice;
+/// - `importNotes`, `importFile`: notes from the sync folder's Import folder, or from files the
+///   user picks, imported as Takes (`NoteImport`).
 final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
     static let name = "catchlight"
     private static let log = Logger(subsystem: "com.considus.catchlight.mac", category: "bridge")
@@ -53,6 +55,8 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
     /// Set when the library could not be read at launch. The page then holds empty lists, and
     /// a save from it would be applied as the whole library, so every save is refused.
     private(set) var libraryUnreadable = false
+    /// The open panel for Import from a File. Replaced in tests, which can't drive a panel.
+    var pickImportFiles: (NSWindow?, @escaping ([URL]?) -> Void) -> Void = NoteImport.pickFiles
 
     /// Defines `window.catchlightShell` before any of the page's own scripts run, with the values
     /// baked in, so `shell.systemInfo()` stays synchronous. `folder` is the sync folder's path as
@@ -233,6 +237,42 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                                   "quarantined": r.quarantined.count, "heldBack": r.heldBack.count], nil)
                 }
             }
+        case "importNotes", "importFile":
+            guard vault?.library != nil, !libraryUnreadable else { return replyHandler(nil, "locked") }
+            // Opening the folder and reading it can block on a cloud provider, so both run off the
+            // main thread (as SyncService opens it); the write waits for any sync pass, as a save does.
+            enum Read { case noFolder, unreadable, done(NoteImport.Outcome) }
+            let parse: (@escaping () -> Read) -> Void = { [weak self] read in
+                DispatchQueue.global(qos: .userInitiated).async {
+                    let result = read()
+                    DispatchQueue.main.async {
+                        let outcome: NoteImport.Outcome
+                        switch result {
+                        case .noFolder: return replyHandler(["noFolder": true], nil)
+                        case .unreadable: return replyHandler(["unreadable": true], nil)
+                        case .done(let o): outcome = o
+                        }
+                        // Always answered: the page awaits it.
+                        let write: () -> Void = {
+                            guard let self else { return replyHandler(nil, "the window closed before the import was written") }
+                            self.writeImport(outcome, replyHandler)
+                        }
+                        if let sync = self?.sync { sync.whenIdle(write) } else { write() }
+                    }
+                }
+            }
+            if cmd == "importNotes" {
+                let folder = syncFolder
+                parse {
+                    guard let cloud = folder?.open() else { return .noFolder }
+                    return (try? NoteImport.parseImportFolder(cloud)).map(Read.done) ?? .unreadable
+                }
+            } else {
+                pickImportFiles(window) { urls in
+                    guard let urls else { return replyHandler(["cancelled": true], nil) }
+                    parse { .done(NoteImport.parse(urls)) }
+                }
+            }
         case "ping":
             // A round trip: messages are handled in order, so everything sent before it is done.
             replyHandler(true, nil)
@@ -241,6 +281,29 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
         default:
             replyHandler(nil, "unknown command \(cmd)")
         }
+    }
+
+    // MARK: Import
+
+    /// Writes what an import parsed and answers what it did. On success a short summary Take is
+    /// added too, dated now, so a record of the import lands at the recent end of Dailies (as the
+    /// iPhone's `announceImport`).
+    private func writeImport(_ outcome: NoteImport.Outcome, _ reply: @escaping (Any?, String?) -> Void) {
+        guard let library = vault?.library, !libraryUnreadable else { return reply(nil, "locked") }
+        let done = library.importItems(outcome.items)
+        if done.takes + done.scripts > 0 {
+            let summary = "Import successful. \(Self.importedWords(done.takes, done.scripts)) added."
+            _ = library.importItems([Take(createdAt: Date(), modifiedAt: Date(), blocks: [.text(TextBlock(text: summary))], isNote: true)])
+        }
+        Self.log.info("import: \(done.takes) Takes, \(done.scripts) Scripts, \(done.failed) failed, \(outcome.skipped) files skipped")
+        reply(["takes": done.takes, "scripts": done.scripts, "failed": done.failed,
+               "scanned": outcome.scanned, "skipped": outcome.skipped], nil)
+    }
+
+    /// "3 Takes", "1 Take and 2 Scripts".
+    static func importedWords(_ takes: Int, _ scripts: Int) -> String {
+        let t = "\(takes) \(takes == 1 ? "Take" : "Takes")", s = "\(scripts) \(scripts == 1 ? "Script" : "Scripts")"
+        return scripts == 0 ? t : takes == 0 ? s : "\(t) and \(s)"
     }
 
     // MARK: The library and the account
