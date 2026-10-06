@@ -113,6 +113,30 @@ final class PageLibraryTests: XCTestCase {
         XCTAssertEqual(shown, "# Unsaved, edited")
     }
 
+    /// Greptile on #55: Scripts kept through a refresh (their save refused) stay tied to the
+    /// snapshot they came from, so a Script sync added meanwhile is never read as deleted.
+    func testAScriptSyncAddedSurvivesAfterARefreshKeptTheUnsavedOnes() throws {
+        let vault = Vault(secrets: MemorySecrets(), directory: dir)
+        try vault.createAccount(words: try Vault.newPhrase(), restored: true)
+        let (harness, bridge) = page(with: vault)
+        _ = bridge
+        let refused = UUID()
+        try vault.library!.store.upsert(Take(id: refused, createdAt: Date(), modifiedAt: Date(), blocks: [.text(TextBlock(text: "A Take"))]))
+        _ = try harness.run("""
+            scripts.push({ id: '\(refused.uuidString.lowercased())', at: new Date().toISOString(), mode: 'a4', blocks: ['# Refused'] });
+            current = scripts.at(-1).id; save(); \(settle) return true;
+            """, in: self)
+        // Sync adds a Script while the page holds its list.
+        let synced = try ScriptTranslation.core(from: ["id": UUID().uuidString, "at": "2026-07-01T09:00:00.000Z", "mode": "a4", "blocks": ["# From the other Mac"]], existing: nil)
+        try vault.library!.store.upsert(synced)
+        _ = try harness.run("""
+            await window.catchlightBridge.refresh();
+            scripts = scripts.filter(s => s.id !== '\(refused.uuidString.lowercased())'); save();
+            \(settle) return true;
+            """, in: self)
+        XCTAssertNotNil(try vault.library!.store.take(id: synced.id), "a Script the page never saw was deleted")
+    }
+
     /// Greptile on #55: once a sync changes the Script on screen, undo must not bring back the
     /// text from before it and save that over the synced version.
     func testUndoHistoryIsClearedWhenASyncChangesTheScriptOnScreen() throws {

@@ -51,10 +51,14 @@
   // A Scripts save that failed or was refused leaves an edit only the page holds, so a refresh
   // keeps the page's Scripts rather than replace them with the stored ones (Greptile on #55).
   let scriptsUnsaved = false, lastScriptsSave = Promise.resolve();
+  // The snapshot the page's Scripts came from, when a refresh kept them (null: the Takes' one).
+  // Kept Scripts are diffed against their own snapshot, or a Script sync added meanwhile would
+  // read as one the user deleted (Greptile on #55).
+  let scriptsGeneration = null;
   // A Take the shell couldn't read keeps its stored version, so say so rather than let the edit
   // look saved.
   // Scripts sync only once the shell says they do (SyncService.syncScriptsKey).
-  const sendList = (kind, list) => (saves++, (kind === 'takes' || library.syncScripts) && syncSoon(), post('save', { kind, list, generation: library.generation }))
+  const sendList = (kind, list) => (saves++, (kind === 'takes' || library.syncScripts) && syncSoon(), post('save', { kind, list, generation: kind === 'scripts' ? scriptsGeneration ?? library.generation : library.generation }))
     .then(r => {
       if (kind === 'scripts') scriptsUnsaved = !!r?.rejected?.length;
       // The shell kept a Take the page deleted that changed elsewhere: take the library again
@@ -177,9 +181,10 @@
       // A Script typed into while the answer was on its way: save it, then ask again.
       if (saves !== before || busy() || (typeof scriptSavePending !== 'undefined' && scriptSavePending)) return this.refresh();
       library.takes = r.takes;
+      if (scriptsUnsaved) scriptsGeneration ??= library.generation;
+      else { scriptsGeneration = null; library.scripts = r.scripts; replaceScripts(r.scripts); }
       library.generation = r.generation;
       replaceTakes(r.takes);
-      if (!scriptsUnsaved) { library.scripts = r.scripts; replaceScripts(r.scripts); }
       return true;
     },
     sync,
