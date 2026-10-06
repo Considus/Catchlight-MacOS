@@ -72,6 +72,27 @@ final class PageLibraryTests: XCTestCase {
         XCTAssertNil(try vault.library!.store.take(id: stored.id))
     }
 
+    /// Claude review on #55: typing in a Script while a refresh waits for the shell's answer must
+    /// survive the refresh, on screen and in the store.
+    func testTypingInAScriptDuringARefreshIsKept() throws {
+        let vault = Vault(secrets: MemorySecrets(), directory: dir)
+        try vault.createAccount(words: try Vault.newPhrase(), restored: true)
+        let (harness, bridge) = page(with: vault)
+        _ = bridge
+
+        let shown = try harness.run("""
+            newScript(['# Draft']);
+            await window.catchlightBridge.flush();
+            const pending = window.catchlightBridge.refresh();   // runs up to the shell's answer
+            script().blocks[0] = '# Draft, typed during the refresh'; changed();
+            await pending;
+            await window.catchlightBridge.flush();
+            return script().blocks[0];
+            """, in: self) as? String
+        XCTAssertEqual(shown, "# Draft, typed during the refresh")
+        XCTAssertEqual(try vault.library!.pageScripts().first?["blocks"] as? [String], ["# Draft, typed during the refresh"])
+    }
+
     func testFirstRunMakesTheAccountAndSeedsTheLibrary() throws {
         let secrets = MemorySecrets()
         let vault = Vault(secrets: secrets, directory: dir)

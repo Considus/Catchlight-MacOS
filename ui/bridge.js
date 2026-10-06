@@ -163,7 +163,8 @@
       if (typeof scriptSavePending !== 'undefined' && scriptSavePending) save();
       const before = saves;
       const r = await post('reload');
-      if (saves !== before || busy()) return this.refresh();
+      // A Script typed into while the answer was on its way: save it, then ask again.
+      if (saves !== before || busy() || (typeof scriptSavePending !== 'undefined' && scriptSavePending)) return this.refresh();
       library.takes = r.takes;
       library.scripts = r.scripts;
       library.generation = r.generation;
