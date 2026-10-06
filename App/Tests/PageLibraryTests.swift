@@ -48,6 +48,30 @@ final class PageLibraryTests: XCTestCase {
         XCTAssertEqual(try vault.library!.store.take(id: id)?.blocks.first.map { "\($0)" }.map { $0.contains("Edited on the Mac") }, true)
     }
 
+    /// M3b: a Script typed on the page lands in the store as a Take of kind Script, its checklist
+    /// line a checklist item, and never in localStorage; deleting it on the page deletes it there.
+    func testAScriptOnThePageIsSavedIntoTheLibraryAsAScript() throws {
+        let vault = Vault(secrets: MemorySecrets(), directory: dir)
+        try vault.createAccount(words: try Vault.newPhrase(), restored: true)
+        let (harness, bridge) = page(with: vault)
+        _ = bridge
+
+        let id = try harness.run("""
+            localStorage.removeItem('cl.scripts');   // another test's page, run without a library, may have left one
+            newScript(['# Typed on the Mac', '- [x] Done']);
+            await window.catchlightBridge.flush();
+            return script().id;
+            """, in: self) as? String
+        let stored = try XCTUnwrap(try vault.library!.store.take(id: XCTUnwrap(id.flatMap(UUID.init(uuidString:)))))
+        XCTAssertTrue(stored.isScript)
+        guard case .check(let c) = stored.blocks.last else { return XCTFail("a checklist line is a checklist item") }
+        XCTAssertTrue(c.isComplete)
+        XCTAssertNil(try harness.run("return localStorage.getItem('cl.scripts');", in: self) as? String, "Scripts must not reach localStorage")
+
+        _ = try harness.run("scripts = []; save(); \(settle) return true;", in: self)
+        XCTAssertNil(try vault.library!.store.take(id: stored.id))
+    }
+
     func testFirstRunMakesTheAccountAndSeedsTheLibrary() throws {
         let secrets = MemorySecrets()
         let vault = Vault(secrets: secrets, directory: dir)

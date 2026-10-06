@@ -19,12 +19,13 @@ final class SyncServiceTests: XCTestCase {
     }
 
     /// A Mac with its own library and settings, on the account `words` opens, synced to the shared folder.
-    private func mac(_ name: String, words: [String]) throws -> SyncService {
+    private func mac(_ name: String, words: [String], syncScripts: Bool = false) throws -> SyncService {
         let vault = Vault(secrets: MemorySecrets(), directory: root.appendingPathComponent(name))
         try vault.createAccount(words: words, restored: true)
         let suite = "catchlight.tests.\(UUID())"
         suites.append(suite)
         let defaults = UserDefaults(suiteName: suite)!
+        defaults.set(syncScripts, forKey: SyncService.syncScriptsKey)
         let folder = SyncFolder(defaults: defaults)
         folder.pick = { [root] _, done in done(root!.appendingPathComponent("Cloud")) }
         folder.choose(in: nil) { _ in }
@@ -47,6 +48,66 @@ final class SyncServiceTests: XCTestCase {
         _ = try service.vault.library!.saveTakes(try service.vault.library!.pageTakes() + [
             ["id": id.uuidString, "at": "2026-07-01T09:00:00Z", "isNote": true, "blocks": [["k": "text", "text": text]]]])
         return id
+    }
+
+    private func writeScript(_ text: String, id: UUID = UUID(), on service: SyncService) throws -> UUID {
+        _ = try service.vault.library!.saveScripts(try service.vault.library!.pageScripts() + [
+            ["id": id.uuidString, "at": "2026-07-01T09:00:00.000Z", "mode": "a4", "blocks": [text, "- [ ] Frame size"]]])
+        return id
+    }
+
+    /// M3b, with the switch off (Script_Sync_Proposal, decision A): a Script in the library never
+    /// reaches the folder, so a phone from before 2026-10-01 can never see one. Takes still sync.
+    func testScriptsStayOnThisMacUntilTheSwitchIsOn() throws {
+        let words = try Vault.newPhrase()
+        let a = try mac("A", words: words), b = try mac("B", words: words)
+        let script = try writeScript("# Winter series", on: a)
+        let take = try write("A Take", on: a)
+
+        XCTAssertEqual(try sync(a).uploaded, [take])
+        let files = try FileManager.default.contentsOfDirectory(atPath: root.appendingPathComponent("Cloud").path)
+        XCTAssertFalse(files.contains { $0.lowercased().hasPrefix(script.uuidString.lowercased()) }, "no Script in the folder: \(files)")
+        _ = try sync(a)   // and not by a later pass either (the engine's self-heal step)
+        XCTAssertEqual(try sync(b).applied, [take])
+        XCTAssertEqual(try b.vault.library!.pageScripts().count, 0)
+        XCTAssertEqual(try a.vault.library!.pageScripts().count, 1, "the Script stays on Mac A")
+    }
+
+    func testWithTheSwitchOnAScriptCrossesToTheOtherMac() throws {
+        let words = try Vault.newPhrase()
+        let a = try mac("A", words: words, syncScripts: true), b = try mac("B", words: words, syncScripts: true)
+        let id = try writeScript("# Winter series", on: a)
+        XCTAssertEqual(try sync(a).uploaded, [id])
+        XCTAssertEqual(try sync(b).applied, [id])
+        let onB = try b.vault.library!.pageScripts()
+        XCTAssertEqual(onB.map { $0["blocks"] as? [String] }, [["# Winter series", "- [ ] Frame size"]])
+        XCTAssertEqual(onB.first?["mode"] as? String, "a4")
+        XCTAssertEqual(try b.vault.library!.pageTakes().count, 0, "and it is a Script there, not a Take")
+    }
+
+    /// The real page: Sync Now brings in a Script another Mac wrote, and the Scripts list shows it.
+    func testSyncNowOnThePageShowsAScriptFromAnotherMac() throws {
+        let words = try Vault.newPhrase()
+        let a = try mac("A", words: words, syncScripts: true), b = try mac("B", words: words, syncScripts: true)
+        _ = try writeScript("# From Mac A", on: a)
+        _ = try sync(a)
+
+        let harness = WebViewHarness(root: WebViewHarness.repoUI, ruleList: nil)
+        let bridge = ShellBridge()
+        bridge.vault = b.vault
+        bridge.syncFolder = b.folder
+        bridge.sync = b
+        bridge.install(in: harness.webView.configuration.userContentController)
+        harness.load("index.html", in: self)
+
+        let shown = try harness.run("""
+            localStorage.setItem('cl.account', JSON.stringify({ ...(JSON.parse(localStorage.getItem('cl.account')) || {}), folder: '~/Cloud' }));
+            settings.syncMode = 'manual';
+            const r = await catchlightBridge.sync('manual');
+            for (let i = 0; i < 100 && !scripts.length; i++) await new Promise(r => setTimeout(r, 50));
+            return JSON.stringify([r.applied, scripts.map(s => s.blocks[0]), document.querySelector('#scripts [data-script] .body')?.textContent ?? null]);
+            """, in: self) as? String
+        XCTAssertEqual(shown, ##"[1,["# From Mac A"],"From Mac A\nFrame size"]"##)
     }
 
     func testATakeWrittenOnOneMacArrivesOnTheOther() throws {
