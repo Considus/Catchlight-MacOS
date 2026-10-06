@@ -1,5 +1,6 @@
 import AppKit
 import WebKit
+import CatchlightCore
 import os
 
 /// What the Mac reports about itself, for About and Report an Issue (`shell.systemInfo`).
@@ -35,6 +36,7 @@ enum SystemInfo {
 ///   `revealPhrase`, `eraseEverything`: the account, through the `Vault`;
 /// - `chooseFolder`, `forgetFolder`: the sync folder, through `SyncFolder` (the open panel);
 /// - `sync {trigger}`: one sync pass through `SyncService`, answered with what it did;
+/// - `changeKind {item, to: 'takes'|'scripts'}`: Take ⇄ Script on the same id (D-313);
 /// - `conflicts`, `resolveConflict {id, choice}`: the waiting conflicts and the user's choice.
 final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
     static let name = "catchlight"
@@ -125,7 +127,7 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
         }
         // These must not overlap a sync pass (SyncService.whenIdle); the flush's `ping` waits too,
         // so everything the page sent before quitting is written before the app goes.
-        if ["save", "reload", "createAccount", "replaceAccount", "eraseEverything", "resolveConflict", "ping"].contains(cmd), let sync, sync.isSyncing {
+        if ["save", "changeKind", "reload", "createAccount", "replaceAccount", "eraseEverything", "resolveConflict", "ping"].contains(cmd), let sync, sync.isSyncing {
             sync.whenIdle { [weak self] in
                 self?.userContentController(userContentController, didReceive: message, replyHandler: replyHandler)
             }
@@ -184,10 +186,16 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
             // Both versions in the page's shape, for the choice screen.
             guard let sync, vault?.library != nil else { return replyHandler([Any](), nil) }
             do {
+                // Each side in its own kind's shape: a Take made a Script here can conflict with
+                // the Take another device edited.
+                func side(_ take: Take) throws -> [String: Any] {
+                    var page = take.isScript ? ScriptTranslation.page(from: take) : try TakeTranslation.page(from: take)
+                    page["kind"] = take.isScript ? "script" : "take"
+                    page["modifiedAt"] = (take.modifiedAt.timeIntervalSince1970 * 1000).rounded()
+                    return page
+                }
                 replyHandler(try sync.conflicts.pending.map { pair -> [String: Any] in
-                    ["id": pair.local.id.uuidString.lowercased(),
-                     "local": try TakeTranslation.page(from: pair.local),
-                     "remote": try TakeTranslation.page(from: pair.remote)]
+                    ["id": pair.local.id.uuidString.lowercased(), "local": try side(pair.local), "remote": try side(pair.remote)]
                 }, nil)
             } catch {
                 Self.log.error("conflicts did not translate: \(String(describing: error), privacy: .public)")
@@ -216,7 +224,9 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                 case .failed(let error):
                     replyHandler(["error": SyncService.notice(for: error) as Any? ?? NSNull()], nil)
                 case .finished(let r):
-                    replyHandler(["applied": r.applied.count, "deleted": r.deletedLocally.count, "uploaded": r.uploaded.count,
+                    let fresh = sync.conflicts.pending.count - before.pending
+                    let freshScripts = fresh > 0 ? sync.conflicts.pending.suffix(fresh).filter { $0.local.isScript || $0.remote.isScript }.count : 0
+                    replyHandler(["newConflictScripts": freshScripts, "applied": r.applied.count, "deleted": r.deletedLocally.count, "uploaded": r.uploaded.count,
                                   "conflicts": sync.conflicts.count,
                                   "newConflicts": max(0, sync.conflicts.pending.count - before.pending),
                                   "newUnverified": max(0, sync.conflicts.unverified.count - before.unverified),
@@ -226,7 +236,7 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
         case "ping":
             // A round trip: messages are handled in order, so everything sent before it is done.
             replyHandler(true, nil)
-        case "save", "reload", "validatePhrase", "createAccount", "replaceAccount", "revealPhrase", "eraseEverything":
+        case "save", "changeKind", "reload", "validatePhrase", "createAccount", "replaceAccount", "revealPhrase", "eraseEverything":
             handleLibrary(cmd, body, replyHandler)
         default:
             replyHandler(nil, "unknown command \(cmd)")
@@ -263,6 +273,21 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                 if !report.rejected.isEmpty { Self.log.error("save kept \(report.rejected.count) items it could not read") }
                 reply(["upserted": report.upserted, "deleted": report.deleted, "rejected": report.rejected,
                        "conflicts": report.conflicts.count, "keptOverDelete": report.keptOverDelete.count], nil)
+            case "changeKind":
+                guard let library = vault.library else { return reply(nil, "locked") }
+                guard !libraryUnreadable else { return reply(nil, "the library could not be read, so nothing is saved over it") }
+                let to = body["to"] as? String
+                guard let item = body["item"] as? [String: Any],
+                      let pageList: Library.PageList = to == "takes" ? .takes : to == "scripts" ? .scripts : nil else {
+                    return reply(nil, "changeKind needs an item and takes or scripts")
+                }
+                var conflicts = 0
+                let changed = try library.changeKind(item, to: pageList, generation: body["generation"] as? Int,
+                                                     keepConflict: { [sync] pair in try sync?.conflicts.keep(pair); conflicts += 1 })
+                // The item as stored, in its new list's shape: the page keeps this one, so its next
+                // save carries what the page's own copy didn't (a reminder, Important).
+                let shaped = pageList == .scripts ? ScriptTranslation.page(from: changed) : try TakeTranslation.page(from: changed)
+                reply(["conflicts": conflicts, "item": shaped], nil)
             case "reload":
                 // The page asks for the library as it is now (after a sync, say). Everything it
                 // sent before this has been handled, because messages are handled in order.

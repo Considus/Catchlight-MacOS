@@ -21,7 +21,18 @@ const conflictChoice = {};              // id → 'local' | 'remote', picked but
 const conflictSkipped = new Set();     // Skip for now: hidden until the next launch or sync finds it again
 const conflictSeen = {};               // id → the versions a pick was made against
 
-const conflictText = t => (t.blocks || []).map(b => (b.k === 'check' ? (b.done ? '☑ ' : '☐ ') : '') + b.text).join('\n').trim() || 'Untitled Take';
+// A Script's blocks are its markdown lines; a Take's are text and checklist items.
+const conflictText = t => t.kind === 'script'
+  ? (t.blocks || []).join('\n').trim() || 'Untitled Script'
+  : (t.blocks || []).map(b => (b.k === 'check' ? (b.done ? '☑ ' : '☐ ') : '') + b.text).join('\n').trim() || 'Untitled Take';
+// What the waiting pairs are, in words: Takes, Scripts, or Takes and Scripts. A pair counts as a
+// Script when either side is one (a Take made a Script here, edited as a Take elsewhere).
+const isScriptPair = c => c.local?.kind === 'script' || c.remote?.kind === 'script';
+const conflictNoun = (list, one) => {
+  const scripts = list.filter(isScriptPair).length, takes = list.length - scripts;
+  if (scripts && takes) return 'Takes and Scripts';
+  return scripts ? (one ? 'Script' : 'Scripts') : (one ? 'Take' : 'Takes');
+};
 const conflictWhen = t => {
   const ms = t.modifiedAt ?? Date.parse(t.at);
   return Number.isFinite(ms) ? new Date(ms).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '';
@@ -47,7 +58,7 @@ const shownConflicts = () => conflictList.filter(c => !conflictSkipped.has(c.id)
 function paintConflicts() {
   const n = conflictList.length;
   conflictBanner.hidden = n === 0;
-  conflictBanner.innerHTML = n ? `<span>${n} ${n === 1 ? 'Take' : 'Takes'} changed on another device.</span><button class="slink" type="button" data-cf="review">Review</button>` : '';
+  conflictBanner.innerHTML = n ? `<span>${n} ${conflictNoun(conflictList, n === 1)} changed on another device.</span><button class="slink" type="button" data-cf="review">Review</button>` : '';
   if (conflictSheet.open) paintConflictSheet();
 }
 
@@ -62,13 +73,13 @@ function paintConflictSheet() {
   const panel = (c, side) => {
     const t = c[side], picked = conflictChoice[c.id] === side;
     return `<button class="cf-version${picked ? ' picked' : ''}" type="button" data-cf="pick" data-id="${esc(c.id)}" data-side="${side}" aria-pressed="${picked}">
-      <span class="cf-label">${side === 'local' ? 'Local' : 'Cloud'}</span>
+      <span class="cf-label">${side === 'local' ? 'Local' : 'Cloud'}${isScriptPair(c) ? ` · ${t.kind === 'script' ? 'Script' : 'Take'}` : ''}</span>
       <span class="cf-when">${esc(conflictWhen(t))}</span>
       <span class="cf-body">${esc(conflictText(t))}</span>
     </button>`;
   };
   conflictSheet.innerHTML = `<h2 id="conflicts-heading">Sync conflicts</h2>
-    <p class="cf-guide">These Takes were edited on different devices, so we can't tell which to keep. Choose the version you'd like to keep, or keep both. A version you don't keep is removed.</p>
+    <p class="cf-guide">These ${conflictNoun(list, false)} were edited on different devices, so we can't tell which to keep. Choose the version you'd like to keep, or keep both. A version you don't keep is removed.</p>
     ${list.map(c => `<section class="cf-item" data-id="${esc(c.id)}">
       <div class="cf-pair">${panel(c, 'local')}${panel(c, 'remote')}</div>
       <div class="cf-actions">

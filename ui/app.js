@@ -300,7 +300,10 @@ function deactivate() {
 }
 function rebuild(focusI, off) { renderDoc(); activate(focusI, off); changed(); }
 
-const saveSoon = debounce(() => { save(); renderScripts(); $('#script-heading').textContent = titleOf(script()); paginate(); }, 250);
+// While a change of kind is on its way to the shell, the Script's save waits: it would name an id
+// the store already holds as a Take, and be refused.
+let kindChanging = 0;
+const saveSoon = debounce(() => { if (kindChanging) return saveSoon(); save(); renderScripts(); $('#script-heading').textContent = titleOf(script()); paginate(); }, 250);
 const changed = () => { scriptSavePending = true; saveSoon(); };
 
 // ---------- undo across the whole Script ----------
@@ -773,13 +776,21 @@ document.addEventListener('pointerdown', e => {
 document.addEventListener('pointermove', e => { if (press && Math.hypot(e.clientX - press.x, e.clientY - press.y) > 10) { clearTimeout(press.t); press = null; } });
 document.addEventListener('pointerup', () => { if (press) { clearTimeout(press.t); press = null; } });
 document.addEventListener('mousedown', e => { if (!ctx.contains(e.target)) ctx.hidden = true; });
-function scriptToTake(id) {
+async function scriptToTake(id) {
   const s = scripts.find(x => x.id === id);
-  scripts = scripts.filter(x => x !== s);
-  // The text moves as it is: "- [ ]" lines become checklist items, the rest stays text (D-313).
-  takes.push(takeFromScript(s));
+  // The text moves as it is: "- [ ]" lines become checklist items, the rest stays text. Same id:
+  // a change of kind, not a copy (D-313, changeKind in takes.js).
+  kindChanging++;   // changeKind answers null on failure rather than throw; the shell stamps the change
+  const shaped = await changeKind({ ...takeFromScript(s), id: s.id }, 'takes');
+  if (!shaped) return endKindChange();
+  // The text as it is now: typing while the request was on its way is kept, and the Takes save
+  // that follows writes it (Greptile on #56).
+  const now = scripts.find(x => x.id === id) ?? s;
+  const t = { ...shaped, blocks: takeFromScript(now).blocks };
+  scripts = scripts.filter(x => x.id !== id);
+  if (!takes.some(x => x.id === t.id)) takes.push(t);
   if (current === s.id) current = scripts[0] ? scripts[0].id : null;
-  save(); saveTakes(); renderTakes(); renderScripts(); renderDoc();
+  endKindChange(); save(); saveTakes(); renderTakes(); renderScripts(); renderDoc();
   $('#script-heading').textContent = titleOf(script());
 }
 

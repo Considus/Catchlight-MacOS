@@ -161,6 +161,80 @@ final class PageLibraryTests: XCTestCase {
         XCTAssertEqual(left, 0)
     }
 
+    /// M3b step 2 (D-313): the page's Expand into a Script and Make this a Take keep the id; the
+    /// store changes the item's kind and keeps no deletion record.
+    func testExpandIntoAScriptAndBackKeepsTheId() throws {
+        let vault = Vault(secrets: MemorySecrets(), directory: dir)
+        try vault.createAccount(words: try Vault.newPhrase(), restored: true)
+        let id = UUID()
+        _ = try vault.library!.saveTakes([["id": id.uuidString, "at": "2026-07-01T09:00:00Z", "isNote": true,
+                                           "blocks": [["k": "text", "text": "A thought"], ["k": "check", "text": "Frame size", "done": false]]]])
+        let (harness, bridge) = page(with: vault)
+        _ = bridge
+
+        let asScript = try harness.run("""
+            await expandIntoScript(takes[0]);
+            await window.catchlightBridge.flush();
+            return JSON.stringify([takes.length, script().id, script().blocks]);
+            """, in: self) as? String
+        XCTAssertEqual(asScript, #"[0,"\#(id.uuidString.lowercased())",["A thought","- [ ] Frame size"]]"#)
+        XCTAssertTrue(try XCTUnwrap(try vault.library!.store.take(id: id)).isScript)
+        XCTAssertEqual(try vault.library!.store.tombstones().count, 0)
+
+        let asTake = try harness.run("""
+            await scriptToTake('\(id.uuidString.lowercased())');
+            await window.catchlightBridge.flush();
+            return JSON.stringify([scripts.length, takes.map(t => t.id)]);
+            """, in: self) as? String
+        XCTAssertEqual(asTake, #"[0,["\#(id.uuidString.lowercased())"]]"#)
+        XCTAssertNil(try vault.library!.store.take(id: id)?.kind)
+        XCTAssertEqual(try vault.library!.store.allTakes().count, 1)
+        XCTAssertEqual(try vault.library!.store.tombstones().count, 0)
+    }
+
+    /// Greptile on #56: typing into the Script while its change of kind is on its way to the
+    /// shell (waiting for a sync pass, say) is kept in the Take it becomes.
+    func testTypingDuringAChangeOfKindIsKept() throws {
+        let vault = Vault(secrets: MemorySecrets(), directory: dir)
+        try vault.createAccount(words: try Vault.newPhrase(), restored: true)
+        let (harness, bridge) = page(with: vault)
+        _ = bridge
+        let shown = try harness.run("""
+            newScript(['Draft']);
+            await window.catchlightBridge.flush();
+            const id = script().id;
+            const pending = scriptToTake(id);   // runs up to the shell's answer
+            script().blocks[0] = 'Draft, typed on'; changed();
+            await pending;
+            await window.catchlightBridge.flush();
+            return JSON.stringify([scripts.length, takes.map(t => t.blocks[0].text)]);
+            """, in: self) as? String
+        XCTAssertEqual(shown, #"[0,["Draft, typed on"]]"#)
+        XCTAssertEqual(try vault.library!.store.allTakes().first?.plainText, "Draft, typed on")
+    }
+
+    /// Claude review on #56: a Takes save made while a change of kind is on its way would name an
+    /// id the store already holds as a Script, and be refused with an error. It waits instead.
+    func testATakesSaveDuringAChangeOfKindWaitsAndIsNotRefused() throws {
+        let vault = Vault(secrets: MemorySecrets(), directory: dir)
+        try vault.createAccount(words: try Vault.newPhrase(), restored: true)
+        let id = UUID()
+        _ = try vault.library!.saveTakes([["id": id.uuidString, "at": "2026-07-01T09:00:00Z", "isNote": true,
+                                           "blocks": [["k": "text", "text": "A thought"]]]])
+        let (harness, bridge) = page(with: vault)
+        _ = bridge
+        let state = try harness.run("""
+            const pending = expandIntoScript(takes[0]);   // runs up to the shell's answer
+            saveTakes();                                   // a save already on its way, say
+            await pending;
+            await window.catchlightBridge.flush();
+            \(settle)
+            return JSON.stringify([document.querySelector('dialog[open] h2')?.textContent ?? null, takes.length, scripts.length]);
+            """, in: self) as? String
+        XCTAssertEqual(state, "[null,0,1]")
+        XCTAssertTrue(try XCTUnwrap(try vault.library!.store.take(id: id)).isScript)
+    }
+
     func testFirstRunMakesTheAccountAndSeedsTheLibrary() throws {
         let secrets = MemorySecrets()
         let vault = Vault(secrets: secrets, directory: dir)

@@ -202,6 +202,49 @@ final class Library {
         return report
     }
 
+    /// Take ⇄ Script as a change of kind on the same id (D-313): no copy and no deletion record,
+    /// so sync sends one item whose kind changed. `page` is the item in its new list's shape. It is
+    /// laid over the stored item, so what the page doesn't model (block ids, a reminder) is kept;
+    /// a Script is never the Obie. Every kept snapshot takes the new version, so the old list's
+    /// next save doesn't read it as deleted, nor the new list's as new.
+    /// - Parameter generation: the snapshot the page's copy came from (nil: the newest). If sync
+    ///   changed the item since, that version goes to `keepConflict` before anything is written,
+    ///   as a save's does, so the change of kind never replaces it unseen.
+    @discardableResult
+    func changeKind(_ page: [String: Any], to list: PageList, generation: Int? = nil, now: Date = Date(),
+                    keepConflict: ((local: Take, remote: Take)) throws -> Void = { _ in }) throws -> Take {
+        guard let idString = page["id"] as? String, let id = UUID(uuidString: idString) else {
+            throw TakeTranslation.Failure.badID(String(describing: page["id"]))
+        }
+        let gen = generation ?? self.generation
+        guard gen == 0 || snapshots[gen] != nil else { throw Failure.staleSnapshot(gen) }
+        let stored = try store.take(id: id)
+        let was = snapshots[gen]?[id]
+        var base = stored
+        base?.kind = list == .scripts ? ManifestEntry.Kind.script : nil
+        if list == .scripts { base?.isObie = false }
+        // A Take from a Script carries only its text (`takeFromScript`), and a Take's translation
+        // reads a missing reminder or flag as removed. What the page didn't send comes from the
+        // stored item instead: its reminder, Important, its place in a manual order (Greptile on #56).
+        var incoming = page
+        if list == .takes, let base {
+            incoming = try TakeTranslation.page(from: base)
+            incoming["id"] = page["id"]
+            incoming["blocks"] = page["blocks"]
+            if let at = page["at"] { incoming["at"] = at }
+            if let note = page["isNote"] { incoming["isNote"] = note }
+            incoming.removeValue(forKey: "modifiedAt")
+        }
+        var item = try list.core(from: incoming, existing: base, now: now)
+        // A change of kind is an edit: it must be the newest version everywhere.
+        item.modifiedAt = max(ISO8601.truncateToMilliseconds(now), (stored?.modifiedAt ?? .distantPast).addingTimeInterval(0.001))
+        if let stored, let was, stored != was { try keepConflict((local: item, remote: stored)) }
+        try store.upsert(item)
+        for g in snapshots.keys { snapshots[g]?[id] = item }
+        Self.log.info("an item changed kind")
+        return item
+    }
+
     /// Scripts saved before M3b, one sealed file each, move into the store with the same id. A
     /// file goes only once the store holds its Script and it reads back the same; a file that
     /// won't open, or whose id the store already holds as something else, stays where it is.
