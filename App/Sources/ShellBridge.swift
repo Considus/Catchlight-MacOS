@@ -239,13 +239,19 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
             }
         case "importNotes", "importFile":
             guard vault?.library != nil, !libraryUnreadable else { return replyHandler(nil, "locked") }
-            // Reading can block on a cloud provider, so it runs off the main thread; the write
-            // waits for any sync pass, as a save does.
-            let parse: (@escaping () -> NoteImport.Outcome?) -> Void = { [weak self] read in
+            // Opening the folder and reading it can block on a cloud provider, so both run off the
+            // main thread (as SyncService opens it); the write waits for any sync pass, as a save does.
+            enum Read { case noFolder, unreadable, done(NoteImport.Outcome) }
+            let parse: (@escaping () -> Read) -> Void = { [weak self] read in
                 DispatchQueue.global(qos: .userInitiated).async {
-                    let outcome = read()
+                    let result = read()
                     DispatchQueue.main.async {
-                        guard let outcome else { return replyHandler(["unreadable": true], nil) }
+                        let outcome: NoteImport.Outcome
+                        switch result {
+                        case .noFolder: return replyHandler(["noFolder": true], nil)
+                        case .unreadable: return replyHandler(["unreadable": true], nil)
+                        case .done(let o): outcome = o
+                        }
                         // Always answered: the page awaits it.
                         let write: () -> Void = {
                             guard let self else { return replyHandler(nil, "the window closed before the import was written") }
@@ -256,12 +262,15 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                 }
             }
             if cmd == "importNotes" {
-                guard let cloud = syncFolder?.open() else { return replyHandler(["noFolder": true], nil) }
-                parse { try? NoteImport.parseImportFolder(cloud) }
+                let folder = syncFolder
+                parse {
+                    guard let cloud = folder?.open() else { return .noFolder }
+                    return (try? NoteImport.parseImportFolder(cloud)).map(Read.done) ?? .unreadable
+                }
             } else {
                 pickImportFiles(window) { urls in
                     guard let urls else { return replyHandler(["cancelled": true], nil) }
-                    parse { NoteImport.parse(urls) }
+                    parse { .done(NoteImport.parse(urls)) }
                 }
             }
         case "ping":
