@@ -282,9 +282,12 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                     return reply(nil, "changeKind needs an item and takes or scripts")
                 }
                 var conflicts = 0
-                try library.changeKind(item, to: pageList, generation: body["generation"] as? Int,
-                                       keepConflict: { [sync] pair in try sync?.conflicts.keep(pair); conflicts += 1 })
-                reply(["conflicts": conflicts], nil)
+                let changed = try library.changeKind(item, to: pageList, generation: body["generation"] as? Int,
+                                                     keepConflict: { [sync] pair in try sync?.conflicts.keep(pair); conflicts += 1 })
+                // The item as stored, in its new list's shape: the page keeps this one, so its next
+                // save carries what the page's own copy didn't (a reminder, Important).
+                let shaped = pageList == .scripts ? ScriptTranslation.page(from: changed) : try TakeTranslation.page(from: changed)
+                reply(["conflicts": conflicts, "item": shaped], nil)
             case "reload":
                 // The page asks for the library as it is now (after a sync, say). Everything it
                 // sent before this has been handled, because messages are handled in order.

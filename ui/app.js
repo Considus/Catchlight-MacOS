@@ -300,7 +300,10 @@ function deactivate() {
 }
 function rebuild(focusI, off) { renderDoc(); activate(focusI, off); changed(); }
 
-const saveSoon = debounce(() => { save(); renderScripts(); $('#script-heading').textContent = titleOf(script()); paginate(); }, 250);
+// While a change of kind is on its way to the shell, the Script's save waits: it would name an id
+// the store already holds as a Take, and be refused.
+let kindChanging = 0;
+const saveSoon = debounce(() => { if (kindChanging) return saveSoon(); save(); renderScripts(); $('#script-heading').textContent = titleOf(script()); paginate(); }, 250);
 const changed = () => { scriptSavePending = true; saveSoon(); };
 
 // ---------- undo across the whole Script ----------
@@ -777,8 +780,15 @@ async function scriptToTake(id) {
   const s = scripts.find(x => x.id === id);
   // The text moves as it is: "- [ ]" lines become checklist items, the rest stays text. Same id:
   // a change of kind, not a copy (D-313, changeKind in takes.js).
-  const t = { ...takeFromScript(s), id: s.id };   // the shell stamps the change
-  if (!await changeKind(t, 'takes')) return;
+  kindChanging++;
+  let shaped;
+  try { shaped = await changeKind({ ...takeFromScript(s), id: s.id }, 'takes'); }   // the shell stamps the change
+  finally { kindChanging--; }
+  if (!shaped) return;
+  // The text as it is now: typing while the request was on its way is kept, and the Takes save
+  // that follows writes it (Greptile on #56).
+  const now = scripts.find(x => x.id === id) ?? s;
+  const t = { ...shaped, blocks: takeFromScript(now).blocks };
   scripts = scripts.filter(x => x.id !== id);
   if (!takes.some(x => x.id === t.id)) takes.push(t);
   if (current === s.id) current = scripts[0] ? scripts[0].id : null;

@@ -223,7 +223,19 @@ final class Library {
         var base = stored
         base?.kind = list == .scripts ? ManifestEntry.Kind.script : nil
         if list == .scripts { base?.isObie = false }
-        var item = try list.core(from: page, existing: base, now: now)
+        // A Take from a Script carries only its text (`takeFromScript`), and a Take's translation
+        // reads a missing reminder or flag as removed. What the page didn't send comes from the
+        // stored item instead: its reminder, Important, its place in a manual order (Greptile on #56).
+        var incoming = page
+        if list == .takes, let base {
+            incoming = try TakeTranslation.page(from: base)
+            incoming["id"] = page["id"]
+            incoming["blocks"] = page["blocks"]
+            if let at = page["at"] { incoming["at"] = at }
+            if let note = page["isNote"] { incoming["isNote"] = note }
+            incoming.removeValue(forKey: "modifiedAt")
+        }
+        var item = try list.core(from: incoming, existing: base, now: now)
         // A change of kind is an edit: it must be the newest version everywhere.
         item.modifiedAt = max(ISO8601.truncateToMilliseconds(now), (stored?.modifiedAt ?? .distantPast).addingTimeInterval(0.001))
         if let stored, let was, stored != was { try keepConflict((local: item, remote: stored)) }

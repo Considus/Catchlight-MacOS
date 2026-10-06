@@ -192,6 +192,27 @@ final class PageLibraryTests: XCTestCase {
         XCTAssertEqual(try vault.library!.store.tombstones().count, 0)
     }
 
+    /// Greptile on #56: typing into the Script while its change of kind is on its way to the
+    /// shell (waiting for a sync pass, say) is kept in the Take it becomes.
+    func testTypingDuringAChangeOfKindIsKept() throws {
+        let vault = Vault(secrets: MemorySecrets(), directory: dir)
+        try vault.createAccount(words: try Vault.newPhrase(), restored: true)
+        let (harness, bridge) = page(with: vault)
+        _ = bridge
+        let shown = try harness.run("""
+            newScript(['Draft']);
+            await window.catchlightBridge.flush();
+            const id = script().id;
+            const pending = scriptToTake(id);   // runs up to the shell's answer
+            script().blocks[0] = 'Draft, typed on'; changed();
+            await pending;
+            await window.catchlightBridge.flush();
+            return JSON.stringify([scripts.length, takes.map(t => t.blocks[0].text)]);
+            """, in: self) as? String
+        XCTAssertEqual(shown, #"[0,["Draft, typed on"]]"#)
+        XCTAssertEqual(try vault.library!.store.allTakes().first?.plainText, "Draft, typed on")
+    }
+
     func testFirstRunMakesTheAccountAndSeedsTheLibrary() throws {
         let secrets = MemorySecrets()
         let vault = Vault(secrets: secrets, directory: dir)

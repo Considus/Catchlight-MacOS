@@ -331,6 +331,26 @@ final class LibraryTests: XCTestCase {
         XCTAssertTrue(kept.first?.local.isScript ?? false)
     }
 
+    /// Greptile on #56: what a Take carries beyond its text (a reminder, Important, its place in
+    /// a manual order) survives being a Script and coming back.
+    func testATakeMadeAScriptAndBackKeepsItsReminderAndImportant() throws {
+        let id = UUID()
+        var take = page("Call the framer", id: id)
+        take["isImportant"] = true
+        take["manualOrder"] = 42.0
+        take["reminder"] = ["kind": "time", "when": "2026-12-01T09:00:00.000Z", "done": false, "allDay": false,
+                            "notify": true, "repeat": "none", "weekdays": [Int]()]
+        try library.saveTakes([take])
+        try library.changeKind(script("Call the framer", id: id), to: .scripts)
+        // The page's Take from a Script carries only its text, as takeFromScript makes it.
+        let back = try library.changeKind(["id": id.uuidString, "at": "2026-07-01T09:00:00Z", "isNote": true,
+                                           "blocks": [["k": "text", "text": "Call the framer, today"]]], to: .takes)
+        XCTAssertNotNil(back.timeReminder)
+        XCTAssertTrue(back.isImportant)
+        XCTAssertEqual(back.manualOrder, 42)
+        XCTAssertEqual(back.plainText, "Call the framer, today")
+    }
+
     func testAScriptIsNeverTheObie() throws {
         let id = UUID()
         try library.saveTakes([page("The one", obie: true, id: id)])

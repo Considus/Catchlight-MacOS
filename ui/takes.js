@@ -881,18 +881,25 @@ alertBox.addEventListener('close', () => { if (alertBox.open) return; alertActio
 // Take ⇄ Script is a change of kind on the same id (D-313): the shell changes the stored item
 // first, then both lists move it, so neither list's save reads it as deleted or as new and sync
 // sends one item whose kind changed. In a plain browser there is no shell, and only the lists move.
+// Answers the item as the shell stored it (with what the page's copy didn't carry), or null.
 async function changeKind(item, to) {
-  if (!window.catchlightBridge?.changeKind) return true;
-  try { await catchlightBridge.changeKind(item, to); return true; }
+  if (!window.catchlightBridge?.changeKind) return item;
+  try { return (await catchlightBridge.changeKind(item, to))?.item ?? item; }
   catch (e) {
     console.error('Changing kind failed', e);
     ask("That couldn't be changed", `Nothing has changed. Try again, and if it keeps happening, report it with this detail: ${e?.message ?? e}`, [['OK', null, 'cancel']]);
-    return false;
+    return null;
   }
 }
 async function expandIntoScript(t) {
-  const s = { id: t.id, at: t.at, mode: newScriptMode(), blocks: linesToBlocks(textOf(t)) };
-  if (!await changeKind(s, 'scripts')) return;
+  kindChanging++;
+  let shaped;
+  try { shaped = await changeKind({ id: t.id, at: t.at, mode: newScriptMode(), blocks: linesToBlocks(textOf(t)) }, 'scripts'); }
+  finally { kindChanging--; }
+  if (!shaped) return;
+  // The text as it is now: an edit made while the request was on its way is kept, and the
+  // Scripts save that follows writes it (Greptile on #56).
+  const s = { ...shaped, blocks: linesToBlocks(textOf(takes.find(x => x.id === t.id) ?? t)) };
   // A refresh during the round trip may already show it as a Script.
   takes = takes.filter(x => x.id !== t.id);
   forgetExpanded(t.id);
