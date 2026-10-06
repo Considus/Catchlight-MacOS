@@ -164,6 +164,75 @@ final class TakeTranslationTests: XCTestCase {
     }
 }
 
+// MARK: - ScriptTranslation: the page's Script ⇄ a Core Take of kind Script
+
+final class ScriptTranslationTests: XCTestCase {
+    /// Every shape the Script editor writes (ui/app.js classify): one line each, or a fenced code
+    /// block or table kept whole.
+    private let every: [String] = [
+        "# Title", "## Heading", "### Subheading", "Body with **bold**, *italic*, ~~strike~~ and `code`.",
+        "- A bullet", "* Another bullet", "1. A numbered line", "> A quote", "---",
+        "```\nlet x = 1\n\nprint(x)\n```", "| a | b |\n|---|---|\n| 1 | 2 |",
+        "A [link](https://catchlight.app) in a line", "- [ ] Still to do", "- [x] Done", "", "Last line",
+    ]
+
+    private func page(_ blocks: [String], mode: String = "a4", id: UUID = UUID()) -> [String: Any] {
+        ["id": id.uuidString.lowercased(), "at": "2026-07-03T08:30:00.000Z", "mode": mode, "blocks": blocks]
+    }
+
+    func testEveryShapeRoundTripsExactly() throws {
+        let p = page(every)
+        let core = try ScriptTranslation.core(from: p, existing: nil)
+        XCTAssertTrue(core.isScript)
+        XCTAssertEqual(core.blocks.count, every.count, "one Core block per page block")
+        let back = ScriptTranslation.page(from: core)
+        XCTAssertEqual(back["blocks"] as? [String], every)
+        XCTAssertEqual(back["mode"] as? String, "a4")
+        XCTAssertEqual(back["at"] as? String, "2026-07-03T08:30:00.000Z")
+        XCTAssertEqual(back["id"] as? String, p["id"] as? String)
+    }
+
+    func testChecklistLinesAreChecklistItems() throws {
+        let core = try ScriptTranslation.core(from: page(["- [ ] Frame size", "- [x] Paper", "-[ ] not a check", "- [ ]"]), existing: nil)
+        guard case .check(let open) = core.blocks[0], case .check(let done) = core.blocks[1] else { return XCTFail("checks") }
+        XCTAssertEqual(open.text, "Frame size"); XCTAssertFalse(open.isComplete)
+        XCTAssertEqual(done.text, "Paper"); XCTAssertTrue(done.isComplete)
+        guard case .text = core.blocks[2], case .text = core.blocks[3] else { return XCTFail("anything else stays text") }
+    }
+
+    func testContinuousIsNoPageMode() throws {
+        let core = try ScriptTranslation.core(from: page(["x"], mode: "continuous"), existing: nil)
+        XCTAssertNil(core.pageMode)
+        XCTAssertEqual(ScriptTranslation.page(from: core)["mode"] as? String, "continuous")
+        XCTAssertEqual(try ScriptTranslation.core(from: page(["x"], mode: "letter"), existing: nil).pageMode, Take.PageMode.usLetter)
+    }
+
+    func testAnUnchangedSaveIsIdenticalAndAnEditMovesModifiedAt() throws {
+        let p = page(["# Plan", "- [ ] Frame size"])
+        let first = try ScriptTranslation.core(from: p, existing: nil, now: Date(timeIntervalSince1970: 1_780_000_000))
+        XCTAssertEqual(try ScriptTranslation.core(from: ScriptTranslation.page(from: first), existing: first, now: Date(timeIntervalSince1970: 1_790_000_000)), first)
+
+        var edited = p
+        edited["blocks"] = ["# Plan", "- [x] Frame size"]
+        let later = Date(timeIntervalSince1970: 1_790_000_000)
+        let second = try ScriptTranslation.core(from: edited, existing: first, now: later)
+        XCTAssertEqual(second.modifiedAt, later)
+        XCTAssertEqual(second.blocks.map(\.id), first.blocks.map(\.id), "block ids are kept")
+    }
+
+    func testADateOnlyScriptKeepsItsStoredMoment() throws {
+        let stored = try ScriptTranslation.core(from: page(["x"]), existing: nil)
+        let day = DateFormatter(); day.dateFormat = "yyyy-MM-dd"; day.timeZone = .current
+        var p = ScriptTranslation.page(from: stored)
+        p["at"] = day.string(from: stored.createdAt)
+        XCTAssertEqual(try ScriptTranslation.core(from: p, existing: stored).createdAt, stored.createdAt)
+    }
+
+    func testAnIDThatIsNotAUUIDIsRefused() {
+        XCTAssertThrowsError(try ScriptTranslation.core(from: ["id": "s1", "at": "2026-06-12", "mode": "a4", "blocks": ["x"]], existing: nil))
+    }
+}
+
 // MARK: - Library: the page's whole-list save as store operations
 
 final class LibraryTests: XCTestCase {
@@ -196,6 +265,70 @@ final class LibraryTests: XCTestCase {
         XCTAssertEqual(try library.saveTakes([a2]), Library.SaveReport(upserted: 1, deleted: 1))
         XCTAssertEqual(try library.store.tombstones().map(\.id), [UUID(uuidString: b["id"] as! String)!])
         XCTAssertEqual(try library.pageTakes().count, 1)
+    }
+
+    private func script(_ text: String, id: UUID = UUID()) -> [String: Any] {
+        ["id": id.uuidString, "at": "2026-07-01T09:00:00.000Z", "mode": "a4", "blocks": [text]]
+    }
+
+    /// M3b: Takes and Scripts share the store, and each list's save touches only its own kind.
+    func testATakesSaveNeverDeletesAScriptAndTheOtherWayRound() throws {
+        let t = page("A Take"), s = script("# A Script")
+        try library.saveTakes([t])
+        try library.saveScripts([s])
+        XCTAssertEqual(try library.saveTakes([t]), Library.SaveReport(unchanged: 1))
+        XCTAssertEqual(try library.saveScripts([]), Library.SaveReport(deleted: 1))
+        XCTAssertEqual(try library.pageTakes().count, 1, "deleting the last Script left the Take")
+        try library.saveScripts([script("# Another")])
+        XCTAssertEqual(try library.saveTakes([]), Library.SaveReport(deleted: 1))
+        XCTAssertEqual(try library.pageScripts().count, 1, "deleting the last Take left the Script")
+    }
+
+    /// While Scripts don't sync, a Script's deletion stays on this Mac: no record goes to the folder.
+    func testAScriptDeletedWhileScriptsDontSyncLeavesNoDeletionRecord() throws {
+        let s = script("Mac only")
+        try library.saveScripts([s])
+        XCTAssertEqual(try library.saveScripts([], syncing: false), Library.SaveReport(deleted: 1))
+        XCTAssertEqual(try library.store.tombstones().count, 0)
+        try library.saveScripts([script("Synced")])
+        try library.saveScripts([])
+        XCTAssertEqual(try library.store.tombstones().count, 1, "with Scripts syncing, the deletion goes out")
+    }
+
+    func testAScriptSyncAddedSurvivesASaveOfTheOlderList() throws {
+        let mine = script("Mine")
+        try library.saveScripts([mine])
+        let gen = try library.snapshot().generation
+        let theirs = try ScriptTranslation.core(from: script("Theirs"), existing: nil)
+        try library.store.upsert(theirs)   // sync, while the page holds the older list
+        XCTAssertEqual(try library.saveScripts([mine], generation: gen), Library.SaveReport(unchanged: 1))
+        XCTAssertNotNil(try library.store.take(id: theirs.id))
+    }
+
+    func testAScriptChangedHereAndBySyncGoesToTheConflictScreen() throws {
+        let id = UUID()
+        try library.saveScripts([script("Draft", id: id)])
+        let gen = try library.snapshot().generation
+        var elsewhere = try XCTUnwrap(try library.store.take(id: id))
+        elsewhere.blocks = [.text(TextBlock(text: "Draft, edited elsewhere"))]
+        elsewhere.modifiedAt = Date()
+        try library.store.upsert(elsewhere)
+        var kept: [(local: Take, remote: Take)] = []
+        let report = try library.saveScripts([script("Draft, edited here", id: id)], generation: gen, keepConflict: { kept.append($0) })
+        XCTAssertEqual(report.conflicts.count, 1)
+        XCTAssertEqual(kept.first?.remote.plainText, "Draft, edited elsewhere")
+        XCTAssertTrue(kept.first?.local.isScript ?? false)
+    }
+
+    /// Until Take ⇄ Script is a change of kind, a save naming an id the store holds as the
+    /// other kind is refused for that item, so a copy can never write over it.
+    func testAnIdOfTheOtherKindIsLeftAlone() throws {
+        let id = UUID()
+        try library.saveTakes([page("A Take", id: id)])
+        let report = try library.saveScripts([script("Over it", id: id)])
+        XCTAssertEqual(report.rejected, [id.uuidString])
+        XCTAssertEqual(try library.store.take(id: id)?.kind, nil)
+        XCTAssertEqual(try library.store.take(id: id)?.plainText, "A Take")
     }
 
     func testDeletingTheLastTakeIsSaved() throws {
@@ -385,51 +518,96 @@ final class LibraryTests: XCTestCase {
     }
 }
 
-// MARK: - Scripts: sealed on disk, one file each
+// MARK: - Scripts saved before M3b: sealed files, moved into the library
 
 final class ScriptVaultTests: XCTestCase {
-    func testScriptsRoundTripSealedAndAreRemovedWhenDropped() throws {
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("catchlight-mac-scripts-\(UUID())")
-        defer { try? FileManager.default.removeItem(at: dir) }
-        let vault = try ScriptVault(keys: KeyHierarchy(masterKey: SymmetricKey(size: .bits256)), directory: dir)
-        let a: [String: Any] = ["id": UUID().uuidString, "at": "2026-06-12", "mode": "a4", "blocks": ["# Plan", "| a | b |\n|---|---|\n| 1 | 2 |", "- [x] done"]]
+    private var dir: URL!
+    private let keys = KeyHierarchy(masterKey: SymmetricKey(size: .bits256))
+
+    override func setUpWithError() throws {
+        dir = FileManager.default.temporaryDirectory.appendingPathComponent("catchlight-mac-scripts-\(UUID())")
+    }
+
+    override func tearDown() { try? FileManager.default.removeItem(at: dir) }
+
+    private func library() throws -> Library {
+        Library(store: try EncryptedTakeStore(keys: keys, directoryURL: dir),
+                scripts: try ScriptVault(keys: keys, directory: dir.appendingPathComponent("Scripts")))
+    }
+
+    /// A Script file as the Mac wrote it before M3b.
+    @discardableResult
+    private func writeOld(_ script: [String: Any], to vault: ScriptVault) throws -> URL {
+        let id = UUID(uuidString: script["id"] as! String)!
+        let url = vault.directory.appendingPathComponent(id.uuidString.lowercased()).appendingPathExtension("sealed")
+        try vault.seal(script, id: id).write(to: url)
+        return url
+    }
+
+    func testOldScriptsMoveIntoTheLibraryWithTheirIdsAndTheFilesGo() throws {
+        let lib = try library()
+        let a: [String: Any] = ["id": UUID().uuidString, "at": "2026-06-12", "mode": "a4",
+                                "blocks": ["# Plan", "| a | b |\n|---|---|\n| 1 | 2 |", "- [x] Paper stock", "- [ ] Frame size"]]
         let b: [String: Any] = ["id": UUID().uuidString, "at": "2026-07-03", "mode": "continuous", "blocks": ["Secret word: aubergine"]]
-        try vault.replaceAll(with: [a, b])
+        let fileA = try writeOld(a, to: lib.scripts), fileB = try writeOld(b, to: lib.scripts)
 
-        let back = try vault.all()
-        XCTAssertEqual(back.count, 2)
-        XCTAssertTrue(NSDictionary(dictionary: back[0]).isEqual(to: a))
-        for file in try FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil) {
-            XCTAssertNil(try String(data: Data(contentsOf: file), encoding: .utf8).flatMap { $0.contains("aubergine") ? $0 : nil },
-                         "a Script is on disk as plain-text")
-        }
+        XCTAssertEqual(lib.moveScriptsIn(), 2)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: fileA.path))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: fileB.path))
 
-        try vault.replaceAll(with: [b])
-        XCTAssertEqual(try vault.all().map { $0["id"] as? String }, [b["id"] as? String])
+        let stored = try XCTUnwrap(try lib.store.take(id: UUID(uuidString: a["id"] as! String)!))
+        XCTAssertTrue(stored.isScript)
+        XCTAssertEqual(stored.pageMode, Take.PageMode.a4)
+        XCTAssertEqual(stored.blocks.count, 4)
+        guard case .check(let done) = stored.blocks[2], case .check(let open) = stored.blocks[3] else { return XCTFail("checklist lines are checklist items") }
+        XCTAssertTrue(done.isComplete); XCTAssertEqual(done.text, "Paper stock")
+        XCTAssertFalse(open.isComplete)
+        let day = DateFormatter(); day.dateFormat = "yyyy-MM-dd"; day.timeZone = .current
+        XCTAssertEqual(day.string(from: stored.createdAt), "2026-06-12", "a date-only Script is that local day")
+
+        let page = try lib.pageScripts()
+        XCTAssertEqual(page.map { $0["blocks"] as? [String] }, [a["blocks"] as? [String], b["blocks"] as? [String]])
+        XCTAssertEqual(page.map { $0["mode"] as? String }, ["a4", "continuous"])
+        XCTAssertEqual(try lib.pageTakes().count, 0, "a Script is never one of the page's Takes")
+        XCTAssertEqual(lib.moveScriptsIn(), 0, "nothing left to move")
     }
 
     /// Greptile on #43: one damaged Script made the whole library unreadable.
     func testADamagedScriptIsSkippedAndKept() throws {
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("catchlight-mac-scripts-\(UUID())")
-        defer { try? FileManager.default.removeItem(at: dir) }
-        let vault = try ScriptVault(keys: KeyHierarchy(masterKey: SymmetricKey(size: .bits256)), directory: dir)
+        let lib = try library()
         let good: [String: Any] = ["id": UUID().uuidString, "at": "2026-06-12", "mode": "a4", "blocks": ["Fine"]]
-        try vault.replaceAll(with: [good])
-        let damaged = dir.appendingPathComponent("\(UUID().uuidString.lowercased()).sealed")
+        try writeOld(good, to: lib.scripts)
+        let damaged = lib.scripts.directory.appendingPathComponent("\(UUID().uuidString.lowercased()).sealed")
         try Data("not a sealed box".utf8).write(to: damaged)
 
-        XCTAssertEqual(try vault.all().map { $0["id"] as? String }, [good["id"] as? String])
-        try vault.replaceAll(with: [])
+        XCTAssertEqual(lib.moveScriptsIn(), 1)
+        XCTAssertEqual(lib.scripts.unreadable.count, 1)
         XCTAssertTrue(FileManager.default.fileExists(atPath: damaged.path), "a damaged Script is never deleted")
+        XCTAssertEqual(try lib.pageScripts().count, 1)
+    }
+
+    func testAScriptFileWhoseIdIsATakeIsKept() throws {
+        let lib = try library()
+        let id = UUID()
+        try lib.store.upsert(Take(id: id, createdAt: Date(), modifiedAt: Date(), blocks: [.text(TextBlock(text: "A Take"))]))
+        let file = try writeOld(["id": id.uuidString, "at": "2026-06-12", "mode": "a4", "blocks": ["A Script"]], to: lib.scripts)
+
+        XCTAssertEqual(lib.moveScriptsIn(), 0)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: file.path))
+        XCTAssertNil(try lib.store.take(id: id)?.kind, "the Take is left alone")
     }
 
     func testAScriptFileDoesNotOpenUnderAnotherID() throws {
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("catchlight-mac-scripts-\(UUID())")
-        defer { try? FileManager.default.removeItem(at: dir) }
-        let vault = try ScriptVault(keys: KeyHierarchy(masterKey: SymmetricKey(size: .bits256)), directory: dir)
+        let vault = try ScriptVault(keys: keys, directory: dir)
         let id = UUID()
         let sealed = try vault.seal(["id": id.uuidString, "blocks": ["x"]], id: id)
         XCTAssertThrowsError(try vault.open(sealed, id: UUID()))
+    }
+
+    func testAnOldScriptFileIsNotPlainText() throws {
+        let vault = try ScriptVault(keys: keys, directory: dir)
+        let url = try writeOld(["id": UUID().uuidString, "at": "2026-07-03", "mode": "continuous", "blocks": ["Secret word: aubergine"]], to: vault)
+        XCTAssertFalse(String(decoding: try Data(contentsOf: url), as: UTF8.self).contains("aubergine"))
     }
 }
 
@@ -600,8 +778,25 @@ final class VaultTests: XCTestCase {
     func testAScriptsOnlyLibraryUnderAnotherKeyIsMovedAside() throws {
         let first = Vault(secrets: MemorySecrets(), directory: dir)
         try first.createAccount(words: try Vault.newPhrase(), restored: false)
-        try first.library!.saveScripts([["id": UUID().uuidString, "at": "2026-06-12", "mode": "a4", "blocks": ["Theirs"]]])
+        // A Scripts file as the Mac kept them before M3b, and no Takes.
+        let id = UUID()
+        try first.library!.scripts.seal(["id": id.uuidString, "at": "2026-06-12", "mode": "a4", "blocks": ["Theirs"]], id: id)
+            .write(to: first.library!.scripts.directory.appendingPathComponent("\(id.uuidString.lowercased()).sealed"))
         try FileManager.default.removeItem(at: dir.appendingPathComponent("Database"))
+
+        let other = Vault(secrets: MemorySecrets(), directory: dir)
+        try other.createAccount(words: try Vault.newPhrase(), restored: true)
+        XCTAssertEqual(try other.library!.pageScripts().count, 0)
+        XCTAssertTrue(try FileManager.default.contentsOfDirectory(atPath: dir.deletingLastPathComponent().path).contains { $0.hasPrefix("Catchlight-before-") })
+    }
+
+    /// M3b: Scripts live in the store now, so a library holding only Scripts there is checked as
+    /// Takes are.
+    func testAScriptsOnlyStoreUnderAnotherKeyIsMovedAside() throws {
+        let first = Vault(secrets: MemorySecrets(), directory: dir)
+        try first.createAccount(words: try Vault.newPhrase(), restored: false)
+        try first.library!.saveScripts([["id": UUID().uuidString, "at": "2026-06-12T09:00:00.000Z", "mode": "a4", "blocks": ["Theirs"]]])
+        XCTAssertEqual(try first.library!.store.allTakes().count, 1)
 
         let other = Vault(secrets: MemorySecrets(), directory: dir)
         try other.createAccount(words: try Vault.newPhrase(), restored: true)
@@ -733,11 +928,12 @@ private final class FailingStore: TakeStore {
     struct Refused: Error {}
     let real: TakeStore
     var failUpserts = false
+    private(set) var allTakesReads = 0
     init(_ real: TakeStore) { self.real = real }
     func upsert(_ take: Take) throws { if failUpserts { throw Refused() }; try real.upsert(take) }
     func delete(id: UUID) throws { try real.delete(id: id) }
     func take(id: UUID) throws -> Take? { try real.take(id: id) }
-    func allTakes() throws -> [Take] { try real.allTakes() }
+    func allTakes() throws -> [Take] { allTakesReads += 1; return try real.allTakes() }
     func takesModified(since date: Date?) throws -> [Take] { try real.takesModified(since: date) }
     func search(_ query: String) throws -> [Take] { try real.search(query) }
     func upsert(_ sequence: CatchlightSequence) throws { try real.upsert(sequence) }
@@ -778,5 +974,25 @@ final class LibraryStoreFailureTests: XCTestCase {
         store.failUpserts = true
         XCTAssertThrowsError(try library.saveTakes([mine], generation: gen))
         XCTAssertEqual(try store.take(id: id)?.plainText, "A, from the iPhone", "nothing half-written")
+    }
+
+    /// Code review on M3b: a Script save comes after every pause in typing, so it reads only the
+    /// items it names, never every Take in the library.
+    func testAScriptSaveNeverReadsTheWholeLibrary() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("catchlight-mac-counting-\(UUID())")
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let keys = KeyHierarchy(masterKey: SymmetricKey(size: .bits256))
+        let store = FailingStore(try EncryptedTakeStore(keys: keys, directoryURL: dir))
+        let library = Library(store: store, scripts: try ScriptVault(keys: keys, directory: dir.appendingPathComponent("Scripts")))
+        _ = try library.saveTakes((0..<20).map { ["id": UUID().uuidString, "at": "2026-07-01T09:00:00Z", "isNote": true, "blocks": [["k": "text", "text": "Take \($0)"]]] })
+        var script: [String: Any] = ["id": UUID().uuidString, "at": "2026-07-01T09:00:00.000Z", "mode": "a4", "blocks": ["Draft"]]
+        _ = try library.snapshot()
+        let before = store.allTakesReads
+        _ = try library.saveScripts([script])
+        script["blocks"] = ["Draft, typed on"]
+        _ = try library.saveScripts([script])
+        _ = try library.saveScripts([])
+        XCTAssertEqual(store.allTakesReads, before)
+        XCTAssertEqual(try library.pageTakes().count, 20)
     }
 }

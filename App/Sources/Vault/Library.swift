@@ -2,8 +2,10 @@ import Foundation
 import CatchlightCore
 import os
 
-/// The open library: Takes in Core's `TakeStore`, Scripts in the `ScriptVault`. The page saves its
-/// whole Take list at once (`saveTakes()` in `ui/takes.js`), so a save is a diff, and it is a diff
+/// The open library: Takes and Scripts in Core's `TakeStore`, a Script being a Take of kind Script
+/// (D-265, D-326, M3b). Scripts saved before M3b sit in the `ScriptVault` until `moveScriptsIn`
+/// moves them over. The page saves its whole Take list at once (`saveTakes()` in `ui/takes.js`),
+/// and its whole Script list the same way, so a save is a diff, and it is a diff
 /// against the SNAPSHOT the page's list came from, never against the store. Sync (M3) writes to
 /// the store while the page holds its list; diffing against the store would read every Take sync
 /// added as one the page deleted, and every Take sync updated as a page edit to undo. Against the
@@ -61,35 +63,74 @@ final class Library {
     private static var lastGeneration = 0
     private var snapshots: [Int: [UUID: Take]] = [:]
 
+    /// The page's two lists. Each holds one kind; an item of a kind the page doesn't know (a newer
+    /// client's) is in neither and never touched.
+    enum PageList {
+        case takes, scripts
+        func holds(_ take: Take) -> Bool { self == .takes ? take.kind == nil : take.isScript }
+        func core(from page: [String: Any], existing: Take?, now: Date) throws -> Take {
+            self == .takes ? try TakeTranslation.core(from: page, existing: existing, now: now)
+                : try ScriptTranslation.core(from: page, existing: existing, now: now)
+        }
+    }
+
     init(store: TakeStore, scripts: ScriptVault) {
         self.store = store
         self.scripts = scripts
     }
 
-    /// Every Take in the page's shape, oldest first (as the store returns them), as a new snapshot.
-    func snapshot() throws -> (generation: Int, takes: [[String: Any]]) {
+    /// Every Take and Script in the page's shape, oldest first (as the store returns them), as a
+    /// new snapshot.
+    func snapshot() throws -> (generation: Int, takes: [[String: Any]], scripts: [[String: Any]]) {
         let all = try store.allTakes()
-        let pages = try all.map(TakeTranslation.page(from:))
+        let takes = try all.filter(PageList.takes.holds).map(TakeTranslation.page(from:))
+        let scripts = all.filter(PageList.scripts.holds).map(ScriptTranslation.page(from:))
         Self.lastGeneration += 1
         generation = Self.lastGeneration
         snapshots[generation] = Dictionary(uniqueKeysWithValues: all.map { ($0.id, $0) })
         if snapshots.count > Self.snapshotsKept, let oldest = snapshots.keys.min() { snapshots[oldest] = nil }
-        return (generation, pages)
+        return (generation, takes, scripts)
     }
 
     func pageTakes() throws -> [[String: Any]] { try snapshot().takes }
+    func pageScripts() throws -> [[String: Any]] { try snapshot().scripts }
+
+    func saveTakes(_ page: [[String: Any]], generation: Int? = nil, now: Date = Date(),
+                   keepConflict: ((local: Take, remote: Take)) throws -> Void = { _ in }) throws -> SaveReport {
+        try save(page, as: .takes, generation: generation, now: now, keepConflict: keepConflict)
+    }
+
+    func saveScripts(_ page: [[String: Any]], generation: Int? = nil, now: Date = Date(), syncing: Bool = true,
+                     keepConflict: ((local: Take, remote: Take)) throws -> Void = { _ in }) throws -> SaveReport {
+        try save(page, as: .scripts, generation: generation, now: now, syncing: syncing, keepConflict: keepConflict)
+    }
 
     /// - Parameter generation: the snapshot the page's list came from; nil means the newest.
     /// - Parameter keepConflict: called for a Take changed here and by sync, BEFORE anything is
     ///   written, so the other version is kept (on disk, by the conflict queue) before this Mac's
     ///   edit replaces it in the store. If it throws, the save writes nothing and fails.
-    func saveTakes(_ page: [[String: Any]], generation: Int? = nil, now: Date = Date(),
-                   keepConflict: ((local: Take, remote: Take)) throws -> Void = { _ in }) throws -> SaveReport {
+    /// - Parameter syncing: false when this list's deletions must stay on this Mac: Scripts while
+    ///   they don't sync. A deletion record carries no kind, so one sent for a Script made from a
+    ///   synced Take would delete that Take on every other device (Greptile on Catchlight-Core#22).
+    func save(_ page: [[String: Any]], as list: PageList, generation: Int? = nil, now: Date = Date(), syncing: Bool = true,
+              keepConflict: ((local: Take, remote: Take)) throws -> Void = { _ in }) throws -> SaveReport {
         let gen = generation ?? self.generation
-        let stored = Dictionary(uniqueKeysWithValues: try store.allTakes().map { ($0.id, $0) })
+        // A Takes save reads the whole store, because upserting an Obie changes another Take. A
+        // Scripts save comes 250 ms after every pause in typing, so it reads only the items it
+        // names, one at a time (code review: decrypting every Take on each pause stalls typing).
+        let all: [UUID: Take]? = list == .takes || (snapshots[gen] == nil && gen == 0)
+            ? Dictionary(uniqueKeysWithValues: try store.allTakes().map { ($0.id, $0) }) : nil
+        var fetched: [UUID: Take?] = [:]
+        func stored(_ id: UUID) throws -> Take? {
+            if let all { return all[id] }
+            if let hit = fetched[id] { return hit }
+            let take = try store.take(id: id)
+            fetched[id] = .some(take)
+            return take
+        }
         var base: [UUID: Take]
         if let known = snapshots[gen] { base = known }
-        else if gen == 0 { base = stored }   // no snapshot yet: the store is what the page was given
+        else if gen == 0, let all { base = all }   // no snapshot yet: the store is what the page was given
         else { throw Failure.staleSnapshot(gen) }
 
         var report = SaveReport()
@@ -98,15 +139,22 @@ final class Library {
         for item in page {
             let id = (item["id"] as? String).flatMap(UUID.init(uuidString:))
             if let id { seen.insert(id) }
+            // An id the store holds as the other kind is never written over from this list: the
+            // page would be turning a Script into a Take, or back, by copying over it.
+            if let id, let held = try stored(id) ?? base[id], !list.holds(held) {
+                report.rejected.append(item["id"] as? String ?? "?")
+                Self.log.error("a save named an item of the other kind; it is left as it is")
+                continue
+            }
             let was = id.flatMap { base[$0] }
             let take: Take
-            do { take = try TakeTranslation.core(from: item, existing: was, now: now) } catch {
+            do { take = try list.core(from: item, existing: was, now: now) } catch {
                 report.rejected.append(item["id"] as? String ?? "?")
                 Self.log.error("a Take did not translate: \(String(describing: error), privacy: .public)")
                 continue
             }
             if was != nil, take == was { report.unchanged += 1; continue }
-            if let now = stored[take.id], let was, now != was, now != take {
+            if let now = try stored(take.id), let was, now != was, now != take {
                 // Both changed it: the page's edit is written, and the user chooses on the
                 // conflict screen, as for a conflict sync finds.
                 report.conflicts.append((local: take, remote: now))
@@ -124,14 +172,15 @@ final class Library {
         }
         // Only Takes the page was given and no longer sends are deletions; a rejected Take keeps
         // its stored version, and a Take sync added since the snapshot was never the page's.
-        for (id, was) in base where !seen.contains(id) {
+        for (id, was) in base where list.holds(was) && !seen.contains(id) {
             base[id] = nil
-            guard let now = stored[id] else { continue }   // already gone
+            guard let now = try stored(id) else { continue }   // already gone
             if now != was {
                 report.keptOverDelete.append(id)   // changed elsewhere since: the change wins
                 continue
             }
             try store.delete(id: id)
+            if !syncing { try store.purgeTombstones(ids: [id]) }
             report.deleted += 1
         }
         // What this save did to the store is now what the page holds, including what the store
@@ -140,18 +189,56 @@ final class Library {
         // sees that change as not the page's.
         // A Take sync deleted keeps its snapshot version too: dropping it would make the page's
         // next save, which still lists it, read as a new Take and bring it back.
-        if report.upserted + report.deleted > 0 {
+        let written = Set(changed.map(\.id))
+        if list == .takes, report.upserted + report.deleted > 0, let before = all {
             let after = Dictionary(uniqueKeysWithValues: try store.allTakes().map { ($0.id, $0) })
-            let written = Set(changed.map(\.id))
-            for (id, was) in base where written.contains(id) || (stored[id] != nil && stored[id] == was) {
+            for (id, was) in base where written.contains(id) || (before[id] != nil && before[id] == was) {
                 base[id] = after[id]
             }
+        } else {
+            for id in written { base[id] = try store.take(id: id) }
         }
         snapshots[gen] = base
         return report
     }
 
-    func pageScripts() throws -> [[String: Any]] { try scripts.all() }
-
-    func saveScripts(_ page: [[String: Any]]) throws { try scripts.replaceAll(with: page) }
+    /// Scripts saved before M3b, one sealed file each, move into the store with the same id. A
+    /// file goes only once the store holds its Script and it reads back the same; a file that
+    /// won't open, or whose id the store already holds as something else, stays where it is.
+    /// Returns how many moved.
+    @discardableResult
+    func moveScriptsIn(now: Date = Date()) -> Int {
+        let files: [[String: Any]]
+        do { files = try scripts.all() } catch {
+            Self.log.error("the Scripts folder could not be read: \(String(describing: error), privacy: .public)")
+            return 0
+        }
+        var moved = 0
+        for page in files {
+            guard let id = (page["id"] as? String).flatMap(UUID.init(uuidString:)) else { continue }
+            do {
+                let script: Take
+                if let held = try store.take(id: id) {
+                    guard held.isScript else {
+                        Self.log.error("a Script's id is already a Take; its file is kept")
+                        continue
+                    }
+                    script = held   // moved before, and the file not removed: it goes now
+                } else {
+                    script = try ScriptTranslation.core(from: page, existing: nil, now: now)
+                    try store.upsert(script)
+                }
+                guard try store.take(id: id) == script else {
+                    Self.log.error("a Script did not read back as written; its file is kept")
+                    continue
+                }
+                try scripts.remove(id)
+                moved += 1
+            } catch {
+                Self.log.error("a Script did not move into the library and its file is kept: \(String(describing: error), privacy: .public)")
+            }
+        }
+        if moved > 0 { Self.log.info("\(moved) Scripts moved into the library") }
+        return moved
+    }
 }

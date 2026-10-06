@@ -47,20 +47,34 @@
   // save names the snapshot its list came from (`generation`), and the shell diffs against that
   // snapshot, so a Take sync added since is never read as one the page deleted (Library.swift).
   const library = window.catchlightLibrary;
-  let takesSaves = 0, refreshWaiting = false;
+  let saves = 0, refreshWaiting = false;
+  // A Scripts save that failed or was refused leaves an edit only the page holds, so a refresh
+  // keeps the page's Scripts rather than replace them with the stored ones (Greptile on #55).
+  let scriptsUnsaved = false, lastScriptsSave = Promise.resolve();
+  // The snapshot the page's Scripts came from, when a refresh kept them (null: the Takes' one).
+  // Kept Scripts are diffed against their own snapshot, or a Script sync added meanwhile would
+  // read as one the user deleted (Greptile on #55).
+  let scriptsGeneration = null;
   // A Take the shell couldn't read keeps its stored version, so say so rather than let the edit
   // look saved.
-  const saveList = (kind, list) => (kind === 'takes' && (takesSaves++, syncSoon()), post('save', { kind, list, generation: library.generation }))
+  // Scripts sync only once the shell says they do (SyncService.syncScriptsKey).
+  const sendList = (kind, list) => (saves++, (kind === 'takes' || library.syncScripts) && syncSoon(), post('save', { kind, list, generation: kind === 'scripts' ? scriptsGeneration ?? library.generation : library.generation }))
     .then(r => {
+      if (kind === 'scripts') scriptsUnsaved = !!r?.rejected?.length;
+      // Kept Scripts saved at last: take the library again now, so their snapshot is let go
+      // before the Library drops it (it keeps eight) and refuses every save after (Claude review).
+      if (kind === 'scripts' && !scriptsUnsaved && scriptsGeneration != null) window.catchlightBridge.refresh().catch(e => console.error('Refreshing the Scripts failed', e));
       // The shell kept a Take the page deleted that changed elsewhere: take the library again
       // so it shows. (A Take changed here and by sync goes to the conflict screen instead.)
       // Not when a Take was rejected: the page still holds that unsaved edit, and a refresh would
       // replace it with the stored version before the user could see it.
       if (r?.conflicts) window.loadConflicts?.();   // a Take changed here and by sync: the choice screen
       if (r?.keptOverDelete && !r?.rejected?.length) window.catchlightBridge.refresh().catch(e => console.error('Refreshing the Takes failed', e));
-      if (r?.rejected?.length) whenNoDialog(() => ask("A Take wasn't saved", `Catchlight couldn't read ${r.rejected.length === 1 ? 'one Take' : `${r.rejected.length} Takes`}, so the last version of it is kept. Report it, with this detail: ${r.rejected.join(', ')}`, [['OK', null, 'cancel']]));
+      const [one, many] = kind === 'scripts' ? ['Script', 'Scripts'] : ['Take', 'Takes'];
+      if (r?.rejected?.length) whenNoDialog(() => ask(`A ${one} wasn't saved`, `Catchlight couldn't read ${r.rejected.length === 1 ? `one ${one}` : `${r.rejected.length} ${many}`}, so the last version of it is kept. Report it, with this detail: ${r.rejected.join(', ')}`, [['OK', null, 'cancel']]));
     })
     .catch(e => {
+      if (kind === 'scripts') scriptsUnsaved = true;
       console.error(`Saving ${kind} failed`, e);
       // A refused save must never look saved: say so, with what to do. If another dialog is
       // open (a delete confirmation, say), the warning waits for it rather than replacing it.
@@ -75,6 +89,11 @@
       };
       whenNoDialog(warn);
     });
+  const saveList = (kind, list) => {
+    const done = sendList(kind, list);
+    if (kind === 'scripts') lastScriptsSave = done;
+    return done;
+  };
   // The page has one dialog (ask() in takes.js), and a second ask() would replace whatever it is
   // showing, a delete confirmation say. A warning from a save waits for it to close instead.
   const whenNoDialog = show => {
@@ -150,17 +169,23 @@
     pushMenu,
     library,
     save: saveList,
-    // Take the library as the shell holds it now. While a Take is held open (the editor, a
+    // Take the library (Takes and Scripts) as the shell holds it now. While a Take is held open (the editor, a
     // Focus-ring, the reminder picker) this waits for it to close, and if a save went out while the request was in flight it asks again,
     // so the list the page keeps always includes its own latest save.
     async refresh() {
       const busy = () => typeof editingTake === 'function' && editingTake();
       if (busy()) { refreshWaiting = true; return false; }
       refreshWaiting = false;
-      const before = takesSaves;
+      // A Script edit still waiting for its save goes first, so the list that comes back has it.
+      if (typeof scriptSavePending !== 'undefined' && scriptSavePending) save();
+      await lastScriptsSave;   // so a refused save is known before the Scripts are replaced
+      const before = saves;
       const r = await post('reload');
-      if (takesSaves !== before || busy()) return this.refresh();
+      // A Script typed into while the answer was on its way: save it, then ask again.
+      if (saves !== before || busy() || (typeof scriptSavePending !== 'undefined' && scriptSavePending)) return this.refresh();
       library.takes = r.takes;
+      if (scriptsUnsaved) scriptsGeneration ??= library.generation;
+      else { scriptsGeneration = null; library.scripts = r.scripts; replaceScripts(r.scripts); }
       library.generation = r.generation;
       replaceTakes(r.takes);
       return true;

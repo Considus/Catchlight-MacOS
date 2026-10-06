@@ -48,6 +48,119 @@ final class PageLibraryTests: XCTestCase {
         XCTAssertEqual(try vault.library!.store.take(id: id)?.blocks.first.map { "\($0)" }.map { $0.contains("Edited on the Mac") }, true)
     }
 
+    /// M3b: a Script typed on the page lands in the store as a Take of kind Script, its checklist
+    /// line a checklist item, and never in localStorage; deleting it on the page deletes it there.
+    func testAScriptOnThePageIsSavedIntoTheLibraryAsAScript() throws {
+        let vault = Vault(secrets: MemorySecrets(), directory: dir)
+        try vault.createAccount(words: try Vault.newPhrase(), restored: true)
+        let (harness, bridge) = page(with: vault)
+        _ = bridge
+
+        let id = try harness.run("""
+            localStorage.removeItem('cl.scripts');   // another test's page, run without a library, may have left one
+            newScript(['# Typed on the Mac', '- [x] Done']);
+            await window.catchlightBridge.flush();
+            return script().id;
+            """, in: self) as? String
+        let stored = try XCTUnwrap(try vault.library!.store.take(id: XCTUnwrap(id.flatMap(UUID.init(uuidString:)))))
+        XCTAssertTrue(stored.isScript)
+        guard case .check(let c) = stored.blocks.last else { return XCTFail("a checklist line is a checklist item") }
+        XCTAssertTrue(c.isComplete)
+        XCTAssertNil(try harness.run("return localStorage.getItem('cl.scripts');", in: self) as? String, "Scripts must not reach localStorage")
+
+        _ = try harness.run("scripts = []; save(); \(settle) return true;", in: self)
+        XCTAssertNil(try vault.library!.store.take(id: stored.id))
+    }
+
+    /// Claude review on #55: typing in a Script while a refresh waits for the shell's answer must
+    /// survive the refresh, on screen and in the store.
+    func testTypingInAScriptDuringARefreshIsKept() throws {
+        let vault = Vault(secrets: MemorySecrets(), directory: dir)
+        try vault.createAccount(words: try Vault.newPhrase(), restored: true)
+        let (harness, bridge) = page(with: vault)
+        _ = bridge
+
+        let shown = try harness.run("""
+            newScript(['# Draft']);
+            await window.catchlightBridge.flush();
+            const pending = window.catchlightBridge.refresh();   // runs up to the shell's answer
+            script().blocks[0] = '# Draft, typed during the refresh'; changed();
+            await pending;
+            await window.catchlightBridge.flush();
+            return script().blocks[0];
+            """, in: self) as? String
+        XCTAssertEqual(shown, "# Draft, typed during the refresh")
+        XCTAssertEqual(try vault.library!.pageScripts().first?["blocks"] as? [String], ["# Draft, typed during the refresh"])
+    }
+
+    /// Greptile on #55: a Script edit whose save failed must stay on the page through a refresh,
+    /// not be replaced by the stored version.
+    func testARefreshKeepsAScriptEditThatWasNotSaved() throws {
+        let vault = Vault(secrets: MemorySecrets(), directory: dir)
+        try vault.createAccount(words: try Vault.newPhrase(), restored: true)
+        let (harness, bridge) = page(with: vault)
+        _ = bridge
+        // A Script on the page whose id the store holds as a Take: its save is refused.
+        let id = UUID()
+        try vault.library!.store.upsert(Take(id: id, createdAt: Date(), modifiedAt: Date(), blocks: [.text(TextBlock(text: "A Take"))]))
+        let shown = try harness.run("""
+            scripts.push({ id: '\(id.uuidString.lowercased())', at: new Date().toISOString(), mode: 'a4', blocks: ['# Unsaved'] });
+            current = scripts.at(-1).id; renderDoc();
+            script().blocks[0] = '# Unsaved, edited'; changed();
+            await window.catchlightBridge.refresh();
+            return script()?.blocks[0] ?? null;
+            """, in: self) as? String
+        XCTAssertEqual(shown, "# Unsaved, edited")
+    }
+
+    /// Greptile on #55: Scripts kept through a refresh (their save refused) stay tied to the
+    /// snapshot they came from, so a Script sync added meanwhile is never read as deleted.
+    func testAScriptSyncAddedSurvivesAfterARefreshKeptTheUnsavedOnes() throws {
+        let vault = Vault(secrets: MemorySecrets(), directory: dir)
+        try vault.createAccount(words: try Vault.newPhrase(), restored: true)
+        let (harness, bridge) = page(with: vault)
+        _ = bridge
+        let refused = UUID()
+        try vault.library!.store.upsert(Take(id: refused, createdAt: Date(), modifiedAt: Date(), blocks: [.text(TextBlock(text: "A Take"))]))
+        _ = try harness.run("""
+            scripts.push({ id: '\(refused.uuidString.lowercased())', at: new Date().toISOString(), mode: 'a4', blocks: ['# Refused'] });
+            current = scripts.at(-1).id; save(); \(settle) return true;
+            """, in: self)
+        // Sync adds a Script while the page holds its list.
+        let synced = try ScriptTranslation.core(from: ["id": UUID().uuidString, "at": "2026-07-01T09:00:00.000Z", "mode": "a4", "blocks": ["# From the other Mac"]], existing: nil)
+        try vault.library!.store.upsert(synced)
+        _ = try harness.run("""
+            await window.catchlightBridge.refresh();
+            scripts = scripts.filter(s => s.id !== '\(refused.uuidString.lowercased())'); save();
+            \(settle) return true;
+            """, in: self)
+        XCTAssertNotNil(try vault.library!.store.take(id: synced.id), "a Script the page never saw was deleted")
+        // Claude review: once a save goes through, the page takes the library again, so the
+        // kept snapshot is let go before the Library drops it and the synced Script shows.
+        let shown = try harness.run("""
+            for (let i = 0; i < 40 && !scripts.some(s => s.blocks[0] === '# From the other Mac'); i++) await new Promise(r => setTimeout(r, 50));
+            return scripts.map(s => s.blocks[0]).join('|');
+            """, in: self) as? String
+        XCTAssertEqual(shown, "# From the other Mac")
+    }
+
+    /// Greptile on #55: once a sync changes the Script on screen, undo must not bring back the
+    /// text from before it and save that over the synced version.
+    func testUndoHistoryIsClearedWhenASyncChangesTheScriptOnScreen() throws {
+        let vault = Vault(secrets: MemorySecrets(), directory: dir)
+        try vault.createAccount(words: try Vault.newPhrase(), restored: true)
+        let (harness, bridge) = page(with: vault)
+        _ = bridge
+        let left = try harness.run("""
+            newScript(['# Mine']);
+            await window.catchlightBridge.flush();
+            edits.undo.push({ blocks: ['# Older'], active: 0, off: 0 }); edits.id = current;
+            replaceScripts([{ ...script(), blocks: ['# From the other Mac'] }]);
+            return edits.undo.length;
+            """, in: self) as? Int
+        XCTAssertEqual(left, 0)
+    }
+
     func testFirstRunMakesTheAccountAndSeedsTheLibrary() throws {
         let secrets = MemorySecrets()
         let vault = Vault(secrets: secrets, directory: dir)

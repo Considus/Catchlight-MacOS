@@ -29,7 +29,8 @@ enum SystemInfo {
 /// - `copy {text}`: write plain text to the clipboard;
 /// - `openURL {url}`: open an http(s) or mailto address in the default app;
 /// - `dragWindow`, `titlebarDoubleClick`: the page's toolbar standing in for the title bar;
-/// - `save {kind: 'takes'|'scripts', list}`: the page's whole list, written to the library;
+/// - `save {kind: 'takes'|'scripts', list, generation}`: the page's whole list, diffed against the
+///   snapshot it came from and written to the library;
 /// - `validatePhrase {words}`, `createAccount {words, restored}`, `replaceAccount {words}`,
 ///   `revealPhrase`, `eraseEverything`: the account, through the `Vault`;
 /// - `chooseFolder`, `forgetFolder`: the sync folder, through `SyncFolder` (the open panel);
@@ -74,7 +75,7 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                     let snapshot = try library.snapshot()
                     value["takes"] = snapshot.takes
                     value["generation"] = snapshot.generation
-                    value["scripts"] = try library.pageScripts()
+                    value["scripts"] = snapshot.scripts
                     // A damaged Script is kept on disk but can't be shown: the page says so.
                     if !library.scripts.unreadable.isEmpty { value["unreadableScripts"] = library.scripts.unreadable.count }
                 } catch {
@@ -86,6 +87,9 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                 value["newPhrase"] = words
             }
         }
+        // Whether Scripts sync, with or without a library open yet: first run keeps this object
+        // (Greptile on #55).
+        value["syncScripts"] = sync?.holdsScripts ?? false
         let json = (try? JSONSerialization.data(withJSONObject: value)).flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
         return WKUserScript(source: "window.catchlightLibrary = \(json);", injectionTime: .atDocumentStart, forMainFrameOnly: true, in: .page)
     }
@@ -234,7 +238,7 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
     private func libraryContents(_ vault: Vault) throws -> [String: Any] {
         guard let library = vault.library else { return ["takes": [Any](), "scripts": [Any]()] }
         let snapshot = try library.snapshot()
-        return ["takes": snapshot.takes, "generation": snapshot.generation, "scripts": try library.pageScripts()]
+        return ["takes": snapshot.takes, "generation": snapshot.generation, "scripts": snapshot.scripts]
     }
 
     private func handleLibrary(_ cmd: String, _ body: [String: Any], _ reply: @escaping (Any?, String?) -> Void) {
@@ -246,29 +250,26 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                 guard let library = vault.library else { return reply(nil, "locked") }
                 guard !libraryUnreadable else { return reply(nil, "the library could not be read, so nothing is saved over it") }
                 guard let list = body["list"] as? [[String: Any]] else { return reply(nil, "save needs a list") }
-                switch body["kind"] as? String {
-                case "takes":
-                    // A Take changed here and by sync since the page's snapshot: the user chooses,
-                    // and the other version is on disk before this Mac's edit replaces it.
-                    let report = try library.saveTakes(list, generation: body["generation"] as? Int,
-                                                       keepConflict: { [sync] pair in try sync?.conflicts.keep(pair) })
-                    Self.log.info("takes saved: \(report.upserted) written, \(report.deleted) deleted, \(report.rejected.count) rejected, \(report.conflicts.count) to the conflict screen, \(report.keptOverDelete.count) kept over a delete")
-                    if !report.rejected.isEmpty { Self.log.error("save kept \(report.rejected.count) Takes it could not read") }
-                    reply(["upserted": report.upserted, "deleted": report.deleted, "rejected": report.rejected,
-                           "conflicts": report.conflicts.count, "keptOverDelete": report.keptOverDelete.count], nil)
-                case "scripts":
-                    try library.saveScripts(list)
-                    reply(true, nil)
-                default:
-                    reply(nil, "save needs kind takes or scripts")
+                let kind = body["kind"] as? String
+                guard let pageList: Library.PageList = kind == "takes" ? .takes : kind == "scripts" ? .scripts : nil else {
+                    return reply(nil, "save needs kind takes or scripts")
                 }
+                // An item changed here and by sync since the page's snapshot: the user chooses,
+                // and the other version is on disk before this Mac's edit replaces it.
+                let report = try library.save(list, as: pageList, generation: body["generation"] as? Int,
+                                              syncing: pageList == .takes || sync?.holdsScripts == true,
+                                              keepConflict: { [sync] pair in try sync?.conflicts.keep(pair) })
+                Self.log.info("\(kind ?? "", privacy: .public) saved: \(report.upserted) written, \(report.deleted) deleted, \(report.rejected.count) rejected, \(report.conflicts.count) to the conflict screen, \(report.keptOverDelete.count) kept over a delete")
+                if !report.rejected.isEmpty { Self.log.error("save kept \(report.rejected.count) items it could not read") }
+                reply(["upserted": report.upserted, "deleted": report.deleted, "rejected": report.rejected,
+                       "conflicts": report.conflicts.count, "keptOverDelete": report.keptOverDelete.count], nil)
             case "reload":
                 // The page asks for the library as it is now (after a sync, say). Everything it
                 // sent before this has been handled, because messages are handled in order.
                 guard let library = vault.library else { return reply(nil, "locked") }
                 guard !libraryUnreadable else { return reply(nil, "the library could not be read") }
                 let snapshot = try library.snapshot()
-                reply(["generation": snapshot.generation, "takes": snapshot.takes], nil)
+                reply(["generation": snapshot.generation, "takes": snapshot.takes, "scripts": snapshot.scripts], nil)
             case "validatePhrase":
                 reply(Vault.isValid(words), nil)
             // Both answer with the library now open, so after a restore the page shows what the

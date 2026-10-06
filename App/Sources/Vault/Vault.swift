@@ -185,7 +185,9 @@ final class Vault {
         try Self.excludeFromBackup(directory)
         let store = try EncryptedTakeStore(keys: keys, directoryURL: directory)
         let scripts = try ScriptVault(keys: keys, directory: directory.appendingPathComponent("Scripts", isDirectory: true))
-        return Library(store: store, scripts: scripts)
+        let library = Library(store: store, scripts: scripts)
+        library.moveScriptsIn()
+        return library
     }
 
     /// Whether the library on disk, if there is one, opens under `keys`: every Take decrypts,

@@ -3,11 +3,11 @@ import CryptoKit
 import CatchlightCore
 import os
 
-/// Scripts on this Mac, one sealed file each in `Scripts/`.
+/// Scripts as the Mac kept them before M3b, one sealed file each in `Scripts/`. They now live in
+/// the library as Takes of kind Script, and `Library.moveScriptsIn` moves each file's Script there
+/// at launch; what is left here is a file that would not open, kept as it is.
 ///
-/// Core has no Script model yet: it knows a Script only as a manifest entry kind the iPhone
-/// skips (D-315). Until M3 settles how a Script travels in the cloud folder, the Mac keeps the
-/// page's own Script JSON, sealed with AES-256-GCM under the per-item key Core derives for the
+/// Each file holds the page's own Script JSON, sealed with AES-256-GCM under the per-item key Core derives for the
 /// Script's id, so a Script is never on disk as plain-text. The additional data names the format,
 /// so a Script file can never be opened as a Take or the other way round.
 final class ScriptVault {
@@ -45,22 +45,10 @@ final class ScriptVault {
         .sorted { ($0["at"] as? String ?? "") < ($1["at"] as? String ?? "") }
     }
 
-    /// Replace the stored set with `scripts`: write each one that changed, remove the rest.
-    func replaceAll(with scripts: [[String: Any]]) throws {
-        var keep = Set<String>()
-        for script in scripts {
-            guard let idString = script["id"] as? String, let id = UUID(uuidString: idString) else {
-                throw Failure.badID(String(describing: script["id"]))
-            }
-            let url = fileURL(id)
-            keep.insert(url.lastPathComponent)
-            if let current = try? open(Data(contentsOf: url), id: id), NSDictionary(dictionary: current).isEqual(to: script) { continue }
-            try seal(script, id: id).write(to: url, options: .atomic)
-        }
-        for url in try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)
-        where url.pathExtension == "sealed" && !keep.contains(url.lastPathComponent) && !unreadable.contains(url.lastPathComponent) {
-            try FileManager.default.removeItem(at: url)
-        }
+    /// Remove one Script's file, once the library holds it (`Library.moveScriptsIn`).
+    func remove(_ id: UUID) throws {
+        let url = fileURL(id)
+        if FileManager.default.fileExists(atPath: url.path) { try FileManager.default.removeItem(at: url) }
     }
 
     func seal(_ script: [String: Any], id: UUID) throws -> Data {

@@ -118,7 +118,27 @@ let scripts = store.get('scripts', [
 const view = Object.assign({ preview: 'some', spacing: 'standard', sort: 'oldest' }, store.get('view', {}));
 let current = store.get('current', 's1');
 let query = '';
-const save = () => { store.set('scripts', scripts); store.set('current', current); };
+const save = () => { scriptSavePending = false; store.set('scripts', scripts); store.set('current', current); };
+// A Script's page count is worked out on screen, so it is a view setting, not part of the Script.
+const pageCounts = store.get('pageCounts', {});
+scripts.forEach(s => { s.pageCount ??= pageCounts[s.id]; });
+// The editor saves a quarter of a second after typing stops; a refresh after a sync saves first.
+let scriptSavePending = false;
+// The shell's newer copy of the Scripts (after a sync, or a conflict choice) replaces the list.
+// The Script on screen is drawn again only if what it shows changed.
+function replaceScripts(list) {
+  const shown = s => s ? JSON.stringify([s.mode, s.blocks]) : null, before = shown(script());
+  scripts = list;
+  scripts.forEach(s => { s.pageCount ??= pageCounts[s.id]; });
+  if (!script()) current = scripts[0] ? scripts[0].id : null;
+  renderScripts();
+  if (shown(script()) !== before) {
+    // Undo history belongs to the text it was made on: replaying it now would save the old text
+    // over what sync brought in (Greptile on #55), so it starts again, as open() does.
+    Object.assign(edits, { undo: [], redo: [], typing: 0, id: current });
+    renderDoc(); $('#script-heading').textContent = titleOf(script());
+  }
+}
 
 // ---------- the two Dailies-style timelines ----------
 // `filterable`: the month labels filter the list (Dailies), so they are buttons; elsewhere text.
@@ -280,7 +300,8 @@ function deactivate() {
 }
 function rebuild(focusI, off) { renderDoc(); activate(focusI, off); changed(); }
 
-const changed = debounce(() => { save(); renderScripts(); $('#script-heading').textContent = titleOf(script()); paginate(); }, 250);
+const saveSoon = debounce(() => { save(); renderScripts(); $('#script-heading').textContent = titleOf(script()); paginate(); }, 250);
+const changed = () => { scriptSavePending = true; saveSoon(); };
 
 // ---------- undo across the whole Script ----------
 // The browser's own undo cannot span blocks, and repainting a block as you type breaks it
@@ -669,7 +690,7 @@ function paginate() {
   }
   const avail = $('#editor-pane').clientWidth - 48;
   paper.style.zoom = avail < w ? (avail / w).toFixed(3) : '';
-  if (s.pageCount !== pages) { s.pageCount = pages; save(); renderScripts(); }
+  if (s.pageCount !== pages) { s.pageCount = pageCounts[s.id] = pages; store.set('pageCounts', pageCounts); renderScripts(); }
 }
 
 document.querySelectorAll('#page-mode button').forEach(b => b.addEventListener('click', () => {
@@ -703,7 +724,7 @@ function linesToBlocks(text) {
 // The other way: one block per line, code blocks and tables keeping their own lines.
 const blocksToText = blocks => blocks.join('\n');
 function newScript(blocks = ['']) {
-  const s = { id: newId(), at: new Date().toISOString().slice(0, 10), mode: newScriptMode(), blocks };
+  const s = { id: newId(), at: new Date().toISOString(), mode: newScriptMode(), blocks };
   scripts.push(s); open(s.id); activate(0);
 }
 $('#new-script').addEventListener('click', () => newScript());

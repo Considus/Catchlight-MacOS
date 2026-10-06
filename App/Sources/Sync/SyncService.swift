@@ -8,13 +8,17 @@ import os
 /// chosen folder, as the iPhone builds it (`Wiring.makeSyncEngine`, `BackgroundSyncCoordinator`).
 ///
 /// One pass at a time, off the main thread; a request while a pass is running is answered as
-/// skipped, because the running pass already covers it and the engine is idempotent. Takes only:
-/// the engine skips Scripts in the folder and the Mac's Scripts stay in their own files until
-/// M3b. When the page should sync (launch, after a save, Sync Now) is the page's to decide,
+/// skipped, because the running pass already covers it and the engine is idempotent. Scripts are
+/// in the same library and sync only once `syncScripts` is on. When the page should sync (launch, after a save, Sync Now) is the page's to decide,
 /// because the sync setting lives there.
 final class SyncService {
     private static let log = Logger(subsystem: "com.considus.catchlight.mac", category: "sync")
     static let deviceIdKey = "syncDeviceId"
+    /// Whether Scripts go to the sync folder (Script_Sync_Proposal, decision A). Off until the
+    /// owner turns it on, once every phone reading the folder runs a build from 2026-10-01 or later:
+    /// an older phone shows a Script as a Take and turns it back into one when it saves it.
+    /// Off, the Mac keeps its Scripts in its library and Core's engine never uploads one.
+    static let syncScriptsKey = "syncScripts"
 
     let vault: Vault
     let folder: SyncFolder
@@ -47,6 +51,8 @@ final class SyncService {
         self.defaults = defaults
     }
 
+    var holdsScripts: Bool { defaults.bool(forKey: Self.syncScriptsKey) }
+
     /// A stable id for this install, which the engine's lock and manifest name. Made once.
     var deviceId: UUID {
         if let s = defaults.string(forKey: Self.deviceIdKey), let id = UUID(uuidString: s) { return id }
@@ -66,7 +72,8 @@ final class SyncService {
         guard let cloud = folder.open() else { return nil }
         // The Import folder, there from the start as the iPhone makes it (owner 2026-06-22).
         cloud.ensureSubfolder("Import")
-        return SyncEngine(store: store, cloud: cloud, keys: keys, deviceId: deviceId)
+        return SyncEngine(store: store, cloud: cloud, keys: keys, deviceId: deviceId,
+                          holdsScripts: holdsScripts)
     }
 
     /// Run `work` now if no pass is running, else once it ends. A page save diffs against the store
@@ -248,7 +255,8 @@ final class ConflictQueue {
                     blocks: take.blocks, contentType: take.contentType, isNote: take.isNote,
                     isObie: false, timeReminder: reminder,
                     locationReminder: take.locationReminder, attachments: take.attachments,
-                    isSeeded: false, isImportant: take.isImportant, manualOrder: take.manualOrder)
+                    isSeeded: false, isImportant: take.isImportant, manualOrder: take.manualOrder,
+                    kind: take.kind, pageMode: take.pageMode)
     }
 
     // MARK: On disk
