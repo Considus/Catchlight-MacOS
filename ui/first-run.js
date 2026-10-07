@@ -178,9 +178,12 @@ function seedTakes() {
 }
 
 // The library the shell has just opened, shown as it is: nothing is saved back.
-function adoptLibrary({ takes: t = [], scripts: s = [], generation }) {
+function adoptLibrary({ takes: t = [], scripts: s = [], generation, held = [] }) {
   const lib = window.catchlightBridge.library;
   takes = lib.takes = t; scripts = lib.scripts = s; current = null;
+  // The library now open has its own conflicts waiting, or none (app.js, held).
+  setHeld([]); setHeld(held); rememberHeld('takes', t); rememberHeld('scripts', s);
+  window.loadConflicts?.();
   if (generation) lib.generation = generation;
   renderTakes(); renderScripts(); renderDoc(); $('#script-heading').textContent = '';
 }

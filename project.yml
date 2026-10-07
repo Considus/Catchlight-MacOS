@@ -36,13 +36,15 @@ packages:
   # a Core change reaches the Mac only through a deliberate bump (D-344, D-350).
   CatchlightCore:
     url: https://github.com/Considus/Catchlight-Core
-    exactVersion: 1.2.1
+    # 1.4.0: sync(holding:), so a Take waiting for a conflict choice is never uploaded or
+    # overwritten (Catchlight-Core#27).
+    exactVersion: 1.4.0
   # The encrypted SQLite store, the Keychain items and the BIP-39 wordlist, shared with the
-  # iPhone app so the two can't drift. It takes Core within one minor version (1.3.0 takes
-  # 1.2.x), so the two pins move together.
+  # iPhone app so the two can't drift. From 1.4.0 it takes any Core 1.x
+  # (Catchlight-AppleStorage#13), so a Core bump no longer needs a matching one here.
   CatchlightAppleStorage:
     url: https://github.com/Considus/Catchlight-AppleStorage
-    exactVersion: 1.3.0
+    exactVersion: 1.4.0
 
 targets:
   Catchlight:

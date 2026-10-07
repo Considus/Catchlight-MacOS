@@ -102,12 +102,14 @@ function gridEdit(fn) {
 // ---------- Take ----------
 function deleteInHand() {
   const t = savedTake();
-  if (!t) return;
+  if (!t || refuseHeld(t.id)) return;
   if (draft) discardEdit();
   if (asksWhichToDelete(t)) askWhichToDelete(t); else if (settings.confirmDelete) askDelete(t); else deleteTake(t.id);
 }
 // A command on a focused card repaints the list; focus goes back to the card's replacement (a11y.js).
-function onCard(fn) { const t = cardTake(); returnFocusTo = { id: t.id }; fn(t); refocus(); }
+function onCard(fn) { const t = cardTake(); if (refuseHeld(t.id)) return; returnFocusTo = { id: t.id }; fn(t); refocus(); }
+// The focused card waits for a conflict choice, so nothing in the Take menu changes it.
+const cardHeld = () => !draft && isHeld(cardTake()?.id);
 function toggleImportant() {
   if (draft) { draft.isImportant = !draft.isImportant; if (!draft.isImportant) noteFloor(draft); paintIris(); paintBar(); return; }
   onCard(t => { t.isImportant = !t.isImportant; if (!t.isImportant) noteFloor(t); touch(t); });
@@ -118,7 +120,7 @@ function markDone() {
 }
 function showAbout() { openSettings(); subStack.push('about'); paintSettings(); }
 function setScene(s) { scene = s; store.set('scene', scene); applyScene(); }
-function setPage(mode) { const s = script(); if (!s) return; s.mode = mode; save(); applyMode(); renderScripts(); }
+function setPage(mode) { const s = script(); if (!s || refuseHeld(s.id, 'Script')) return; s.mode = mode; save(); applyMode(); renderScripts(); }
 function dockTo(mode) {
   if (draft) commitEdit();
   if (layout.dailies === 'hidden') toggleHide('dailies');
@@ -155,13 +157,13 @@ const ITEMS = {
   find: { label: 'Find…', keys: { all: 'Mod+F' }, enabled: free, run: () => dockTo('search') },
   emoji: { label: 'Emoji & Symbols', keys: { mac: 'Ctrl+Mod+Space' }, role: 'emoji', only: ['mac'] },
   doneEditing: { label: 'Done Editing', keys: { all: 'Mod+S' }, enabled: () => free() && !!draft, run: commitEdit },
-  markDone: { label: () => takeInHand() && isDone(takeInHand()) ? 'Mark Not Done' : 'Mark Done', keys: { all: 'Mod+Shift+C' }, enabled: () => free() && !!takeInHand() && canBeMarkedDone(takeInHand()), run: markDone },
-  important: { label: () => takeInHand()?.isImportant ? 'Remove Important' : 'Make Important', keys: { all: 'Mod+Shift+I' }, enabled: () => free() && !!takeInHand() && !takeInHand().obie, run: toggleImportant },
-  obie: { label: 'Make Obie', enabled: () => free() && !draft && !!cardTake() && !cardTake().obie && !storyboard, run: () => onCard(makeObie) },
+  markDone: { label: () => takeInHand() && isDone(takeInHand()) ? 'Mark Not Done' : 'Mark Done', keys: { all: 'Mod+Shift+C' }, enabled: () => free() && !!takeInHand() && !cardHeld() && canBeMarkedDone(takeInHand()), run: markDone },
+  important: { label: () => takeInHand()?.isImportant ? 'Remove Important' : 'Make Important', keys: { all: 'Mod+Shift+I' }, enabled: () => free() && !!takeInHand() && !cardHeld() && !takeInHand().obie, run: toggleImportant },
+  obie: { label: 'Make Obie', enabled: () => free() && !draft && !!cardTake() && !cardHeld() && !cardTake().obie && !storyboard, run: () => onCard(makeObie) },
   reminder: { label: () => draft?.reminder ? 'Edit Reminder…' : 'Add Reminder…', enabled: () => free() && !!draft, run: () => $('#eb-remind').click() },
   shotList: { label: 'Open Shot List', enabled: () => free() && !!draft && isTask(draft) && !shotListOpen(), run: openShotList },
   exportTake: { label: 'Export Take…', enabled: () => free() && !!takeInHand(), run: () => { if (draft) readRows(); exportTake(takeInHand()); } },
-  deleteTake: { label: 'Delete Take', keys: { mac: 'Mod+Backspace', windows: 'Delete', linux: 'Delete' }, enabled: () => free() && !!cardTake() && !draft, run: deleteInHand },
+  deleteTake: { label: 'Delete Take', keys: { mac: 'Mod+Backspace', windows: 'Delete', linux: 'Delete' }, enabled: () => free() && !!cardTake() && !draft && !cardHeld(), run: deleteInHand },
   bold: { label: 'Bold', keys: { all: 'Mod+B' }, enabled: () => free() && !!scriptBlock(), run: () => wrapSelection('**') },
   italic: { label: 'Italic', keys: { all: 'Mod+I' }, enabled: () => free() && !!scriptBlock(), run: () => wrapSelection('*') },
   strike: { label: 'Strikethrough', keys: { all: 'Mod+Shift+X' }, enabled: () => free() && !!scriptBlock(), run: () => wrapSelection('~~') },

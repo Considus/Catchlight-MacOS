@@ -47,10 +47,76 @@ const store = {
   },
   set(k, v) {
     const lib = window.catchlightBridge?.library;
-    if (lib && k in LIBRARY_KEYS) { lib[LIBRARY_KEYS[k]] = v; window.catchlightBridge.save(LIBRARY_KEYS[k], v); return; }
+    if (lib && k in LIBRARY_KEYS) { heldPutBack(LIBRARY_KEYS[k], v); lib[LIBRARY_KEYS[k]] = v; window.catchlightBridge.save(LIBRARY_KEYS[k], v); return; }
     try { localStorage.setItem('cl.' + k, JSON.stringify(v)); } catch { /* storage unavailable: session only */ }
   },
 };
+
+// ---------- held for a conflict choice (owner, 2026-10-07) ----------
+// "The file shouldn't update or edit until the conflict is resolved." A Take or Script waiting on
+// the conflict screen (conflicts.js), skipped or not, is read-only until the user chooses: every
+// way of changing it asks to resolve the conflict first (refuseHeld), and the shell refuses a save
+// that changes it anyway (Library.save, `held`). The shell names the waiting ids before any script
+// runs (`library.held`), so Auto-Delete at load already leaves them alone; conflicts.js keeps the
+// set current. In a plain browser nothing is ever held.
+let heldIds = new Set(window.catchlightLibrary?.held ?? []);
+const heldCopies = {};   // id → { kind: 'takes' | 'scripts', json }: the item as the shell stores it
+const isHeld = id => !!id && heldIds.has(String(id).toLowerCase());
+// What is compared: a Script's page count is a view setting the page adds, not part of it, and
+// the page marks an Obie Important as it loads (takes.js), which is no change.
+const heldJSON = (kind, x) => JSON.stringify(kind === 'scripts' ? { ...x, pageCount: undefined } : x.obie ? { ...x, isImportant: true } : x);
+// Take the stored version of each held item from a list the shell sent (at launch, or a refresh).
+function rememberHeld(kind, list) {
+  for (const x of list || []) if (isHeld(x.id)) heldCopies[x.id.toLowerCase()] = { kind, json: heldJSON(kind, x) };
+}
+rememberHeld('takes', window.catchlightLibrary?.takes);
+rememberHeld('scripts', window.catchlightLibrary?.scripts);
+// The waiting ids changed (conflicts.js, after reading the queue). An item newly held is taken as
+// the page holds it now: the shell's version, or the edit it just wrote and found the conflict with.
+function setHeld(ids) {
+  const before = [...heldIds].sort().join();
+  heldIds = new Set(ids.map(id => id.toLowerCase()));
+  for (const id of Object.keys(heldCopies)) if (!heldIds.has(id)) delete heldCopies[id];
+  const lists = { takes, scripts };
+  for (const [kind, list] of Object.entries(lists))
+    for (const x of list) if (isHeld(x.id) && !heldCopies[x.id.toLowerCase()]) heldCopies[x.id.toLowerCase()] = { kind, json: heldJSON(kind, x) };
+  if ([...heldIds].sort().join() === before) return;
+  // Show the change: the rows' read-only state, and the Script on screen (closed if it is now held).
+  if (isHeld(script()?.id) && active >= 0) deactivate();
+  renderTakes(); paintScriptHeld();
+}
+// The words on a held Take's row and above a held Script.
+const HELD_NOTE = 'Changed on another device. Choose a version to edit it.';
+// The backstop under every save: whatever changed or removed a held item in `list`, it goes back
+// as stored before the list is sent. Changes the array in place, so the page's own list (the same
+// array) shows the stored version on its next paint. Answers the id of one it put back, or null.
+function keepHeld(kind, list) {
+  let put = null;
+  for (const [id, copy] of Object.entries(heldCopies)) {
+    if (copy.kind !== kind) continue;
+    const i = list.findIndex(x => x.id.toLowerCase() === id);
+    if (i >= 0 && heldJSON(kind, list[i]) === copy.json) continue;
+    const item = JSON.parse(copy.json);
+    if (i >= 0) list[i] = item; else list.push(item);
+    put = id;
+  }
+  return put;
+}
+// A change that reached a held item anyway (an edit open when the conflict was found, say) is
+// undone, and the user is told why.
+function heldPutBack(kind, list) {
+  const id = keepHeld(kind, list);
+  if (id) refuseHeld(id, kind === 'scripts' ? 'Script' : 'Take');
+}
+// Every way into changing an item asks this first: true (and the notice) when it is held. The
+// notice offers the conflict screen, where the choice is made.
+function refuseHeld(id, what = 'Take') {
+  if (!isHeld(id)) return false;
+  if (typeof alertBox !== 'undefined' && alertBox.open) return true;   // one dialog at a time (ask in takes.js)
+  ask('Resolve the conflict first', `This ${what} changed on another device too. It can't be changed until you choose which version to keep.`,
+    [['Review', () => window.openConflicts?.()], ['OK', null, 'cancel']]);
+  return true;
+}
 // The brand mark, as the iPhone's IntroBrandMark draws it: the app icon over the wordmark,
 // 72 pt and 44 pt high with 16 pt between, one image per scene (catchlight-icon and
 // catchlight-wordmark from Catchlight-iOS). First run and About share it.
@@ -265,9 +331,17 @@ const doc = $('#doc');
 let active = -1;
 const script = () => scripts.find(s => s.id === current);
 
+// A held Script (app.js, held) reads as it is, with the note above it and the way to the choice.
+function paintScriptHeld() {
+  const note = $('#script-held'), held = isHeld(script()?.id);
+  note.hidden = !held;
+  note.innerHTML = held ? `<span>${HELD_NOTE}</span><button class="slink" type="button">Review</button>` : '';
+}
+$('#script-held').addEventListener('click', e => { if (e.target.closest('button')) window.openConflicts?.(); });
 function renderDoc() {
   const s = script();
   active = -1;
+  paintScriptHeld();
   doc.innerHTML = '';
   if (!s) { applyMode(); return; } // clears page sheets left by the last Script
   if (!s.blocks.length) s.blocks.push('');
@@ -277,6 +351,7 @@ function renderDoc() {
 
 function activate(i, off) {
   const s = script();
+  if (isHeld(s?.id)) return;   // read-only until the conflict is resolved (the press that got here said so)
   if (active >= 0 && active !== i) deactivate();
   const el = doc.children[i];
   if (!el) return;
@@ -330,7 +405,7 @@ function remember(kind) {
 }
 function step(from, to) {
   const s = script();
-  if (!s || edits.id !== s.id || !from.length) return;
+  if (!s || edits.id !== s.id || !from.length || refuseHeld(s.id, 'Script')) return;
   to.push(snapshot());
   const snap = from.pop();
   s.blocks = [...snap.blocks];
@@ -434,6 +509,8 @@ doc.addEventListener('mousedown', e => {
   }
   if (!el || el.classList.contains('active')) return;
   const i = +el.dataset.i, s = script();
+  // Held for a conflict choice: a link still opens with ⌘, and nothing else changes it.
+  if (isHeld(s.id) && !(e.target.closest('a[href]') && (e.metaKey || e.ctrlKey))) { e.preventDefault(); refuseHeld(s.id, 'Script'); return; }
   const gutter = el.classList.contains('check') && e.clientX - el.getBoundingClientRect().left < 34;
   if (e.target.matches('input[type=checkbox]') || gutter) {
     e.preventDefault();
@@ -500,6 +577,7 @@ $('#editor-scroll').addEventListener('mousedown', e => {
   const s = script();
   if (!s) return;
   e.preventDefault();
+  if (refuseHeld(s.id, 'Script')) return;
   if (s.blocks[s.blocks.length - 1] !== '') { s.blocks.push(''); renderDoc(); }
   activate(s.blocks.length - 1);
 });
@@ -697,7 +775,7 @@ function paginate() {
 }
 
 document.querySelectorAll('#page-mode button').forEach(b => b.addEventListener('click', () => {
-  const s = script(); if (!s) return;
+  const s = script(); if (!s || refuseHeld(s.id, 'Script')) return;
   s.mode = b.dataset.mode; save(); applyMode(); renderScripts();
 }));
 
@@ -777,6 +855,7 @@ document.addEventListener('pointermove', e => { if (press && Math.hypot(e.client
 document.addEventListener('pointerup', () => { if (press) { clearTimeout(press.t); press = null; } });
 document.addEventListener('mousedown', e => { if (!ctx.contains(e.target)) ctx.hidden = true; });
 async function scriptToTake(id) {
+  if (refuseHeld(id, 'Script')) return;
   const s = scripts.find(x => x.id === id);
   // The text moves as it is: "- [ ]" lines become checklist items, the rest stays text. Same id:
   // a change of kind, not a copy (D-313, changeKind in takes.js).

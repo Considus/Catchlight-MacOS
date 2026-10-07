@@ -71,6 +71,18 @@
       if (r?.conflicts) window.loadConflicts?.();   // a Take changed here and by sync: the choice screen
       if (r?.keptOverDelete && !r?.rejected?.length) window.catchlightBridge.refresh().catch(e => console.error('Refreshing the Takes failed', e));
       const [one, many] = kind === 'scripts' ? ['Script', 'Scripts'] : ['Take', 'Takes'];
+      // A change to an item waiting for a conflict choice, refused by the shell (the page refuses
+      // them first; this is one already on its way when the conflict was found). The stored version
+      // stands: show it, and say why the change didn't stick.
+      if (r?.held?.length) {
+        window.loadConflicts?.();
+        if (!r?.rejected?.length) window.catchlightBridge.refresh().catch(e => console.error('Refreshing the Takes failed', e));
+        const n = r.held.length;
+        whenNoDialog(() => ask(n === 1 ? `A ${one} wasn't changed` : `${n} ${many} weren't changed`, n === 1
+          ? `This ${one} changed on another device too, so your change to it wasn't saved. Choose which version to keep, then make the change again.`
+          : `These ${many} changed on another device too, so your changes to them weren't saved. Choose which version of each to keep, then make the changes again.`,
+          [['Review', () => window.openConflicts?.()], ['OK', null, 'cancel']]));
+      }
       if (r?.rejected?.length) whenNoDialog(() => ask(`A ${one} wasn't saved`, `Catchlight couldn't read ${r.rejected.length === 1 ? `one ${one}` : `${r.rejected.length} ${many}`}, so the last version of it is kept. Report it, with this detail: ${r.rejected.join(', ')}`, [['OK', null, 'cancel']]));
     })
     .catch(e => {
@@ -188,6 +200,7 @@
       // A Script typed into while the answer was on its way: save it, then ask again.
       if (saves !== before || busy() || (typeof scriptSavePending !== 'undefined' && scriptSavePending)) return this.refresh();
       library.takes = r.takes;
+      rememberHeld('takes', r.takes); rememberHeld('scripts', r.scripts);   // the stored versions of what is held (app.js)
       if (scriptsUnsaved) scriptsGeneration ??= library.generation;
       else { scriptsGeneration = null; library.scripts = r.scripts; replaceScripts(r.scripts); }
       library.generation = r.generation;

@@ -309,6 +309,42 @@ final class SyncServiceTests: XCTestCase {
         XCTAssertEqual(SyncService(vault: b.vault, folder: b.folder).conflicts.count, 0)
     }
 
+    /// Owner, 2026-10-07: "The file shouldn't update or edit until the conflict is resolved." While
+    /// the pair waits (skipped or not, across passes), no pass uploads this Mac's version or writes
+    /// the folder's over it; a newer version from the other Mac only replaces the pair's other side.
+    /// The choice releases it, and the next pass uploads the kept version.
+    func testAWaitingConflictIsHeldUntilTheChoice() throws {
+        let words = try Vault.newPhrase()
+        let a = try mac("A", words: words), b = try mac("B", words: words)
+        let id = try write("Original", on: a)
+        _ = try sync(a); _ = try sync(b)
+        func edit(_ s: SyncService, _ text: String) throws {
+            var take = try s.vault.library!.store.take(id: id)!
+            take.blocks = [.text(TextBlock(text: text))]
+            take.modifiedAt = Date()
+            try s.vault.library!.store.upsert(take)
+        }
+        func text(_ s: SyncService) throws -> String? { try s.vault.library!.store.take(id: id)?.plainText }
+        try edit(a, "Edited on A")
+        try edit(b, "Edited on B")
+        _ = try sync(a); _ = try sync(b)
+        XCTAssertEqual(b.conflicts.pending.count, 1)
+
+        _ = try sync(b)   // the pass after the conflict
+        try edit(a, "Edited on A again")
+        _ = try sync(a); _ = try sync(b)
+        XCTAssertEqual(try text(b), "Edited on B", "nothing from the folder is written over it")
+        XCTAssertEqual(b.conflicts.pending.first?.remote.plainText, "Edited on A again", "the pair carries the newest other version")
+        _ = try sync(a)
+        XCTAssertEqual(try text(a), "Edited on A again", "B's version never reached the folder")
+        XCTAssertTrue(a.conflicts.pending.isEmpty)
+
+        try b.conflicts.resolve(id: id, choice: .local, store: b.vault.library!.store)
+        XCTAssertTrue(b.conflicts.pending.isEmpty)
+        _ = try sync(b); _ = try sync(a)
+        XCTAssertEqual(try text(a), "Edited on B", "the kept version goes up once chosen")
+    }
+
     /// #52 review (Greptile): a pass asked for while one runs (a save written once it ended) gets
     /// one more pass afterwards, so the save reaches the cloud without waiting for the next trigger.
     func testASyncAskedForDuringAPassRunsOnceMoreAfterIt() throws {

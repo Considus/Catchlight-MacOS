@@ -29,10 +29,15 @@ final class Library {
         var conflicts: [(local: Take, remote: Take)] = []
         /// Takes the page deleted that sync had changed since: the change wins and the Take stays.
         var keptOverDelete: [UUID] = []
+        /// Items the page changed or deleted while they wait for a conflict choice: refused, and
+        /// the stored version stands (owner, 2026-10-07: "The file shouldn't update or edit until
+        /// the conflict is resolved"). A new Obie is refused too while the current one waits,
+        /// because writing it would demote the waiting one.
+        var held: [String] = []
 
         static func == (a: SaveReport, b: SaveReport) -> Bool {
             a.upserted == b.upserted && a.deleted == b.deleted && a.unchanged == b.unchanged
-                && a.rejected == b.rejected && a.keptOverDelete == b.keptOverDelete
+                && a.rejected == b.rejected && a.keptOverDelete == b.keptOverDelete && a.held == b.held
                 && a.conflicts.map(\.local) == b.conflicts.map(\.local)
                 && a.conflicts.map(\.remote) == b.conflicts.map(\.remote)
         }
@@ -41,9 +46,12 @@ final class Library {
     enum Failure: Error, LocalizedError, Equatable {
         /// The page's list came from a snapshot too old to diff against. Nothing is written.
         case staleSnapshot(Int)
+        /// The item is waiting for a conflict choice, and nothing changes it until then.
+        case held(UUID)
         var errorDescription: String? {
             switch self {
             case .staleSnapshot: return "the page's copy of your Takes is out of date"
+            case .held: return "it changed on another device too, and is waiting for you to choose a version"
             }
         }
     }
@@ -95,14 +103,14 @@ final class Library {
     func pageTakes() throws -> [[String: Any]] { try snapshot().takes }
     func pageScripts() throws -> [[String: Any]] { try snapshot().scripts }
 
-    func saveTakes(_ page: [[String: Any]], generation: Int? = nil, now: Date = Date(),
+    func saveTakes(_ page: [[String: Any]], generation: Int? = nil, now: Date = Date(), holding held: Set<UUID> = [],
                    keepConflict: ((local: Take, remote: Take)) throws -> Void = { _ in }) throws -> SaveReport {
-        try save(page, as: .takes, generation: generation, now: now, keepConflict: keepConflict)
+        try save(page, as: .takes, generation: generation, now: now, holding: held, keepConflict: keepConflict)
     }
 
-    func saveScripts(_ page: [[String: Any]], generation: Int? = nil, now: Date = Date(), syncing: Bool = true,
+    func saveScripts(_ page: [[String: Any]], generation: Int? = nil, now: Date = Date(), syncing: Bool = true, holding held: Set<UUID> = [],
                      keepConflict: ((local: Take, remote: Take)) throws -> Void = { _ in }) throws -> SaveReport {
-        try save(page, as: .scripts, generation: generation, now: now, syncing: syncing, keepConflict: keepConflict)
+        try save(page, as: .scripts, generation: generation, now: now, syncing: syncing, holding: held, keepConflict: keepConflict)
     }
 
     /// - Parameter generation: the snapshot the page's list came from; nil means the newest.
@@ -112,7 +120,12 @@ final class Library {
     /// - Parameter syncing: false when this list's deletions must stay on this Mac: Scripts while
     ///   they don't sync. A deletion record carries no kind, so one sent for a Script made from a
     ///   synced Take would delete that Take on every other device (Greptile on Catchlight-Core#22).
+    /// - Parameter held: the items waiting for a conflict choice (`ConflictQueue`, skipped ones
+    ///   included). A change to one, or its deletion, is refused and reported in `held`; the page
+    ///   refuses them first, so this is the backstop for a save already on its way when the
+    ///   conflict was found. Resolving the conflict (`ConflictQueue.resolve`) is the only write.
     func save(_ page: [[String: Any]], as list: PageList, generation: Int? = nil, now: Date = Date(), syncing: Bool = true,
+              holding held: Set<UUID> = [],
               keepConflict: ((local: Take, remote: Take)) throws -> Void = { _ in }) throws -> SaveReport {
         let gen = generation ?? self.generation
         // A Takes save reads the whole store, because upserting an Obie changes another Take. A
@@ -154,6 +167,19 @@ final class Library {
                 continue
             }
             if was != nil, take == was { report.unchanged += 1; continue }
+            if held.contains(take.id) {
+                report.held.append(item["id"] as? String ?? "?")
+                Self.log.info("a save changed an item waiting for a conflict choice; it is left as it is")
+                continue
+            }
+            // Writing an Obie demotes the current one; while that one waits for a conflict choice
+            // it can't change, so the new Obie is refused rather than written as something else.
+            if take.isObie, !held.isEmpty, let obie = try all.map({ $0.values.first(where: \.isObie) }) ?? store.currentObie(),
+               obie.id != take.id, held.contains(obie.id) {
+                report.held.append(item["id"] as? String ?? "?")
+                Self.log.info("a save made a new Obie while the Obie waits for a conflict choice; it is left as it is")
+                continue
+            }
             if let now = try stored(take.id), let was, now != was, now != take {
                 // Both changed it: the page's edit is written, and the user chooses on the
                 // conflict screen, as for a conflict sync finds.
@@ -173,6 +199,11 @@ final class Library {
         // Only Takes the page was given and no longer sends are deletions; a rejected Take keeps
         // its stored version, and a Take sync added since the snapshot was never the page's.
         for (id, was) in base where list.holds(was) && !seen.contains(id) {
+            if held.contains(id) {
+                // Kept in the snapshot too: the page's next save, which may still lack it, is refused again.
+                report.held.append(id.uuidString.lowercased())
+                continue
+            }
             base[id] = nil
             guard let now = try stored(id) else { continue }   // already gone
             if now != was {
@@ -206,10 +237,14 @@ final class Library {
     /// export. The page sees them on its next refresh; its older snapshot doesn't hold them, so a
     /// save from it leaves them alone. One that can't be written is counted and the rest go on,
     /// as the iPhone's `importTakes`.
-    func importItems(_ items: [Take]) -> (takes: Int, scripts: Int, failed: Int) {
+    /// An imported Obie comes in as a standard Take while the current Obie waits for a conflict
+    /// choice (`held`), since writing it would demote the waiting one.
+    func importItems(_ items: [Take], holding held: Set<UUID> = []) -> (takes: Int, scripts: Int, failed: Int) {
         var takes = 0, scripts = 0, failed = 0
+        let obieHeld = !held.isEmpty && ((try? store.currentObie())??.id).map(held.contains) == true
         for var item in items {
             item.normaliseActivityFloor()
+            if obieHeld { item.isObie = false }
             do { try store.upsert(item) } catch { failed += 1; continue }
             if item.isScript { scripts += 1 } else { takes += 1 }
         }
@@ -224,12 +259,15 @@ final class Library {
     /// - Parameter generation: the snapshot the page's copy came from (nil: the newest). If sync
     ///   changed the item since, that version goes to `keepConflict` before anything is written,
     ///   as a save's does, so the change of kind never replaces it unseen.
+    /// - Parameter held: the items waiting for a conflict choice; changing one's kind throws `held`.
     @discardableResult
     func changeKind(_ page: [String: Any], to list: PageList, generation: Int? = nil, now: Date = Date(),
+                    holding held: Set<UUID> = [],
                     keepConflict: ((local: Take, remote: Take)) throws -> Void = { _ in }) throws -> Take {
         guard let idString = page["id"] as? String, let id = UUID(uuidString: idString) else {
             throw TakeTranslation.Failure.badID(String(describing: page["id"]))
         }
+        if held.contains(id) { throw Failure.held(id) }
         let gen = generation ?? self.generation
         guard gen == 0 || snapshots[gen] != nil else { throw Failure.staleSnapshot(gen) }
         let stored = try store.take(id: id)

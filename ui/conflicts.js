@@ -3,8 +3,9 @@
 // sync changed it. As the iPhone's DailiesView banner and ConflictResolutionView: a banner in
 // Dailies says how many, and Review opens both versions side by side. The user keeps this Mac's
 // version (Local), the other device's (Cloud), or both (owner, 2026-10-05); Skip for now leaves
-// it waiting. Until a choice, this Mac's version stands. The shell keeps the waiting pairs
-// (ConflictQueue, sealed on disk), so in a plain browser there are none and nothing here shows.
+// it waiting. Until a choice the item is held (owner, 2026-10-07): read-only on the page (app.js,
+// held), refused by the shell's saves, and never uploaded by sync. The shell keeps the waiting
+// pairs (ConflictQueue, sealed on disk), so in a plain browser there are none and nothing here shows.
 
 const conflictBanner = document.createElement('div');
 conflictBanner.className = 'conflict-banner';
@@ -42,6 +43,7 @@ async function loadConflicts() {
   if (!window.catchlightBridge?.conflicts) return;
   try { conflictList = await catchlightBridge.conflicts(); }
   catch (e) { console.error('Reading the conflicts failed', e); return; }
+  setHeld(conflictList.map(c => c.id));   // skipped ones too: they still wait for the choice
   // A pair the next sync found again is waiting again.
   for (const id of [...conflictSkipped]) if (!conflictList.some(c => c.id === id)) conflictSkipped.delete(id);
   // A pick only stands for the versions it was made against: if a sync replaced either side,

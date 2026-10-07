@@ -108,6 +108,46 @@ final class ConflictScreenTests: XCTestCase {
         XCTAssertEqual(try vault.library!.store.take(id: id)?.plainText, "Mine, edited on the Mac")
     }
 
+    /// Owner, 2026-10-07: "The file shouldn't update or edit until the conflict is resolved." The
+    /// row says why and opening it asks to resolve the conflict first; a change that reaches it
+    /// anyway is put back by the save, and the shell refuses one sent straight to it. Resolving
+    /// releases it.
+    func testAWaitingTakeIsReadOnlyUntilTheChoice() throws {
+        var h: WebViewHarness?
+        let (vault, sync, id) = try setUp(with: &h)
+        let harness = h!
+
+        let state = try harness.run("""
+            for (let i = 0; i < 100 && conflictBanner.hidden; i++) await new Promise(r => setTimeout(r, 50));
+            const t = takes[0];
+            beginEdit(t);
+            const editing = !!draft;
+            const notice = alertBox.open ? alertBox.querySelector('h2').textContent : null;
+            alertBox.close();
+            const note = document.querySelector(`[data-take="${t.id}"] .held-note`)?.textContent ?? null;
+            const menu = takeMenu(t.id).map(i => i[0]);
+            t.blocks[0].text = 'Changed anyway'; t.modifiedAt = Date.now(); saveTakes(); renderTakes();
+            const shown = takes[0].blocks[0].text;
+            alertBox.close();
+            const r = await window.webkit.messageHandlers.catchlight.postMessage({ cmd: 'save', kind: 'takes', generation: catchlightBridge.library.generation,
+              list: [{ ...takes[0], blocks: [{ k: 'text', text: 'Straight to the shell' }], modifiedAt: Date.now() }] });
+            return JSON.stringify([editing, notice, note, menu, shown, r.held?.length ?? 0]);
+            """, in: self) as? String
+        XCTAssertEqual(state, #"[false,"Resolve the conflict first","Changed on another device. Choose a version to edit it.",["Expand Take","Export Take","Review Conflict…"],"Mine, edited on the Mac",1]"#)
+        XCTAssertEqual(try vault.library!.store.take(id: id)?.plainText, "Mine, edited on the Mac")
+        try snapshot(harness, name: "held-take")
+
+        let released = try harness.run("""
+            await resolveConflict(conflictList[0].id, 'local');
+            beginEdit(takes[0]);
+            const editing = !!draft;
+            discardEdit();
+            return JSON.stringify([editing, document.querySelector('.card .held-note') === null]);
+            """, in: self) as? String
+        XCTAssertEqual(released, "[true,true]")
+        XCTAssertEqual(sync.conflicts.count, 0)
+    }
+
     /// Local review: a pick made against one pair must not carry over when a sync replaces it.
     func testAPickIsClearedWhenTheVersionsChange() throws {
         var h: WebViewHarness?

@@ -62,6 +62,8 @@ function closeSwipe(animate = true) {
 function commitSwipe(card, side) {
   const { t } = actionsFor(card);
   if (!t) return;
+  // Held for a conflict choice: the row goes back and nothing changes.
+  if (isHeld(t.id)) { swipeOpen = null; setOffset(card, 0, true); refuseHeld(t.id); return; }
   if (side === 'leading') { toggleDone(t); touch(t); return; }   // renderTakes rebuilds the row closed
   // A repeating reminder, or Confirm before deleting, asks first, and the row has to still be
   // there if the answer is no.

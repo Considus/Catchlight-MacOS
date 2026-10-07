@@ -107,10 +107,13 @@ final class SyncService {
         isSyncing = true
         cancelLock.lock(); cancelled = false; cancelLock.unlock()
         let store = library.store
+        // Every Take waiting for the user's choice, skipped ones included (owner, 2026-10-07): the
+        // pass never uploads one, nor writes the folder's version over it or deletes it.
+        let held = conflicts.heldIDs
         queue.async { [self] in
             let outcome: Outcome
             if let engine = makeEngine(store: store, keys: keys) {
-                do { outcome = .finished(try engine.sync(isCancelled: { self.isCancelled })) } catch { outcome = .failed(error) }
+                do { outcome = .finished(try engine.sync(isCancelled: { self.isCancelled }, holding: held)) } catch { outcome = .failed(error) }
             } else {
                 outcome = .skipped   // the folder no longer opens; the page shows none at the next launch
             }
@@ -152,9 +155,12 @@ final class SyncService {
 }
 
 /// Conflicts waiting for the user. Unlike the iPhone's (`ConflictQueue`, in memory), each pending
-/// pair is also kept on disk, sealed: a save that finds a conflict writes this Mac's version, and
-/// the pass after it uploads that version, so the other device's version may exist nowhere but
-/// here until the user chooses. Quitting must not lose it. One file per Take in the library's
+/// pair is also kept on disk, sealed: a save that finds a conflict writes this Mac's version over
+/// the one sync brought in, so the other device's version may exist nowhere but here until the
+/// user chooses. Quitting must not lose it. Until the choice the Take is HELD (owner, 2026-10-07:
+/// "The file shouldn't update or edit until the conflict is resolved"): `heldIDs` goes to every
+/// sync pass, which neither uploads it nor writes over it, and to every save, which refuses to
+/// change it; the page shows it read-only. Only `resolve` writes it. One file per Take in the library's
 /// `Conflicts` folder, AES-256-GCM under Core's per-item key for the Take's id, with the format
 /// named in the additional data so it can never be opened as anything else (as `ScriptVault`).
 /// The folder sits inside the library, so Erase everything removes it and a library moved aside
@@ -173,6 +179,11 @@ final class ConflictQueue {
     private let keys: KeyHierarchy?
 
     var count: Int { pending.count + unverified.count }
+
+    /// The Takes waiting for a choice, skipped ones included: nothing but `resolve` changes them,
+    /// and no sync pass uploads them. A file that doesn't open isn't here: it can't be shown, so
+    /// it can't be resolved, and holding its Take would freeze it for good.
+    var heldIDs: Set<UUID> { Set(pending.map(\.local.id)) }
 
     /// - Parameters: `directory` and `keys` both nil keeps the queue in memory only (no library open).
     init(directory: URL? = nil, keys: KeyHierarchy? = nil) {
@@ -200,7 +211,8 @@ final class ConflictQueue {
     }
 
     /// One pair, written to disk FIRST: a save calls this before replacing the other version in
-    /// the store, so if the write fails it throws and the save writes nothing.
+    /// the store, so if the write fails it throws and the save writes nothing. The page's edit is
+    /// written and is this Mac's side of the pair; from here the Take is held like any other.
     func keep(_ pair: (local: Take, remote: Take)) throws {
         if let directory, let keys, let url = fileURL(pair.local.id) {
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -227,8 +239,9 @@ final class ConflictQueue {
     func resolve(id: UUID, choice: Choice, store: TakeStore, now: Date = Date()) throws -> Take? {
         guard let i = pending.firstIndex(where: { $0.local.id == id }) else { return nil }
         let pair = pending[i]
-        // This Mac's version is the Take as it is NOW: an edit made after the conflict was queued
-        // must not be replaced by the older queued copy. Only if it has gone does the copy stand in.
+        // This Mac's version is the Take as it is NOW. Saves can't change a held Take, so that is
+        // the version the conflict was found against; reading the store still guards against
+        // anything that wrote it outside a save. Only if it has gone does the copy stand in.
         let current = try store.take(id: id) ?? pair.local
         var kept = choice == .remote ? pair.remote : current
         kept.modifiedAt = now
