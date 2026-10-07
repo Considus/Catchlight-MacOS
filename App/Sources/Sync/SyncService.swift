@@ -175,6 +175,20 @@ final class ConflictQueue {
 
     private(set) var pending: [(local: Take, remote: Take)] = []
     private(set) var unverified: [UnverifiedCopy] = []
+    /// Which versions each pending pair holds, as a token the page sends back with the choice:
+    /// a pass can replace the pair while a choice waits behind it, and a choice made against one
+    /// pair must never apply to another. Changes whenever the pair does. In memory only.
+    private var revisions: [UUID: String] = [:]
+
+    enum Failure: Error, LocalizedError, Equatable {
+        /// The pair changed after the page read it: nothing is written, and the user chooses again.
+        case pairChanged
+        var errorDescription: String? {
+            switch self {
+            case .pairChanged: return "the versions changed while you were choosing"
+            }
+        }
+    }
     private let directory: URL?
     private let keys: KeyHierarchy?
 
@@ -193,8 +207,9 @@ final class ConflictQueue {
         let files = (try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)) ?? []
         for url in files where url.pathExtension == "conflict" {
             guard let id = UUID(uuidString: url.deletingPathExtension().lastPathComponent) else { continue }
-            do { pending.append(try Self.open(Data(contentsOf: url), id: id, keys: keys)) } catch {
-                // Kept as it is, never deleted: it may hold the only copy of the other version.
+            do { add(try Self.open(Data(contentsOf: url), id: id, keys: keys)) } catch {
+                // Kept as it is, never deleted or written over (`write` moves it aside first): it
+                // may hold the only copy of the other version.
                 Self.log.error("a waiting conflict did not open and is kept: \(url.lastPathComponent, privacy: .public)")
             }
         }
@@ -204,22 +219,30 @@ final class ConflictQueue {
     /// against the newest versions.
     func enqueue(_ pairs: [(local: Take, remote: Take)]) {
         for pair in pairs {
-            if let i = pending.firstIndex(where: { $0.local.id == pair.local.id }) { pending[i] = pair }
-            else { pending.append(pair) }
+            add(pair)
             persist(pair)
         }
+    }
+
+    /// The token for the pair now waiting for `id`, or nil when none waits.
+    func revision(_ id: UUID) -> String? { revisions[id] }
+
+    private func add(_ pair: (local: Take, remote: Take)) {
+        if let i = pending.firstIndex(where: { $0.local.id == pair.local.id }) {
+            if pending[i].local == pair.local && pending[i].remote == pair.remote { return }
+            pending[i] = pair
+        } else {
+            pending.append(pair)
+        }
+        revisions[pair.local.id] = UUID().uuidString.lowercased()
     }
 
     /// One pair, written to disk FIRST: a save calls this before replacing the other version in
     /// the store, so if the write fails it throws and the save writes nothing. The page's edit is
     /// written and is this Mac's side of the pair; from here the Take is held like any other.
     func keep(_ pair: (local: Take, remote: Take)) throws {
-        if let directory, let keys, let url = fileURL(pair.local.id) {
-            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-            try Self.seal(pair, keys: keys).write(to: url, options: .atomic)
-        }
-        if let i = pending.firstIndex(where: { $0.local.id == pair.local.id }) { pending[i] = pair }
-        else { pending.append(pair) }
+        try write(pair)
+        add(pair)
     }
 
     func enqueueUnverified(_ items: [UnverifiedCopy]) {
@@ -235,9 +258,13 @@ final class ConflictQueue {
     /// both). The kept version is stamped as a fresh edit so the next push makes it the newest
     /// everywhere and the conflict doesn't come back. Keep both keeps this Mac's version on its id
     /// and the other beside it as a new Take. The waiting file goes only once everything is written.
+    /// - Parameter revision: the pair's token as the page read it (`revision(_:)`). If the pair
+    ///   has changed since (a pass replaced it while the choice waited), nothing is written and
+    ///   this throws `pairChanged`. Nil skips the check (tests that hold the pair themselves).
     @discardableResult
-    func resolve(id: UUID, choice: Choice, store: TakeStore, now: Date = Date()) throws -> Take? {
+    func resolve(id: UUID, choice: Choice, store: TakeStore, revision: String? = nil, now: Date = Date()) throws -> Take? {
         guard let i = pending.firstIndex(where: { $0.local.id == id }) else { return nil }
+        if let revision, revision != revisions[id] { throw Failure.pairChanged }
         let pair = pending[i]
         // This Mac's version is the Take as it is NOW. Saves can't change a held Take, so that is
         // the version the conflict was found against; reading the store still guards against
@@ -254,7 +281,12 @@ final class ConflictQueue {
             copy = other
         }
         pending.remove(at: i)
-        if let url = fileURL(id) { try? FileManager.default.removeItem(at: url) }
+        revisions[id] = nil
+        if let url = fileURL(id) {
+            // Only this pair's own file goes: one that doesn't open is set aside first, never removed.
+            try? setAsideIfUnreadable(url, id: id)
+            try? FileManager.default.removeItem(at: url)
+        }
         return copy
     }
 
@@ -281,13 +313,29 @@ final class ConflictQueue {
     }
 
     private func persist(_ pair: (local: Take, remote: Take)) {
-        guard let directory, let keys, let url = fileURL(pair.local.id) else { return }
-        do {
-            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-            try Self.seal(pair, keys: keys).write(to: url, options: .atomic)
-        } catch {
+        do { try write(pair) } catch {
             Self.log.fault("a waiting conflict could not be kept on disk: \(String(describing: error), privacy: .public)")
         }
+    }
+
+    /// Writes the pair to its file. A file already there that doesn't open is moved aside first,
+    /// never written over: it may hold the only copy of another version. If it can't be moved,
+    /// this throws and writes nothing.
+    private func write(_ pair: (local: Take, remote: Take)) throws {
+        guard let directory, let keys, let url = fileURL(pair.local.id) else { return }
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        try setAsideIfUnreadable(url, id: pair.local.id)
+        try Self.seal(pair, keys: keys).write(to: url, options: .atomic)
+    }
+
+    /// A file at `url` that doesn't open as `id`'s pair goes to `<id>.<new uuid>.unreadable`
+    /// beside it, which nothing reads back or removes.
+    private func setAsideIfUnreadable(_ url: URL, id: UUID) throws {
+        guard let keys, FileManager.default.fileExists(atPath: url.path) else { return }
+        if (try? Self.open(Data(contentsOf: url), id: id, keys: keys)) != nil { return }
+        let aside = url.deletingPathExtension().appendingPathExtension(UUID().uuidString.lowercased()).appendingPathExtension("unreadable")
+        try FileManager.default.moveItem(at: url, to: aside)
+        Self.log.error("a waiting conflict that did not open was set aside: \(aside.lastPathComponent, privacy: .public)")
     }
 
     static func seal(_ pair: (local: Take, remote: Take), keys: KeyHierarchy) throws -> Data {

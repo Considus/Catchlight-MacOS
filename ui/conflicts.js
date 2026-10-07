@@ -43,7 +43,7 @@ async function loadConflicts() {
   if (!window.catchlightBridge?.conflicts) return;
   try { conflictList = await catchlightBridge.conflicts(); }
   catch (e) { console.error('Reading the conflicts failed', e); return; }
-  setHeld(conflictList.map(c => c.id));   // skipped ones too: they still wait for the choice
+  setHeld(conflictList);   // skipped ones too: they still wait for the choice
   // A pair the next sync found again is waiting again.
   for (const id of [...conflictSkipped]) if (!conflictList.some(c => c.id === id)) conflictSkipped.delete(id);
   // A pick only stands for the versions it was made against: if a sync replaced either side,
@@ -100,12 +100,17 @@ function openConflicts() {
 }
 
 async function resolveConflict(id, choice) {
+  // The choice names the pair it was made against: if a sync replaced it meanwhile, the shell
+  // refuses, and the user chooses again between the versions now waiting.
+  const revision = conflictList.find(c => c.id === id)?.revision ?? '';
   try {
-    await catchlightBridge.resolveConflict(id, choice);
+    await catchlightBridge.resolveConflict(id, choice, revision);
   } catch (e) {
     // Only this means the choice wasn't written: the store is as it was.
     console.error('Saving a conflict choice failed', e);
-    ask("Your choice wasn't saved", `Both versions are still there. Try again, and if it keeps happening, report it with this detail: ${e?.message ?? e}`, [['OK', null, 'cancel']]);
+    if (/changed while you were choosing/.test(String(e?.message ?? e)))
+      ask('The versions changed', 'This changed again on another device while you were choosing. Look at both versions again, then choose.', [['OK', null, 'cancel']]);
+    else ask("Your choice wasn't saved", `Both versions are still there. Try again, and if it keeps happening, report it with this detail: ${e?.message ?? e}`, [['OK', null, 'cancel']]);
     return loadConflicts();
   }
   delete conflictChoice[id];

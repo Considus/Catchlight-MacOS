@@ -345,6 +345,29 @@ final class SyncServiceTests: XCTestCase {
         XCTAssertEqual(try text(a), "Edited on B", "the kept version goes up once chosen")
     }
 
+    /// Code review of the hold: a waiting conflict that doesn't open is kept, never deleted, so a
+    /// later conflict for the same Take is written beside it, never over it.
+    func testAConflictFileThatDoesNotOpenIsNeverOverwritten() throws {
+        let vault = Vault(secrets: MemorySecrets(), directory: root.appendingPathComponent("U"))
+        try vault.createAccount(words: try Vault.newPhrase(), restored: true)
+        let folder = vault.directory.appendingPathComponent("Conflicts")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let local = Take(blocks: [.text(TextBlock(text: "Mac"))])
+        var remote = local
+        remote.blocks = [.text(TextBlock(text: "iPhone"))]
+        let damaged = Data("not a sealed pair".utf8)
+        try damaged.write(to: folder.appendingPathComponent(local.id.uuidString.lowercased()).appendingPathExtension("conflict"))
+
+        let queue = ConflictQueue(directory: folder, keys: vault.keys)
+        XCTAssertTrue(queue.pending.isEmpty)
+        queue.enqueue([(local: local, remote: remote)])
+        try queue.keep((local: local, remote: remote))
+        try queue.resolve(id: local.id, choice: .local, store: vault.library!.store)
+
+        let files = try FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)
+        XCTAssertEqual(try files.filter { try Data(contentsOf: $0) == damaged }.count, 1, "the file that didn't open is still there, as it was")
+    }
+
     /// #52 review (Greptile): a pass asked for while one runs (a save written once it ended) gets
     /// one more pass afterwards, so the save reaches the cloud without waiting for the next trigger.
     func testASyncAskedForDuringAPassRunsOnceMoreAfterIt() throws {

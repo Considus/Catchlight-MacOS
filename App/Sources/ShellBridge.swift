@@ -39,7 +39,8 @@ enum SystemInfo {
 /// - `changeKind {item, to: 'takes'|'scripts'}`: Take ⇄ Script on the same id (D-313);
 /// - `conflicts`, `resolveConflict {id, choice}`: the waiting conflicts and the user's choice. A
 ///   waiting item is held: `save` and `changeKind` refuse to change it (a save answers its id in
-///   `held`) and sync never uploads it, until `resolveConflict`, which alone writes it;
+///   `held`) and sync never uploads it, until `resolveConflict {id, choice, revision}`, which
+///   alone writes it, and only for the pair the page read (`revision`, from `conflicts`);
 /// - `importNotes`, `importFile`: notes from the sync folder's Import folder, or from files the
 ///   user picks, imported as Takes (`NoteImport`).
 final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
@@ -203,8 +204,16 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                     page["modifiedAt"] = (take.modifiedAt.timeIntervalSince1970 * 1000).rounded()
                     return page
                 }
+                // `stored`: the held item as the store has it, in its own list's shape, which the
+                // page puts back over any change (`keepHeld`); never the page's own copy, which may
+                // carry an edit the shell refused. `revision`: sent back with the choice.
+                let store = vault?.library?.store
                 replyHandler(try sync.conflicts.pending.map { pair -> [String: Any] in
-                    ["id": pair.local.id.uuidString.lowercased(), "local": try side(pair.local), "remote": try side(pair.remote)]
+                    let stored = try store?.take(id: pair.local.id) ?? pair.local
+                    return ["id": pair.local.id.uuidString.lowercased(), "local": try side(pair.local), "remote": try side(pair.remote),
+                            "stored": stored.isScript ? ScriptTranslation.page(from: stored) : try TakeTranslation.page(from: stored),
+                            "storedKind": stored.isScript ? "scripts" : "takes",
+                            "revision": sync.conflicts.revision(pair.local.id) ?? ""]
                 }, nil)
             } catch {
                 Self.log.error("conflicts did not translate: \(String(describing: error), privacy: .public)")
@@ -213,11 +222,14 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
         case "resolveConflict":
             guard let sync, let library = vault?.library,
                   let id = (body["id"] as? String).flatMap(UUID.init(uuidString:)),
-                  let choice = (body["choice"] as? String).flatMap(ConflictQueue.Choice.init(rawValue:)) else {
-                return replyHandler(nil, "resolveConflict needs an id and a choice")
+                  let choice = (body["choice"] as? String).flatMap(ConflictQueue.Choice.init(rawValue:)),
+                  let revision = body["revision"] as? String else {
+                return replyHandler(nil, "resolveConflict needs an id, a choice and the revision it was made against")
             }
             do {
-                try sync.conflicts.resolve(id: id, choice: choice, store: library.store)
+                // Refused if a pass replaced the pair after the page read it (the choice may have
+                // waited behind that pass): the user chooses again between the versions now waiting.
+                try sync.conflicts.resolve(id: id, choice: choice, store: library.store, revision: revision)
                 replyHandler(true, nil)
             } catch {
                 Self.log.error("a conflict choice was not saved: \(String(describing: error), privacy: .public)")

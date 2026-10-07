@@ -214,7 +214,7 @@
     // The item comes from the other list, so it names that list's snapshot.
     changeKind: (item, to) => post('changeKind', { item, to, generation: to === 'takes' ? scriptsGeneration ?? library.generation : library.generation })
       .then(r => { if (r?.conflicts) window.loadConflicts?.(); return r; }),
-    resolveConflict: (id, choice) => post('resolveConflict', { id, choice }),
+    resolveConflict: (id, choice, revision) => post('resolveConflict', { id, choice, revision }),
     afterEdit() { if (refreshWaiting) this.refresh().catch(e => console.error('Refreshing the Takes failed', e)); },
     // The shell calls this as the app quits or the window closes: a Take being edited is saved
     // as a click outside it would save it, and the Script editor's pending (debounced) save goes

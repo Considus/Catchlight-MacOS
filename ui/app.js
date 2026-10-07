@@ -63,27 +63,37 @@ let heldIds = new Set(window.catchlightLibrary?.held ?? []);
 const heldCopies = {};   // id → { kind: 'takes' | 'scripts', json }: the item as the shell stores it
 const isHeld = id => !!id && heldIds.has(String(id).toLowerCase());
 // What is compared: a Script's page count is a view setting the page adds, not part of it, and
-// the page marks an Obie Important as it loads (takes.js), which is no change.
-const heldJSON = (kind, x) => JSON.stringify(kind === 'scripts' ? { ...x, pageCount: undefined } : x.obie ? { ...x, isImportant: true } : x);
+// the page marks an Obie Important as it loads (takes.js), which is no change. Keys are sorted, so
+// two copies of one item that the shell built separately compare equal.
+const sortedKeys = v => Array.isArray(v) ? v.map(sortedKeys)
+  : v && typeof v === 'object' ? Object.fromEntries(Object.keys(v).sort().map(k => [k, sortedKeys(v[k])])) : v;
+const heldJSON = (kind, x) => JSON.stringify(sortedKeys(kind === 'scripts' ? { ...x, pageCount: undefined } : x.obie ? { ...x, isImportant: true } : x));
+// Every held copy comes from the shell, never from the page's own lists, which may carry an edit
+// the shell refused or hasn't received: the library at launch, a refresh, and the `stored` side
+// of each waiting conflict (setHeld).
 // Take the stored version of each held item from a list the shell sent (at launch, or a refresh).
 function rememberHeld(kind, list) {
   for (const x of list || []) if (isHeld(x.id)) heldCopies[x.id.toLowerCase()] = { kind, json: heldJSON(kind, x) };
 }
 rememberHeld('takes', window.catchlightLibrary?.takes);
 rememberHeld('scripts', window.catchlightLibrary?.scripts);
-// The waiting ids changed (conflicts.js, after reading the queue). An item newly held is taken as
-// the page holds it now: the shell's version, or the edit it just wrote and found the conflict with.
-function setHeld(ids) {
+// What waits for a conflict choice, from the queue (conflicts.js): each entry `{id, stored,
+// storedKind}`, the item as the store has it, or a bare id when only the ids are known (a library
+// just opened, whose lists rememberHeld then reads). Any copy of a held item on the page that
+// differs from the stored one is put back at once, quietly: the dialog for a refused change is
+// the save's to show (bridge.js).
+function setHeld(list) {
   const before = [...heldIds].sort().join();
-  heldIds = new Set(ids.map(id => id.toLowerCase()));
+  heldIds = new Set(list.map(c => (typeof c === 'string' ? c : c.id).toLowerCase()));
   for (const id of Object.keys(heldCopies)) if (!heldIds.has(id)) delete heldCopies[id];
-  const lists = { takes, scripts };
-  for (const [kind, list] of Object.entries(lists))
-    for (const x of list) if (isHeld(x.id) && !heldCopies[x.id.toLowerCase()]) heldCopies[x.id.toLowerCase()] = { kind, json: heldJSON(kind, x) };
-  if ([...heldIds].sort().join() === before) return;
+  for (const c of list) if (c?.stored && c.storedKind) heldCopies[c.id.toLowerCase()] = { kind: c.storedKind, json: heldJSON(c.storedKind, c.stored) };
+  const putTake = keepHeld('takes', takes), putScript = keepHeld('scripts', scripts);
+  if ([...heldIds].sort().join() === before && !putTake && !putScript) return;
   // Show the change: the rows' read-only state, and the Script on screen (closed if it is now held).
   if (isHeld(script()?.id) && active >= 0) deactivate();
-  renderTakes(); paintScriptHeld();
+  renderTakes();
+  if (putScript && isHeld(script()?.id)) renderDoc(); else paintScriptHeld();
+  if (putScript) renderScripts();
 }
 // The words on a held Take's row and above a held Script.
 const HELD_NOTE = 'Changed on another device. Choose a version to edit it.';
