@@ -127,6 +127,10 @@ final class SyncService {
                 if case .finished(let report) = outcome {
                     conflicts.enqueue(report.conflicts)
                     conflicts.enqueueUnverified(report.unverified)
+                    // A waiting Take another device turned into a Script has left this Mac (Core
+                    // releases it, or keeps this Mac's edit as a new Take): its pair goes too, so
+                    // no conflict stays waiting for a Take that isn't here.
+                    conflicts.release(Set(report.deletedLocally + report.forkedFromScripts))
                     Self.log.info("sync: \(report.applied.count) applied, \(report.deletedLocally.count) deleted, \(report.uploaded.count) uploaded, \(report.conflicts.count) conflicts")
                 } else if case .failed(let error) = outcome {
                     Self.log.error("sync failed: \(String(describing: error), privacy: .public)")
@@ -194,10 +198,14 @@ final class ConflictQueue {
 
     var count: Int { pending.count + unverified.count }
 
-    /// The Takes waiting for a choice, skipped ones included: nothing but `resolve` changes them,
-    /// and no sync pass uploads them. A file that doesn't open isn't here: it can't be shown, so
-    /// it can't be resolved, and holding its Take would freeze it for good.
-    var heldIDs: Set<UUID> { Set(pending.map(\.local.id)) }
+    /// Takes whose waiting conflict file doesn't open: `<id>.conflict`, or one already set aside
+    /// as `<id>.<uuid>.unreadable`. Each stays held, as on the iPhone, so a damaged file never
+    /// lifts the rule for its Take: it can't be shown or chosen, so the page says so instead.
+    private(set) var damaged: Set<UUID> = []
+
+    /// The Takes waiting for a choice, skipped ones included, and those whose conflict doesn't
+    /// open: nothing but `resolve` changes them, and no sync pass uploads them.
+    var heldIDs: Set<UUID> { Set(pending.map(\.local.id)).union(damaged) }
 
     /// - Parameters: `directory` and `keys` both nil keeps the queue in memory only (no library open).
     init(directory: URL? = nil, keys: KeyHierarchy? = nil) {
@@ -205,11 +213,15 @@ final class ConflictQueue {
         self.keys = keys
         guard let directory, let keys else { return }
         let files = (try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)) ?? []
+        for url in files where url.pathExtension == "unreadable" {
+            if let id = Self.id(of: url) { damaged.insert(id) }
+        }
         for url in files where url.pathExtension == "conflict" {
             guard let id = UUID(uuidString: url.deletingPathExtension().lastPathComponent) else { continue }
             do { add(try Self.open(Data(contentsOf: url), id: id, keys: keys)) } catch {
                 // Kept as it is, never deleted or written over (`write` moves it aside first): it
-                // may hold the only copy of the other version.
+                // may hold the only copy of the other version. Its Take stays held.
+                damaged.insert(id)
                 Self.log.error("a waiting conflict did not open and is kept: \(url.lastPathComponent, privacy: .public)")
             }
         }
@@ -221,6 +233,25 @@ final class ConflictQueue {
         for pair in pairs {
             add(pair)
             persist(pair)
+        }
+    }
+
+    /// Lets go of what waits for these Takes, which have left this Mac (another device made them
+    /// Scripts): the pair and its file go, and a damaged file is kept but renamed `.released`, so
+    /// it no longer holds an id nothing has.
+    func release(_ ids: Set<UUID>) {
+        for id in ids where heldIDs.contains(id) {
+            pending.removeAll { $0.local.id == id }
+            revisions[id] = nil
+            if let url = fileURL(id) {
+                try? setAsideIfUnreadable(url, id: id)
+                try? FileManager.default.removeItem(at: url)
+            }
+            for file in damagedFiles(id) {
+                try? FileManager.default.moveItem(at: file, to: file.deletingPathExtension().appendingPathExtension("released"))
+            }
+            damaged.remove(id)
+            Self.log.info("a waiting conflict was let go: its Take left this Mac")
         }
     }
 
@@ -308,6 +339,17 @@ final class ConflictQueue {
 
     private struct Pair: Codable { let local: Take; let remote: Take }
 
+    /// The id a conflict file is named for: `<id>.conflict`, `<id>.<uuid>.unreadable`.
+    static func id(of url: URL) -> UUID? {
+        url.lastPathComponent.split(separator: ".").first.flatMap { UUID(uuidString: String($0)) }
+    }
+
+    private func damagedFiles(_ id: UUID) -> [URL] {
+        guard let directory else { return [] }
+        let files = (try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)) ?? []
+        return files.filter { $0.pathExtension == "unreadable" && Self.id(of: $0) == id }
+    }
+
     private func fileURL(_ id: UUID) -> URL? {
         directory?.appendingPathComponent(id.uuidString.lowercased()).appendingPathExtension("conflict")
     }
@@ -335,6 +377,7 @@ final class ConflictQueue {
         if (try? Self.open(Data(contentsOf: url), id: id, keys: keys)) != nil { return }
         let aside = url.deletingPathExtension().appendingPathExtension(UUID().uuidString.lowercased()).appendingPathExtension("unreadable")
         try FileManager.default.moveItem(at: url, to: aside)
+        damaged.insert(id)
         Self.log.error("a waiting conflict that did not open was set aside: \(aside.lastPathComponent, privacy: .public)")
     }
 

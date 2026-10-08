@@ -557,6 +557,29 @@ final class LibraryTests: XCTestCase {
         XCTAssertNil(try library.store.take(id: id(a))?.kind)
     }
 
+    /// Owner, 2026-10-08: a refused save of a held item that carried changed text keeps the text
+    /// as a new item (new id, never the Obie), whichever layer catches it; an emptied one writes
+    /// nothing.
+    func testARefusedChangeToAHeldTakeIsKeptAsANewTake() throws {
+        let a = page("A", obie: true), b = page("B")
+        _ = try library.saveTakes([a, b])
+        var a2 = a, b2 = b
+        a2["blocks"] = [["k": "text", "text": "A, typed as the conflict arrived"]]
+        b2["blocks"] = [["k": "text", "text": "  "]]
+        let report = try library.saveTakes([a2, b2], holding: [id(a), id(b)])
+        XCTAssertEqual(report.held.count, 2)
+        XCTAssertEqual(report.forked.count, 1)
+        XCTAssertEqual(try library.store.take(id: id(a))?.plainText, "A")
+        XCTAssertEqual(try library.store.take(id: id(b))?.plainText, "B")
+        let copy = try XCTUnwrap(try library.store.take(id: report.forked[0]))
+        XCTAssertEqual(copy.plainText, "A, typed as the conflict arrived")
+        XCTAssertFalse(copy.isObie)
+        XCTAssertEqual(try library.store.allTakes().filter(\.isObie).map(\.id), [id(a)])
+        // The page's next save, from the same snapshot and without the new Take, doesn't delete it.
+        XCTAssertEqual(try library.saveTakes([a, b], holding: [id(a), id(b)]).deleted, 0)
+        XCTAssertNotNil(try library.store.take(id: copy.id))
+    }
+
     func testDeletingATakeSyncChangedKeepsTheChange() throws {
         let a = page("A"), b = page("B")
         _ = try library.saveTakes([a, b])

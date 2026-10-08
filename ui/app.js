@@ -78,16 +78,21 @@ function rememberHeld(kind, list) {
 rememberHeld('takes', window.catchlightLibrary?.takes);
 rememberHeld('scripts', window.catchlightLibrary?.scripts);
 // What waits for a conflict choice, from the queue (conflicts.js): each entry `{id, stored,
-// storedKind}`, the item as the store has it, or a bare id when only the ids are known (a library
-// just opened, whose lists rememberHeld then reads). Any copy of a held item on the page that
-// differs from the stored one is put back at once, quietly: the dialog for a refused change is
-// the save's to show (bridge.js).
+// storedKind}`, the item as the store has it, with `damaged` when its conflict doesn't open, or
+// a bare id when only the ids are known (a library just opened, whose lists rememberHeld then
+// reads). Any copy of a held item on the page that differs from the stored one is put back at
+// once, quietly: whatever reached the shell was refused there and kept as a new item (bridge.js).
+let heldDamaged = new Set();   // held because its conflict doesn't open: nothing to choose
 function setHeld(list) {
+  // A Script edit still waiting for its debounced save goes now, while its Script isn't held
+  // here yet: the shell keeps it as a new Script if the conflict holds the old one.
+  if (scriptSavePending) save();
   const before = [...heldIds].sort().join();
   heldIds = new Set(list.map(c => (typeof c === 'string' ? c : c.id).toLowerCase()));
+  heldDamaged = new Set(list.filter(c => c?.damaged).map(c => c.id.toLowerCase()));
   for (const id of Object.keys(heldCopies)) if (!heldIds.has(id)) delete heldCopies[id];
   for (const c of list) if (c?.stored && c.storedKind) heldCopies[c.id.toLowerCase()] = { kind: c.storedKind, json: heldJSON(c.storedKind, c.stored) };
-  const putTake = keepHeld('takes', takes), putScript = keepHeld('scripts', scripts);
+  const putTake = keepHeld('takes', takes).put, putScript = keepHeld('scripts', scripts).put;
   if ([...heldIds].sort().join() === before && !putTake && !putScript) return;
   // Show the change: the rows' read-only state, and the Script on screen (closed if it is now held).
   if (isHeld(script()?.id) && active >= 0) deactivate();
@@ -96,34 +101,55 @@ function setHeld(list) {
   if (putScript) renderScripts();
 }
 // The words on a held Take's row and above a held Script.
-const HELD_NOTE = 'Changed on another device. Choose a version to edit it.';
+const heldNote = id => heldDamaged.has(String(id).toLowerCase())
+  ? "Its conflict couldn't be opened, so it can't be changed."
+  : 'Changed on another device. Choose a version to edit it.';
+// Nothing to keep: a Take with no text, no checklist and no reminder, or a Script with no text.
+const heldBlank = (kind, x) => kind === 'scripts' ? !(x.blocks || []).join('').trim() : isBlank(x);
 // The backstop under every save: whatever changed or removed a held item in `list`, it goes back
 // as stored before the list is sent. Changes the array in place, so the page's own list (the same
-// array) shows the stored version on its next paint. Answers the id of one it put back, or null.
-function keepHeld(kind, list) {
+// array) shows the stored version on its next paint. With `fork`, a changed copy that isn't blank
+// is first kept as a NEW item beside it (owner, 2026-10-08): a new id, never the Obie. Answers
+// the id of one it put back (`put`) and the new items it made (`forked`).
+function keepHeld(kind, list, fork = false) {
   let put = null;
+  const forked = [];
   for (const [id, copy] of Object.entries(heldCopies)) {
     if (copy.kind !== kind) continue;
     const i = list.findIndex(x => x.id.toLowerCase() === id);
     if (i >= 0 && heldJSON(kind, list[i]) === copy.json) continue;
+    const changedContent = i >= 0 && heldJSON(kind, { ...list[i], modifiedAt: 0 }) !== heldJSON(kind, { ...JSON.parse(copy.json), modifiedAt: 0 });
+    if (fork && changedContent && !heldBlank(kind, list[i])) {
+      const mine = { ...structuredClone(list[i]), id: newId(), modifiedAt: Date.now() };
+      if (kind === 'scripts') delete mine.pageCount; else mine.obie = false;
+      forked.push(mine);
+    }
     const item = JSON.parse(copy.json);
     if (i >= 0) list[i] = item; else list.push(item);
     put = id;
   }
-  return put;
+  list.push(...forked);
+  return { put, forked };
 }
-// A change that reached a held item anyway (an edit open when the conflict was found, say) is
-// undone, and the user is told why.
+// A change that reached a held item on the page (an edit open when the conflict was found, say):
+// typing is kept as a new item and the user is told so; anything else is undone, and the user is
+// told why.
 function heldPutBack(kind, list) {
-  const id = keepHeld(kind, list);
-  if (id) refuseHeld(id, kind === 'scripts' ? 'Script' : 'Take');
+  const { put, forked } = keepHeld(kind, list, true);
+  const what = kind === 'scripts' ? 'Script' : 'Take';
+  if (forked.length) {
+    if (typeof alertBox !== 'undefined' && alertBox.open) return;
+    ask(`Saved as a new ${what}`, `This ${what} changed on another device, so your edit was saved as a new ${what}.`, [['OK', null, 'cancel']]);
+  } else if (put) refuseHeld(put, what);
 }
 // Every way into changing an item asks this first: true (and the notice) when it is held. The
-// notice offers the conflict screen, where the choice is made.
+// notice offers the conflict screen, where the choice is made, or says why there is no choice.
 function refuseHeld(id, what = 'Take') {
   if (!isHeld(id)) return false;
   if (typeof alertBox !== 'undefined' && alertBox.open) return true;   // one dialog at a time (ask in takes.js)
-  ask('Resolve the conflict first', `This ${what} changed on another device too. It can't be changed until you choose which version to keep.`,
+  if (heldDamaged.has(String(id).toLowerCase()))
+    ask(`This ${what} can't be changed`, `A conflict waiting for it couldn't be opened, so it stays as it is and isn't synced. Report it so it can be looked at.`, [['OK', null, 'cancel']]);
+  else ask('Resolve the conflict first', `This ${what} changed on another device too. It can't be changed until you choose which version to keep.`,
     [['Review', () => window.openConflicts?.()], ['OK', null, 'cancel']]);
   return true;
 }
@@ -343,9 +369,9 @@ const script = () => scripts.find(s => s.id === current);
 
 // A held Script (app.js, held) reads as it is, with the note above it and the way to the choice.
 function paintScriptHeld() {
-  const note = $('#script-held'), held = isHeld(script()?.id);
+  const note = $('#script-held'), id = script()?.id, held = isHeld(id);
   note.hidden = !held;
-  note.innerHTML = held ? `<span>${HELD_NOTE}</span><button class="slink" type="button">Review</button>` : '';
+  note.innerHTML = held ? `<span>${heldNote(id)}</span>${heldDamaged.has(id.toLowerCase()) ? '' : '<button class="slink" type="button">Review</button>'}` : '';
 }
 $('#script-held').addEventListener('click', e => { if (e.target.closest('button')) window.openConflicts?.(); });
 function renderDoc() {

@@ -21,6 +21,7 @@ let conflictList = [];
 const conflictChoice = {};              // id → 'local' | 'remote', picked but not yet kept
 const conflictSkipped = new Set();     // Skip for now: hidden until the next launch or sync finds it again
 const conflictSeen = {};               // id → the versions a pick was made against
+const conflictDamagedNoticed = new Set();   // damaged conflicts already in Notice History this launch
 
 // A Script's blocks are its markdown lines; a Take's are text and checklist items.
 const conflictText = t => t.kind === 'script'
@@ -41,9 +42,17 @@ const conflictWhen = t => {
 
 async function loadConflicts() {
   if (!window.catchlightBridge?.conflicts) return;
-  try { conflictList = await catchlightBridge.conflicts(); }
+  let all;
+  try { all = await catchlightBridge.conflicts(); }
   catch (e) { console.error('Reading the conflicts failed', e); return; }
-  setHeld(conflictList);   // skipped ones too: they still wait for the choice
+  // A conflict that doesn't open has no versions to choose between, but its Take stays held,
+  // and the user is told once a launch.
+  conflictList = all.filter(c => !c.damaged);
+  for (const c of all) if (c.damaged && !conflictDamagedNoticed.has(c.id)) {
+    conflictDamagedNoticed.add(c.id);
+    if (typeof notice === 'function') notice("A waiting conflict couldn't be opened, so its Take stays as it is and isn't synced. Report it so it can be looked at.", 'conflict');
+  }
+  setHeld(all);   // skipped ones too: they still wait for the choice
   // A pair the next sync found again is waiting again.
   for (const id of [...conflictSkipped]) if (!conflictList.some(c => c.id === id)) conflictSkipped.delete(id);
   // A pick only stands for the versions it was made against: if a sync replaced either side,

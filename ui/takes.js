@@ -131,7 +131,7 @@ function takeCard(t) {
   if (t.reminder) meta += reminderMeta(t.reminder);   // reminders.js
   if (settings.creationStamp === 'always') meta += `<div class="stamp">${esc(createdLabel(t.at))}</div>`;   // Settings → Creation date
   // Read-only while it waits for a conflict choice (app.js, held): says why, and where to choose.
-  if (held) meta += `<div class="held-note">${HELD_NOTE}</div>`;
+  if (held) meta += `<div class="held-note">${heldNote(t.id)}</div>`;
   return `<div class="${cls}${expanded.has(t.id) ? ' expanded' : ''}" data-take="${t.id}" ${cardA11y(t)}><span class="iris-wrap" data-iris="${t.id}" ${irisA11y(t)}>${irisHtml(typesOf(t), t.obie)}</span><div class="body">${body}</div>${meta}${reorderHandle(t)}</div>`;
 }
 // The ≡ strip on the card's trailing edge in Manual (TimelineDragHandle). It is a button so the
@@ -264,7 +264,11 @@ function commitEdit() {
     if (original) takes = takes.filter(t => t.id !== original.id);
   } else {
     // D-250: an edit that changes nothing writes nothing, so modifiedAt only moves on a change.
-    const same = original && JSON.stringify({ ...original, modifiedAt: 0 }) === JSON.stringify({ ...draft, modifiedAt: 0 });
+    // Keys sorted: the shell's objects come in whatever order its dictionaries have that launch.
+    const same = original && JSON.stringify(sortedKeys({ ...original, modifiedAt: 0 })) === JSON.stringify(sortedKeys({ ...draft, modifiedAt: 0 }));
+    // Held while it was open, unchanged: nothing to write, and the user hears why it waits. A
+    // changed one goes on: the save keeps the typing as a new Take (keepHeld in app.js).
+    if (same && isHeld(original.id)) refuseHeld(original.id);
     if (!same) {
       draft.modifiedAt = Date.now();
       if (draft.obie) takes.forEach(t => { if (t.id !== draft.id) t.obie = false; });

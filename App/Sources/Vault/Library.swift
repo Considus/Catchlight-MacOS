@@ -34,10 +34,13 @@ final class Library {
         /// the conflict is resolved"). A new Obie is refused too while the current one waits,
         /// because writing it would demote the waiting one.
         var held: [String] = []
+        /// The new items a refused change to a held item was kept as (owner, 2026-10-08): the
+        /// typing is never lost, and the held item is left as it is.
+        var forked: [UUID] = []
 
         static func == (a: SaveReport, b: SaveReport) -> Bool {
             a.upserted == b.upserted && a.deleted == b.deleted && a.unchanged == b.unchanged
-                && a.rejected == b.rejected && a.keptOverDelete == b.keptOverDelete && a.held == b.held
+                && a.rejected == b.rejected && a.keptOverDelete == b.keptOverDelete && a.held == b.held && a.forked == b.forked
                 && a.conflicts.map(\.local) == b.conflicts.map(\.local)
                 && a.conflicts.map(\.remote) == b.conflicts.map(\.remote)
         }
@@ -149,6 +152,7 @@ final class Library {
         var report = SaveReport()
         var seen = Set<UUID>()
         var changed: [Take] = []
+        var forks: [Take] = []
         for item in page {
             let id = (item["id"] as? String).flatMap(UUID.init(uuidString:))
             if let id { seen.insert(id) }
@@ -169,6 +173,14 @@ final class Library {
             if was != nil, take == was { report.unchanged += 1; continue }
             if held.contains(take.id) {
                 report.held.append(item["id"] as? String ?? "?")
+                // Owner, 2026-10-08: an edit that reached a held item (typed while the conflict
+                // arrived, or on its way) is kept as a NEW item beside it, never the Obie; one with
+                // nothing in it writes nothing.
+                if !take.plainText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    var copy = ConflictQueue.copy(of: take)
+                    copy.modifiedAt = max(ISO8601.truncateToMilliseconds(now), copy.modifiedAt)
+                    forks.append(copy)
+                }
                 Self.log.info("a save changed an item waiting for a conflict choice; it is left as it is")
                 continue
             }
@@ -190,6 +202,12 @@ final class Library {
         }
         // Each conflict is kept before anything is written: the write replaces the other version.
         for pair in report.conflicts { try keepConflict(pair) }
+        // Not in the snapshot: the page's list doesn't hold them yet, and its next save from this
+        // snapshot must not read them as deleted. The page takes them on its refresh.
+        for copy in forks {
+            try store.upsert(copy)
+            report.forked.append(copy.id)
+        }
         // The Obie last: upserting it demotes any other, so the page's choice is the one that stands.
         for take in changed.sorted(by: { !$0.isObie && $1.isObie }) {
             try store.upsert(take)

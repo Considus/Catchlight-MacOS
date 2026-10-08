@@ -126,15 +126,20 @@ final class ConflictScreenTests: XCTestCase {
             alertBox.close();
             const note = document.querySelector(`[data-take="${t.id}"] .held-note`)?.textContent ?? null;
             const menu = takeMenu(t.id).map(i => i[0]);
+            // A change that reaches it anyway is kept as a new Take, and the held one put back.
             t.blocks[0].text = 'Changed anyway'; t.modifiedAt = Date.now(); saveTakes(); renderTakes();
-            const shown = takes[0].blocks[0].text;
+            const kept = alertBox.open ? alertBox.querySelector('h2').textContent : null;
+            const shown = takes.map(x => x.blocks[0].text);
             alertBox.close();
+            await window.webkit.messageHandlers.catchlight.postMessage({ cmd: 'ping' });
+            const held = takes.find(x => x.id === t.id);
             const r = await window.webkit.messageHandlers.catchlight.postMessage({ cmd: 'save', kind: 'takes', generation: catchlightBridge.library.generation,
-              list: [{ ...takes[0], blocks: [{ k: 'text', text: 'Straight to the shell' }], modifiedAt: Date.now() }] });
-            return JSON.stringify([editing, notice, note, menu, shown, r.held?.length ?? 0]);
+              list: takes.map(x => x === held ? { ...x, blocks: [{ k: 'text', text: 'Straight to the shell' }], modifiedAt: Date.now() } : x) });
+            return JSON.stringify([editing, notice, note, menu, kept, shown, r.held?.length ?? 0, r.forked ?? 0]);
             """, in: self) as? String
-        XCTAssertEqual(state, #"[false,"Resolve the conflict first","Changed on another device. Choose a version to edit it.",["Expand Take","Export Take","Review Conflict…"],"Mine, edited on the Mac",1]"#)
+        XCTAssertEqual(state, #"[false,"Resolve the conflict first","Changed on another device. Choose a version to edit it.",["Expand Take","Export Take","Review Conflict…"],"Saved as a new Take",["Mine, edited on the Mac","Changed anyway"],1,1]"#)
         XCTAssertEqual(try vault.library!.store.take(id: id)?.plainText, "Mine, edited on the Mac")
+        XCTAssertEqual(Set(try vault.library!.store.allTakes().map(\.plainText)), ["Mine, edited on the Mac", "Changed anyway", "Straight to the shell"])
         try snapshot(harness, name: "held-take")
 
         let released = try harness.run("""
@@ -146,6 +151,61 @@ final class ConflictScreenTests: XCTestCase {
             """, in: self) as? String
         XCTAssertEqual(released, "[true,true]")
         XCTAssertEqual(sync.conflicts.count, 0)
+    }
+
+    /// Owner, 2026-10-08: a conflict arriving on a Take open in the editor keeps the typing as a
+    /// NEW Take beside the held one (a new id, never the Obie), and leaves the held one as it is.
+    /// An unchanged draft writes nothing and says why the Take waits.
+    func testTypingOnATakeThatBecameHeldIsSavedAsANewTake() throws {
+        let vault = Vault(secrets: MemorySecrets(), directory: root.appendingPathComponent("Library"))
+        try vault.createAccount(words: try Vault.newPhrase(), restored: true)
+        let store = vault.library!.store
+        let id = UUID(), other = UUID()
+        _ = try vault.library!.saveTakes([
+            ["id": id.uuidString, "at": "2026-07-01T09:00:00Z", "isNote": true, "obie": true, "blocks": [["k": "text", "text": "Stored"]]],
+            ["id": other.uuidString, "at": "2026-07-02T09:00:00Z", "isNote": true, "blocks": [["k": "text", "text": "Other"]]]])
+        let sync = SyncService(vault: vault, folder: SyncFolder(defaults: UserDefaults(suiteName: suite)!), defaults: UserDefaults(suiteName: suite)!)
+        let harness = WebViewHarness(root: WebViewHarness.repoUI, ruleList: nil)
+        let bridge = ShellBridge()
+        bridge.vault = vault
+        bridge.sync = sync
+        bridge.install(in: harness.webView.configuration.userContentController)
+        harness.load("index.html", in: self)
+
+        // Typing in the editor...
+        _ = try harness.run("""
+            beginEdit(takes.find(t => t.blocks[0].text === 'Stored'));
+            rows.querySelector('.etext').textContent = 'Typed while the conflict arrived';
+            return true;
+            """, in: self)
+        // ...when a pass finds the conflict, and the page hears of it.
+        for (take, remoteText) in [(try store.take(id: id)!, "From the iPhone"), (try store.take(id: other)!, "Other, from the iPhone")] {
+            var remote = take
+            remote.blocks = [.text(TextBlock(text: remoteText))]
+            sync.conflicts.enqueue([(local: take, remote: remote)])
+        }
+        let state = try harness.run("""
+            await loadConflicts();
+            commitEdit();
+            const title = alertBox.open ? alertBox.querySelector('h2').textContent : null;
+            const body = alertBox.open ? alertBox.querySelector('p').textContent : null;
+            if (alertBox.open) alertBox.close();
+            // An unchanged draft on a held Take writes nothing.
+            const o = takes.find(t => t.blocks[0].text === 'Other');
+            draft = structuredClone(o); original = o; paintEditor(); commitEdit();
+            const unchanged = alertBox.open ? alertBox.querySelector('h2').textContent : null;
+            if (alertBox.open) alertBox.close();
+            await window.webkit.messageHandlers.catchlight.postMessage({ cmd: 'ping' });
+            return JSON.stringify([title, body, unchanged, takes.length]);
+            """, in: self) as? String
+        XCTAssertEqual(state, #"["Saved as a new Take","This Take changed on another device, so your edit was saved as a new Take.","Resolve the conflict first",3]"#)
+        XCTAssertEqual(try store.take(id: id)?.plainText, "Stored", "the held Take is left as it is")
+        XCTAssertEqual(try store.take(id: id)?.isObie, true)
+        let copy = try XCTUnwrap(try store.allTakes().first { $0.plainText == "Typed while the conflict arrived" })
+        XCTAssertNotEqual(copy.id, id)
+        XCTAssertFalse(copy.isObie, "never the Obie")
+        XCTAssertEqual(try store.allTakes().count, 3)
+        _ = bridge
     }
 
     /// Code review of the hold: the held copy the page puts back is the STORED version, from the

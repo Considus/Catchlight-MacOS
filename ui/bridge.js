@@ -76,9 +76,11 @@
       // stands: show it, and say why the change didn't stick.
       if (r?.held?.length) {
         window.loadConflicts?.();
-        if (!r?.rejected?.length) window.catchlightBridge.refresh().catch(e => console.error('Refreshing the Takes failed', e));
+        if (!r?.rejected?.length || r?.forked) window.catchlightBridge.refresh().catch(e => console.error('Refreshing the Takes failed', e));
         const n = r.held.length;
-        whenNoDialog(() => ask(n === 1 ? `A ${one} wasn't changed` : `${n} ${many} weren't changed`, n === 1
+        // Owner, 2026-10-08: the typing was kept as a new item beside the held one.
+        if (r?.forked) whenNoDialog(() => ask(`Saved as a new ${one}`, `This ${one} changed on another device, so your edit was saved as a new ${one}.`, [['OK', null, 'cancel']]));
+        else whenNoDialog(() => ask(n === 1 ? `A ${one} wasn't changed` : `${n} ${many} weren't changed`, n === 1
           ? `This ${one} changed on another device too, so your change to it wasn't saved. Choose which version to keep, then make the change again.`
           : `These ${many} changed on another device too, so your changes to them weren't saved. Choose which version of each to keep, then make the changes again.`,
           [['Review', () => window.openConflicts?.()], ['OK', null, 'cancel']]));

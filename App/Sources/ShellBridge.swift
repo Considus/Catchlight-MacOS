@@ -214,6 +214,14 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                             "stored": stored.isScript ? ScriptTranslation.page(from: stored) : try TakeTranslation.page(from: stored),
                             "storedKind": stored.isScript ? "scripts" : "takes",
                             "revision": sync.conflicts.revision(pair.local.id) ?? ""]
+                } + sync.conflicts.damaged.subtracting(sync.conflicts.pending.map(\.local.id)).sorted { $0.uuidString < $1.uuidString }.map { id -> [String: Any] in
+                    // A conflict that doesn't open: no versions to show, but its Take is held.
+                    var entry: [String: Any] = ["id": id.uuidString.lowercased(), "damaged": true]
+                    if let stored = try store?.take(id: id) {
+                        entry["stored"] = stored.isScript ? ScriptTranslation.page(from: stored) : try TakeTranslation.page(from: stored)
+                        entry["storedKind"] = stored.isScript ? "scripts" : "takes"
+                    }
+                    return entry
                 }, nil)
             } catch {
                 Self.log.error("conflicts did not translate: \(String(describing: error), privacy: .public)")
@@ -355,6 +363,7 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                 Self.log.info("\(kind ?? "", privacy: .public) saved: \(report.upserted) written, \(report.deleted) deleted, \(report.rejected.count) rejected, \(report.held.count) held for a conflict choice, \(report.conflicts.count) to the conflict screen, \(report.keptOverDelete.count) kept over a delete")
                 if !report.rejected.isEmpty { Self.log.error("save kept \(report.rejected.count) items it could not read") }
                 reply(["upserted": report.upserted, "deleted": report.deleted, "rejected": report.rejected, "held": report.held,
+                       "forked": report.forked.count,
                        "conflicts": report.conflicts.count, "keptOverDelete": report.keptOverDelete.count], nil)
             case "changeKind":
                 guard let library = vault.library else { return reply(nil, "locked") }
