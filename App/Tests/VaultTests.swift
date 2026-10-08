@@ -509,6 +509,77 @@ final class LibraryTests: XCTestCase {
         XCTAssertEqual(try library.store.take(id: id(a))?.plainText, "A, from the iPhone", "nothing written")
     }
 
+    // MARK: Held for a conflict choice (owner, 2026-10-07)
+
+    /// A Take waiting for a conflict choice is neither changed nor deleted by a save; the rest of
+    /// the save goes through, and the refusal is reported.
+    func testAHeldTakeIsNeitherChangedNorDeletedBySave() throws {
+        let a = page("A"), b = page("B"), c = page("C")
+        _ = try library.saveTakes([a, b, c])
+        var a2 = a, c2 = c
+        a2["blocks"] = [["k": "text", "text": "A, edited"]]
+        c2["blocks"] = [["k": "text", "text": "C, edited"]]
+        let report = try library.saveTakes([a2, c2], holding: [id(a), id(b)])   // b deleted on the page
+        XCTAssertEqual(Set(report.held), Set([a["id"] as! String, id(b).uuidString.lowercased()]))
+        XCTAssertEqual(report.upserted, 1)
+        XCTAssertEqual(report.deleted, 0)
+        XCTAssertEqual(try library.store.take(id: id(a))?.plainText, "A")
+        XCTAssertEqual(try library.store.take(id: id(b))?.plainText, "B")
+        XCTAssertEqual(try library.store.take(id: id(c))?.plainText, "C, edited")
+
+        // Released, the same save goes through.
+        let after = try library.saveTakes([a2, c2])
+        XCTAssertEqual(after.held, [])
+        XCTAssertEqual(try library.store.take(id: id(a))?.plainText, "A, edited")
+        XCTAssertNil(try library.store.take(id: id(b)))
+    }
+
+    /// Writing an Obie demotes the current one, so a new Obie is refused while that one is held.
+    func testANewObieIsRefusedWhileTheObieIsHeld() throws {
+        let first = page("First", obie: true), second = page("Second")
+        _ = try library.saveTakes([first, second])
+        var demoted = first, promoted = second
+        demoted["obie"] = false
+        promoted["obie"] = true
+        let report = try library.saveTakes([demoted, promoted], holding: [id(first)])
+        XCTAssertEqual(report.held.count, 2)
+        XCTAssertEqual(try library.store.allTakes().filter(\.isObie).map(\.id), [id(first)])
+        XCTAssertEqual(library.importItems([Take(blocks: [.text(TextBlock(text: "Imported Obie"))], isObie: true)], holding: [id(first)]).takes, 1)
+        XCTAssertEqual(try library.store.allTakes().filter(\.isObie).map(\.id), [id(first)], "an imported Obie comes in as a standard Take")
+    }
+
+    func testAHeldTakeDoesNotChangeKind() throws {
+        let a = page("A")
+        _ = try library.saveTakes([a])
+        XCTAssertThrowsError(try library.changeKind(["id": a["id"]!, "at": "2026-07-01T09:00:00Z", "mode": "a4", "blocks": ["A"]], to: .scripts, holding: [id(a)])) {
+            XCTAssertEqual($0 as? Library.Failure, .held(self.id(a)))
+        }
+        XCTAssertNil(try library.store.take(id: id(a))?.kind)
+    }
+
+    /// Owner, 2026-10-08: a refused save of a held item that carried changed text keeps the text
+    /// as a new item (new id, never the Obie), whichever layer catches it; an emptied one writes
+    /// nothing.
+    func testARefusedChangeToAHeldTakeIsKeptAsANewTake() throws {
+        let a = page("A", obie: true), b = page("B")
+        _ = try library.saveTakes([a, b])
+        var a2 = a, b2 = b
+        a2["blocks"] = [["k": "text", "text": "A, typed as the conflict arrived"]]
+        b2["blocks"] = [["k": "text", "text": "  "]]
+        let report = try library.saveTakes([a2, b2], holding: [id(a), id(b)])
+        XCTAssertEqual(report.held.count, 2)
+        XCTAssertEqual(report.forked.count, 1)
+        XCTAssertEqual(try library.store.take(id: id(a))?.plainText, "A")
+        XCTAssertEqual(try library.store.take(id: id(b))?.plainText, "B")
+        let copy = try XCTUnwrap(try library.store.take(id: report.forked[0]))
+        XCTAssertEqual(copy.plainText, "A, typed as the conflict arrived")
+        XCTAssertFalse(copy.isObie)
+        XCTAssertEqual(try library.store.allTakes().filter(\.isObie).map(\.id), [id(a)])
+        // The page's next save, from the same snapshot and without the new Take, doesn't delete it.
+        XCTAssertEqual(try library.saveTakes([a, b], holding: [id(a), id(b)]).deleted, 0)
+        XCTAssertNotNil(try library.store.take(id: copy.id))
+    }
+
     func testDeletingATakeSyncChangedKeepsTheChange() throws {
         let a = page("A"), b = page("B")
         _ = try library.saveTakes([a, b])

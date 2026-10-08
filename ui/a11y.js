@@ -79,6 +79,7 @@ takeSidebar.addEventListener('keydown', e => {
     e.preventDefault(); e.stopPropagation();
     const t = takes.find(x => x.id === ir.dataset.iris);
     if (e.altKey && e.key === 'Enter' && !storyboard) {
+      if (refuseHeld(t.id)) return;
       returnFocusTo = { id: t.id, iris: true };
       if (t.obie) { t.obie = false; touch(t); } else makeObie(t);
       refocus();

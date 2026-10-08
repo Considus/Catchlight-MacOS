@@ -107,10 +107,13 @@ final class SyncService {
         isSyncing = true
         cancelLock.lock(); cancelled = false; cancelLock.unlock()
         let store = library.store
+        // Every Take waiting for the user's choice, skipped ones included (owner, 2026-10-07): the
+        // pass never uploads one, nor writes the folder's version over it or deletes it.
+        let held = conflicts.heldIDs
         queue.async { [self] in
             let outcome: Outcome
             if let engine = makeEngine(store: store, keys: keys) {
-                do { outcome = .finished(try engine.sync(isCancelled: { self.isCancelled })) } catch { outcome = .failed(error) }
+                do { outcome = .finished(try engine.sync(isCancelled: { self.isCancelled }, holding: held)) } catch { outcome = .failed(error) }
             } else {
                 outcome = .skipped   // the folder no longer opens; the page shows none at the next launch
             }
@@ -124,6 +127,10 @@ final class SyncService {
                 if case .finished(let report) = outcome {
                     conflicts.enqueue(report.conflicts)
                     conflicts.enqueueUnverified(report.unverified)
+                    // A waiting Take another device turned into a Script has left this Mac (Core
+                    // releases it, or keeps this Mac's edit as a new Take): its pair goes too, so
+                    // no conflict stays waiting for a Take that isn't here.
+                    conflicts.release(Set(report.deletedLocally + report.forkedFromScripts))
                     Self.log.info("sync: \(report.applied.count) applied, \(report.deletedLocally.count) deleted, \(report.uploaded.count) uploaded, \(report.conflicts.count) conflicts")
                 } else if case .failed(let error) = outcome {
                     Self.log.error("sync failed: \(String(describing: error), privacy: .public)")
@@ -152,9 +159,12 @@ final class SyncService {
 }
 
 /// Conflicts waiting for the user. Unlike the iPhone's (`ConflictQueue`, in memory), each pending
-/// pair is also kept on disk, sealed: a save that finds a conflict writes this Mac's version, and
-/// the pass after it uploads that version, so the other device's version may exist nowhere but
-/// here until the user chooses. Quitting must not lose it. One file per Take in the library's
+/// pair is also kept on disk, sealed: a save that finds a conflict writes this Mac's version over
+/// the one sync brought in, so the other device's version may exist nowhere but here until the
+/// user chooses. Quitting must not lose it. Until the choice the Take is HELD (owner, 2026-10-07:
+/// "The file shouldn't update or edit until the conflict is resolved"): `heldIDs` goes to every
+/// sync pass, which neither uploads it nor writes over it, and to every save, which refuses to
+/// change it; the page shows it read-only. Only `resolve` writes it. One file per Take in the library's
 /// `Conflicts` folder, AES-256-GCM under Core's per-item key for the Take's id, with the format
 /// named in the additional data so it can never be opened as anything else (as `ScriptVault`).
 /// The folder sits inside the library, so Erase everything removes it and a library moved aside
@@ -169,10 +179,33 @@ final class ConflictQueue {
 
     private(set) var pending: [(local: Take, remote: Take)] = []
     private(set) var unverified: [UnverifiedCopy] = []
+    /// Which versions each pending pair holds, as a token the page sends back with the choice:
+    /// a pass can replace the pair while a choice waits behind it, and a choice made against one
+    /// pair must never apply to another. Changes whenever the pair does. In memory only.
+    private var revisions: [UUID: String] = [:]
+
+    enum Failure: Error, LocalizedError, Equatable {
+        /// The pair changed after the page read it: nothing is written, and the user chooses again.
+        case pairChanged
+        var errorDescription: String? {
+            switch self {
+            case .pairChanged: return "the versions changed while you were choosing"
+            }
+        }
+    }
     private let directory: URL?
     private let keys: KeyHierarchy?
 
     var count: Int { pending.count + unverified.count }
+
+    /// Takes whose waiting conflict file doesn't open: `<id>.conflict`, or one already set aside
+    /// as `<id>.<uuid>.unreadable`. Each stays held, as on the iPhone, so a damaged file never
+    /// lifts the rule for its Take: it can't be shown or chosen, so the page says so instead.
+    private(set) var damaged: Set<UUID> = []
+
+    /// The Takes waiting for a choice, skipped ones included, and those whose conflict doesn't
+    /// open: nothing but `resolve` changes them, and no sync pass uploads them.
+    var heldIDs: Set<UUID> { Set(pending.map(\.local.id)).union(damaged) }
 
     /// - Parameters: `directory` and `keys` both nil keeps the queue in memory only (no library open).
     init(directory: URL? = nil, keys: KeyHierarchy? = nil) {
@@ -180,10 +213,15 @@ final class ConflictQueue {
         self.keys = keys
         guard let directory, let keys else { return }
         let files = (try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)) ?? []
+        for url in files where url.pathExtension == "unreadable" {
+            if let id = Self.id(of: url) { damaged.insert(id) }
+        }
         for url in files where url.pathExtension == "conflict" {
             guard let id = UUID(uuidString: url.deletingPathExtension().lastPathComponent) else { continue }
-            do { pending.append(try Self.open(Data(contentsOf: url), id: id, keys: keys)) } catch {
-                // Kept as it is, never deleted: it may hold the only copy of the other version.
+            do { add(try Self.open(Data(contentsOf: url), id: id, keys: keys)) } catch {
+                // Kept as it is, never deleted or written over (`write` moves it aside first): it
+                // may hold the only copy of the other version. Its Take stays held.
+                damaged.insert(id)
                 Self.log.error("a waiting conflict did not open and is kept: \(url.lastPathComponent, privacy: .public)")
             }
         }
@@ -193,21 +231,49 @@ final class ConflictQueue {
     /// against the newest versions.
     func enqueue(_ pairs: [(local: Take, remote: Take)]) {
         for pair in pairs {
-            if let i = pending.firstIndex(where: { $0.local.id == pair.local.id }) { pending[i] = pair }
-            else { pending.append(pair) }
+            add(pair)
             persist(pair)
         }
     }
 
-    /// One pair, written to disk FIRST: a save calls this before replacing the other version in
-    /// the store, so if the write fails it throws and the save writes nothing.
-    func keep(_ pair: (local: Take, remote: Take)) throws {
-        if let directory, let keys, let url = fileURL(pair.local.id) {
-            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-            try Self.seal(pair, keys: keys).write(to: url, options: .atomic)
+    /// Lets go of what waits for these Takes, which have left this Mac (another device made them
+    /// Scripts): the pair and its file go, and a damaged file is kept but renamed `.released`, so
+    /// it no longer holds an id nothing has.
+    func release(_ ids: Set<UUID>) {
+        for id in ids where heldIDs.contains(id) {
+            pending.removeAll { $0.local.id == id }
+            revisions[id] = nil
+            if let url = fileURL(id) {
+                try? setAsideIfUnreadable(url, id: id)
+                try? FileManager.default.removeItem(at: url)
+            }
+            for file in damagedFiles(id) {
+                try? FileManager.default.moveItem(at: file, to: file.deletingPathExtension().appendingPathExtension("released"))
+            }
+            damaged.remove(id)
+            Self.log.info("a waiting conflict was let go: its Take left this Mac")
         }
-        if let i = pending.firstIndex(where: { $0.local.id == pair.local.id }) { pending[i] = pair }
-        else { pending.append(pair) }
+    }
+
+    /// The token for the pair now waiting for `id`, or nil when none waits.
+    func revision(_ id: UUID) -> String? { revisions[id] }
+
+    private func add(_ pair: (local: Take, remote: Take)) {
+        if let i = pending.firstIndex(where: { $0.local.id == pair.local.id }) {
+            if pending[i].local == pair.local && pending[i].remote == pair.remote { return }
+            pending[i] = pair
+        } else {
+            pending.append(pair)
+        }
+        revisions[pair.local.id] = UUID().uuidString.lowercased()
+    }
+
+    /// One pair, written to disk FIRST: a save calls this before replacing the other version in
+    /// the store, so if the write fails it throws and the save writes nothing. The page's edit is
+    /// written and is this Mac's side of the pair; from here the Take is held like any other.
+    func keep(_ pair: (local: Take, remote: Take)) throws {
+        try write(pair)
+        add(pair)
     }
 
     func enqueueUnverified(_ items: [UnverifiedCopy]) {
@@ -223,12 +289,17 @@ final class ConflictQueue {
     /// both). The kept version is stamped as a fresh edit so the next push makes it the newest
     /// everywhere and the conflict doesn't come back. Keep both keeps this Mac's version on its id
     /// and the other beside it as a new Take. The waiting file goes only once everything is written.
+    /// - Parameter revision: the pair's token as the page read it (`revision(_:)`). If the pair
+    ///   has changed since (a pass replaced it while the choice waited), nothing is written and
+    ///   this throws `pairChanged`. Nil skips the check (tests that hold the pair themselves).
     @discardableResult
-    func resolve(id: UUID, choice: Choice, store: TakeStore, now: Date = Date()) throws -> Take? {
+    func resolve(id: UUID, choice: Choice, store: TakeStore, revision: String? = nil, now: Date = Date()) throws -> Take? {
         guard let i = pending.firstIndex(where: { $0.local.id == id }) else { return nil }
+        if let revision, revision != revisions[id] { throw Failure.pairChanged }
         let pair = pending[i]
-        // This Mac's version is the Take as it is NOW: an edit made after the conflict was queued
-        // must not be replaced by the older queued copy. Only if it has gone does the copy stand in.
+        // This Mac's version is the Take as it is NOW. Saves can't change a held Take, so that is
+        // the version the conflict was found against; reading the store still guards against
+        // anything that wrote it outside a save. Only if it has gone does the copy stand in.
         let current = try store.take(id: id) ?? pair.local
         var kept = choice == .remote ? pair.remote : current
         kept.modifiedAt = now
@@ -241,7 +312,12 @@ final class ConflictQueue {
             copy = other
         }
         pending.remove(at: i)
-        if let url = fileURL(id) { try? FileManager.default.removeItem(at: url) }
+        revisions[id] = nil
+        if let url = fileURL(id) {
+            // Only this pair's own file goes: one that doesn't open is set aside first, never removed.
+            try? setAsideIfUnreadable(url, id: id)
+            try? FileManager.default.removeItem(at: url)
+        }
         return copy
     }
 
@@ -263,18 +339,46 @@ final class ConflictQueue {
 
     private struct Pair: Codable { let local: Take; let remote: Take }
 
+    /// The id a conflict file is named for: `<id>.conflict`, `<id>.<uuid>.unreadable`.
+    static func id(of url: URL) -> UUID? {
+        url.lastPathComponent.split(separator: ".").first.flatMap { UUID(uuidString: String($0)) }
+    }
+
+    private func damagedFiles(_ id: UUID) -> [URL] {
+        guard let directory else { return [] }
+        let files = (try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)) ?? []
+        return files.filter { $0.pathExtension == "unreadable" && Self.id(of: $0) == id }
+    }
+
     private func fileURL(_ id: UUID) -> URL? {
         directory?.appendingPathComponent(id.uuidString.lowercased()).appendingPathExtension("conflict")
     }
 
     private func persist(_ pair: (local: Take, remote: Take)) {
-        guard let directory, let keys, let url = fileURL(pair.local.id) else { return }
-        do {
-            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-            try Self.seal(pair, keys: keys).write(to: url, options: .atomic)
-        } catch {
+        do { try write(pair) } catch {
             Self.log.fault("a waiting conflict could not be kept on disk: \(String(describing: error), privacy: .public)")
         }
+    }
+
+    /// Writes the pair to its file. A file already there that doesn't open is moved aside first,
+    /// never written over: it may hold the only copy of another version. If it can't be moved,
+    /// this throws and writes nothing.
+    private func write(_ pair: (local: Take, remote: Take)) throws {
+        guard let directory, let keys, let url = fileURL(pair.local.id) else { return }
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        try setAsideIfUnreadable(url, id: pair.local.id)
+        try Self.seal(pair, keys: keys).write(to: url, options: .atomic)
+    }
+
+    /// A file at `url` that doesn't open as `id`'s pair goes to `<id>.<new uuid>.unreadable`
+    /// beside it, which nothing reads back or removes.
+    private func setAsideIfUnreadable(_ url: URL, id: UUID) throws {
+        guard let keys, FileManager.default.fileExists(atPath: url.path) else { return }
+        if (try? Self.open(Data(contentsOf: url), id: id, keys: keys)) != nil { return }
+        let aside = url.deletingPathExtension().appendingPathExtension(UUID().uuidString.lowercased()).appendingPathExtension("unreadable")
+        try FileManager.default.moveItem(at: url, to: aside)
+        damaged.insert(id)
+        Self.log.error("a waiting conflict that did not open was set aside: \(aside.lastPathComponent, privacy: .public)")
     }
 
     static func seal(_ pair: (local: Take, remote: Take), keys: KeyHierarchy) throws -> Data {

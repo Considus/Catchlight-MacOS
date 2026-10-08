@@ -627,6 +627,11 @@ body.with-menu-bar .app { height: calc(100vh - 26px); }
    DailiesView banner and ConflictResolutionView. The visual pass may restyle both. */
 .conflict-banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 16px 10px; padding: 4px 6px 4px 14px; border: 1px solid var(--card-border); border-radius: 10px; background: var(--surface); color: var(--text); font-size: 13px; }
 .conflict-banner[hidden] { display: none; }
+/* Held for a conflict choice (app.js, held): read as it is, with why underneath. */
+.card.conflict-held .body { opacity: .7; }
+.card .held-note { margin-top: 4px; font-size: 11px; color: var(--text-2); }
+.script-held { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 24px 10px; padding: 4px 6px 4px 14px; border: 1px solid var(--card-border); border-radius: 10px; background: var(--surface); color: var(--text); font-size: 13px; }
+.script-held[hidden] { display: none; }
 .conflicts { width: min(720px, calc(100vw - 32px)); max-height: calc(100vh - 64px); overflow: auto; padding: 20px 22px 12px; border: 1px solid var(--card-border); border-radius: 14px; background: var(--bg); color: var(--text); box-shadow: 0 16px 48px rgba(0,0,0,.35); }
 .conflicts::backdrop { background: rgba(0,0,0,.35); }
 .conflicts h2 { margin: 0 0 6px; font: 600 12px "DM Sans", sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--text-2); }

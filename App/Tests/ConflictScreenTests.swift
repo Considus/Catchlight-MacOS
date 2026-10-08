@@ -108,6 +108,177 @@ final class ConflictScreenTests: XCTestCase {
         XCTAssertEqual(try vault.library!.store.take(id: id)?.plainText, "Mine, edited on the Mac")
     }
 
+    /// Owner, 2026-10-07: "The file shouldn't update or edit until the conflict is resolved." The
+    /// row says why and opening it asks to resolve the conflict first; a change that reaches it
+    /// anyway is put back by the save, and the shell refuses one sent straight to it. Resolving
+    /// releases it.
+    func testAWaitingTakeIsReadOnlyUntilTheChoice() throws {
+        var h: WebViewHarness?
+        let (vault, sync, id) = try setUp(with: &h)
+        let harness = h!
+
+        let state = try harness.run("""
+            for (let i = 0; i < 100 && conflictBanner.hidden; i++) await new Promise(r => setTimeout(r, 50));
+            const t = takes[0];
+            beginEdit(t);
+            const editing = !!draft;
+            const notice = alertBox.open ? alertBox.querySelector('h2').textContent : null;
+            alertBox.close();
+            const note = document.querySelector(`[data-take="${t.id}"] .held-note`)?.textContent ?? null;
+            const menu = takeMenu(t.id).map(i => i[0]);
+            // A change that reaches it anyway is kept as a new Take, and the held one put back.
+            t.blocks[0].text = 'Changed anyway'; t.modifiedAt = Date.now(); saveTakes(); renderTakes();
+            const kept = alertBox.open ? alertBox.querySelector('h2').textContent : null;
+            const shown = takes.map(x => x.blocks[0].text);
+            alertBox.close();
+            await window.webkit.messageHandlers.catchlight.postMessage({ cmd: 'ping' });
+            const held = takes.find(x => x.id === t.id);
+            const r = await window.webkit.messageHandlers.catchlight.postMessage({ cmd: 'save', kind: 'takes', generation: catchlightBridge.library.generation,
+              list: takes.map(x => x === held ? { ...x, blocks: [{ k: 'text', text: 'Straight to the shell' }], modifiedAt: Date.now() } : x) });
+            return JSON.stringify([editing, notice, note, menu, kept, shown, r.held?.length ?? 0, r.forked ?? 0]);
+            """, in: self) as? String
+        XCTAssertEqual(state, #"[false,"Resolve the conflict first","Changed on another device. Choose a version to edit it.",["Expand Take","Export Take","Review Conflict…"],"Saved as a new Take",["Mine, edited on the Mac","Changed anyway"],1,1]"#)
+        XCTAssertEqual(try vault.library!.store.take(id: id)?.plainText, "Mine, edited on the Mac")
+        XCTAssertEqual(Set(try vault.library!.store.allTakes().map(\.plainText)), ["Mine, edited on the Mac", "Changed anyway", "Straight to the shell"])
+        try snapshot(harness, name: "held-take")
+
+        let released = try harness.run("""
+            await resolveConflict(conflictList[0].id, 'local');
+            beginEdit(takes[0]);
+            const editing = !!draft;
+            discardEdit();
+            return JSON.stringify([editing, document.querySelector('.card .held-note') === null]);
+            """, in: self) as? String
+        XCTAssertEqual(released, "[true,true]")
+        XCTAssertEqual(sync.conflicts.count, 0)
+    }
+
+    /// Owner, 2026-10-08: a conflict arriving on a Take open in the editor keeps the typing as a
+    /// NEW Take beside the held one (a new id, never the Obie), and leaves the held one as it is.
+    /// An unchanged draft writes nothing and says why the Take waits.
+    func testTypingOnATakeThatBecameHeldIsSavedAsANewTake() throws {
+        let vault = Vault(secrets: MemorySecrets(), directory: root.appendingPathComponent("Library"))
+        try vault.createAccount(words: try Vault.newPhrase(), restored: true)
+        let store = vault.library!.store
+        let id = UUID(), other = UUID()
+        _ = try vault.library!.saveTakes([
+            ["id": id.uuidString, "at": "2026-07-01T09:00:00Z", "isNote": true, "obie": true, "blocks": [["k": "text", "text": "Stored"]]],
+            ["id": other.uuidString, "at": "2026-07-02T09:00:00Z", "isNote": true, "blocks": [["k": "text", "text": "Other"]]]])
+        let sync = SyncService(vault: vault, folder: SyncFolder(defaults: UserDefaults(suiteName: suite)!), defaults: UserDefaults(suiteName: suite)!)
+        let harness = WebViewHarness(root: WebViewHarness.repoUI, ruleList: nil)
+        let bridge = ShellBridge()
+        bridge.vault = vault
+        bridge.sync = sync
+        bridge.install(in: harness.webView.configuration.userContentController)
+        harness.load("index.html", in: self)
+
+        // Typing in the editor...
+        _ = try harness.run("""
+            beginEdit(takes.find(t => t.blocks[0].text === 'Stored'));
+            rows.querySelector('.etext').textContent = 'Typed while the conflict arrived';
+            return true;
+            """, in: self)
+        // ...when a pass finds the conflict, and the page hears of it.
+        for (take, remoteText) in [(try store.take(id: id)!, "From the iPhone"), (try store.take(id: other)!, "Other, from the iPhone")] {
+            var remote = take
+            remote.blocks = [.text(TextBlock(text: remoteText))]
+            sync.conflicts.enqueue([(local: take, remote: remote)])
+        }
+        let state = try harness.run("""
+            await loadConflicts();
+            commitEdit();
+            const title = alertBox.open ? alertBox.querySelector('h2').textContent : null;
+            const body = alertBox.open ? alertBox.querySelector('p').textContent : null;
+            if (alertBox.open) alertBox.close();
+            // An unchanged draft on a held Take writes nothing.
+            const o = takes.find(t => t.blocks[0].text === 'Other');
+            draft = structuredClone(o); original = o; paintEditor(); commitEdit();
+            const unchanged = alertBox.open ? alertBox.querySelector('h2').textContent : null;
+            if (alertBox.open) alertBox.close();
+            await window.webkit.messageHandlers.catchlight.postMessage({ cmd: 'ping' });
+            return JSON.stringify([title, body, unchanged, takes.length]);
+            """, in: self) as? String
+        XCTAssertEqual(state, #"["Saved as a new Take","This Take changed on another device, so your edit was saved as a new Take.","Resolve the conflict first",3]"#)
+        XCTAssertEqual(try store.take(id: id)?.plainText, "Stored", "the held Take is left as it is")
+        XCTAssertEqual(try store.take(id: id)?.isObie, true)
+        let copy = try XCTUnwrap(try store.allTakes().first { $0.plainText == "Typed while the conflict arrived" })
+        XCTAssertNotEqual(copy.id, id)
+        XCTAssertFalse(copy.isObie, "never the Obie")
+        XCTAssertEqual(try store.allTakes().count, 3)
+        _ = bridge
+    }
+
+    /// Code review of the hold: the held copy the page puts back is the STORED version, from the
+    /// queue, never the page's own list, which may carry an edit the shell refused or never got.
+    func testTheHeldCopyIsTheStoredVersionNotThePagesEdit() throws {
+        let vault = Vault(secrets: MemorySecrets(), directory: root.appendingPathComponent("Library"))
+        try vault.createAccount(words: try Vault.newPhrase(), restored: true)
+        let store = vault.library!.store
+        let id = UUID()
+        _ = try vault.library!.saveTakes([["id": id.uuidString, "at": "2026-07-01T09:00:00Z", "isNote": true,
+                                           "blocks": [["k": "text", "text": "Stored"]]]])
+        let sync = SyncService(vault: vault, folder: SyncFolder(defaults: UserDefaults(suiteName: suite)!), defaults: UserDefaults(suiteName: suite)!)
+        let harness = WebViewHarness(root: WebViewHarness.repoUI, ruleList: nil)
+        let bridge = ShellBridge()
+        bridge.vault = vault
+        bridge.sync = sync
+        bridge.install(in: harness.webView.configuration.userContentController)
+        harness.load("index.html", in: self)
+
+        // The page holds an edit the shell never wrote (a save refused, or still on its way)...
+        _ = try harness.run("takes[0].blocks[0].text = 'Unsaved edit'; return true;", in: self)
+        // ...when a pass finds the conflict.
+        let stored = try store.take(id: id)!
+        var remote = stored
+        remote.blocks = [.text(TextBlock(text: "From the iPhone"))]
+        sync.conflicts.enqueue([(local: stored, remote: remote)])
+
+        let shown = try harness.run("""
+            await loadConflicts();
+            const after = takes[0].blocks[0].text;
+            if (alertBox.open) alertBox.close();
+            saveTakes();
+            await window.webkit.messageHandlers.catchlight.postMessage({ cmd: 'ping' });
+            if (alertBox.open) alertBox.close();
+            return JSON.stringify([after, takes[0].blocks[0].text]);
+            """, in: self) as? String
+        XCTAssertEqual(shown, #"["Stored","Stored"]"#)
+        XCTAssertEqual(try store.take(id: id)?.plainText, "Stored")
+        _ = bridge
+    }
+
+    /// Code review of the hold: a choice made against one pair never applies to a newer one that
+    /// replaced it meanwhile (a pass running when Keep was pressed). It is refused, the store is
+    /// left alone, and the sheet shows the newer pair to choose again.
+    func testAChoiceIsRefusedIfThePairChangedMeanwhile() throws {
+        var h: WebViewHarness?
+        let (vault, sync, id) = try setUp(with: &h)
+        let harness = h!
+        _ = try harness.run("""
+            for (let i = 0; i < 100 && conflictBanner.hidden; i++) await new Promise(r => setTimeout(r, 50));
+            openConflicts();
+            conflictSheet.querySelector('[data-side="remote"]').click();
+            return true;
+            """, in: self)
+        var pair = sync.conflicts.pending[0]
+        pair.remote.blocks = [.text(TextBlock(text: "From the iPhone, edited again"))]
+        pair.remote.modifiedAt = Date(timeIntervalSinceNow: 30)
+        sync.conflicts.enqueue([pair])
+
+        let state = try harness.run("""
+            const until = async (done, ms) => { const end = Date.now() + ms; while (!done() && Date.now() < end) await new Promise(r => setTimeout(r, 50)); };
+            conflictSheet.querySelector('[data-cf="keep"]').click();
+            await until(() => alertBox.open, 4000);
+            const title = alertBox.open ? alertBox.querySelector('h2').textContent : null;
+            if (alertBox.open) alertBox.close();
+            await until(() => conflictSheet.textContent.includes('edited again'), 4000);
+            return JSON.stringify([title, conflictSheet.querySelector('[data-side="remote"] .cf-body')?.textContent ?? null]);
+            """, in: self) as? String
+        XCTAssertEqual(state, #"["The versions changed","From the iPhone, edited again"]"#)
+        XCTAssertEqual(try vault.library!.store.take(id: id)?.plainText, "Mine, edited on the Mac", "nothing written")
+        XCTAssertEqual(sync.conflicts.count, 1)
+    }
+
     /// Local review: a pick made against one pair must not carry over when a sync replaces it.
     func testAPickIsClearedWhenTheVersionsChange() throws {
         var h: WebViewHarness?

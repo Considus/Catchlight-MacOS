@@ -37,7 +37,10 @@ enum SystemInfo {
 /// - `chooseFolder`, `forgetFolder`: the sync folder, through `SyncFolder` (the open panel);
 /// - `sync {trigger}`: one sync pass through `SyncService`, answered with what it did;
 /// - `changeKind {item, to: 'takes'|'scripts'}`: Take ⇄ Script on the same id (D-313);
-/// - `conflicts`, `resolveConflict {id, choice}`: the waiting conflicts and the user's choice;
+/// - `conflicts`, `resolveConflict {id, choice}`: the waiting conflicts and the user's choice. A
+///   waiting item is held: `save` and `changeKind` refuse to change it (a save answers its id in
+///   `held`) and sync never uploads it, until `resolveConflict {id, choice, revision}`, which
+///   alone writes it, and only for the pair the page read (`revision`, from `conflicts`);
 /// - `importNotes`, `importFile`: notes from the sync folder's Import folder, or from files the
 ///   user picks, imported as Takes (`NoteImport`).
 final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
@@ -82,6 +85,9 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                     value["takes"] = snapshot.takes
                     value["generation"] = snapshot.generation
                     value["scripts"] = snapshot.scripts
+                    // What waits for a conflict choice, so the page shows it read-only from the
+                    // first paint, before it asks for the conflicts (Auto-Delete runs at load).
+                    value["held"] = (sync?.conflicts.heldIDs ?? []).map { $0.uuidString.lowercased() }.sorted()
                     // A damaged Script is kept on disk but can't be shown: the page says so.
                     if !library.scripts.unreadable.isEmpty { value["unreadableScripts"] = library.scripts.unreadable.count }
                 } catch {
@@ -198,8 +204,24 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                     page["modifiedAt"] = (take.modifiedAt.timeIntervalSince1970 * 1000).rounded()
                     return page
                 }
+                // `stored`: the held item as the store has it, in its own list's shape, which the
+                // page puts back over any change (`keepHeld`); never the page's own copy, which may
+                // carry an edit the shell refused. `revision`: sent back with the choice.
+                let store = vault?.library?.store
                 replyHandler(try sync.conflicts.pending.map { pair -> [String: Any] in
-                    ["id": pair.local.id.uuidString.lowercased(), "local": try side(pair.local), "remote": try side(pair.remote)]
+                    let stored = try store?.take(id: pair.local.id) ?? pair.local
+                    return ["id": pair.local.id.uuidString.lowercased(), "local": try side(pair.local), "remote": try side(pair.remote),
+                            "stored": stored.isScript ? ScriptTranslation.page(from: stored) : try TakeTranslation.page(from: stored),
+                            "storedKind": stored.isScript ? "scripts" : "takes",
+                            "revision": sync.conflicts.revision(pair.local.id) ?? ""]
+                } + sync.conflicts.damaged.subtracting(sync.conflicts.pending.map(\.local.id)).sorted { $0.uuidString < $1.uuidString }.map { id -> [String: Any] in
+                    // A conflict that doesn't open: no versions to show, but its Take is held.
+                    var entry: [String: Any] = ["id": id.uuidString.lowercased(), "damaged": true]
+                    if let stored = try store?.take(id: id) {
+                        entry["stored"] = stored.isScript ? ScriptTranslation.page(from: stored) : try TakeTranslation.page(from: stored)
+                        entry["storedKind"] = stored.isScript ? "scripts" : "takes"
+                    }
+                    return entry
                 }, nil)
             } catch {
                 Self.log.error("conflicts did not translate: \(String(describing: error), privacy: .public)")
@@ -208,11 +230,14 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
         case "resolveConflict":
             guard let sync, let library = vault?.library,
                   let id = (body["id"] as? String).flatMap(UUID.init(uuidString:)),
-                  let choice = (body["choice"] as? String).flatMap(ConflictQueue.Choice.init(rawValue:)) else {
-                return replyHandler(nil, "resolveConflict needs an id and a choice")
+                  let choice = (body["choice"] as? String).flatMap(ConflictQueue.Choice.init(rawValue:)),
+                  let revision = body["revision"] as? String else {
+                return replyHandler(nil, "resolveConflict needs an id, a choice and the revision it was made against")
             }
             do {
-                try sync.conflicts.resolve(id: id, choice: choice, store: library.store)
+                // Refused if a pass replaced the pair after the page read it (the choice may have
+                // waited behind that pass): the user chooses again between the versions now waiting.
+                try sync.conflicts.resolve(id: id, choice: choice, store: library.store, revision: revision)
                 replyHandler(true, nil)
             } catch {
                 Self.log.error("a conflict choice was not saved: \(String(describing: error), privacy: .public)")
@@ -290,7 +315,7 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
     /// iPhone's `announceImport`).
     private func writeImport(_ outcome: NoteImport.Outcome, _ reply: @escaping (Any?, String?) -> Void) {
         guard let library = vault?.library, !libraryUnreadable else { return reply(nil, "locked") }
-        let done = library.importItems(outcome.items)
+        let done = library.importItems(outcome.items, holding: sync?.conflicts.heldIDs ?? [])
         if done.takes + done.scripts > 0 {
             let summary = "Import successful. \(Self.importedWords(done.takes, done.scripts)) added."
             _ = library.importItems([Take(createdAt: Date(), modifiedAt: Date(), blocks: [.text(TextBlock(text: summary))], isNote: true)])
@@ -311,7 +336,8 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
     private func libraryContents(_ vault: Vault) throws -> [String: Any] {
         guard let library = vault.library else { return ["takes": [Any](), "scripts": [Any]()] }
         let snapshot = try library.snapshot()
-        return ["takes": snapshot.takes, "generation": snapshot.generation, "scripts": snapshot.scripts]
+        return ["takes": snapshot.takes, "generation": snapshot.generation, "scripts": snapshot.scripts,
+                "held": (sync?.conflicts.heldIDs ?? []).map { $0.uuidString.lowercased() }]
     }
 
     private func handleLibrary(_ cmd: String, _ body: [String: Any], _ reply: @escaping (Any?, String?) -> Void) {
@@ -328,13 +354,16 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                     return reply(nil, "save needs kind takes or scripts")
                 }
                 // An item changed here and by sync since the page's snapshot: the user chooses,
-                // and the other version is on disk before this Mac's edit replaces it.
+                // and the other version is on disk before this Mac's edit replaces it. An item
+                // already waiting for that choice is not changed at all (owner, 2026-10-07).
                 let report = try library.save(list, as: pageList, generation: body["generation"] as? Int,
                                               syncing: pageList == .takes || sync?.holdsScripts == true,
+                                              holding: sync?.conflicts.heldIDs ?? [],
                                               keepConflict: { [sync] pair in try sync?.conflicts.keep(pair) })
-                Self.log.info("\(kind ?? "", privacy: .public) saved: \(report.upserted) written, \(report.deleted) deleted, \(report.rejected.count) rejected, \(report.conflicts.count) to the conflict screen, \(report.keptOverDelete.count) kept over a delete")
+                Self.log.info("\(kind ?? "", privacy: .public) saved: \(report.upserted) written, \(report.deleted) deleted, \(report.rejected.count) rejected, \(report.held.count) held for a conflict choice, \(report.conflicts.count) to the conflict screen, \(report.keptOverDelete.count) kept over a delete")
                 if !report.rejected.isEmpty { Self.log.error("save kept \(report.rejected.count) items it could not read") }
-                reply(["upserted": report.upserted, "deleted": report.deleted, "rejected": report.rejected,
+                reply(["upserted": report.upserted, "deleted": report.deleted, "rejected": report.rejected, "held": report.held,
+                       "forked": report.forked.count,
                        "conflicts": report.conflicts.count, "keptOverDelete": report.keptOverDelete.count], nil)
             case "changeKind":
                 guard let library = vault.library else { return reply(nil, "locked") }
@@ -346,6 +375,7 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                 }
                 var conflicts = 0
                 let changed = try library.changeKind(item, to: pageList, generation: body["generation"] as? Int,
+                                                     holding: sync?.conflicts.heldIDs ?? [],
                                                      keepConflict: { [sync] pair in try sync?.conflicts.keep(pair); conflicts += 1 })
                 // The item as stored, in its new list's shape: the page keeps this one, so its next
                 // save carries what the page's own copy didn't (a reminder, Important).

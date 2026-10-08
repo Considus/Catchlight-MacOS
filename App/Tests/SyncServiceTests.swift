@@ -309,6 +309,118 @@ final class SyncServiceTests: XCTestCase {
         XCTAssertEqual(SyncService(vault: b.vault, folder: b.folder).conflicts.count, 0)
     }
 
+    /// Owner, 2026-10-07: "The file shouldn't update or edit until the conflict is resolved." While
+    /// the pair waits (skipped or not, across passes), no pass uploads this Mac's version or writes
+    /// the folder's over it; a newer version from the other Mac only replaces the pair's other side.
+    /// The choice releases it, and the next pass uploads the kept version.
+    func testAWaitingConflictIsHeldUntilTheChoice() throws {
+        let words = try Vault.newPhrase()
+        let a = try mac("A", words: words), b = try mac("B", words: words)
+        let id = try write("Original", on: a)
+        _ = try sync(a); _ = try sync(b)
+        func edit(_ s: SyncService, _ text: String) throws {
+            var take = try s.vault.library!.store.take(id: id)!
+            take.blocks = [.text(TextBlock(text: text))]
+            take.modifiedAt = Date()
+            try s.vault.library!.store.upsert(take)
+        }
+        func text(_ s: SyncService) throws -> String? { try s.vault.library!.store.take(id: id)?.plainText }
+        try edit(a, "Edited on A")
+        try edit(b, "Edited on B")
+        _ = try sync(a); _ = try sync(b)
+        XCTAssertEqual(b.conflicts.pending.count, 1)
+
+        _ = try sync(b)   // the pass after the conflict
+        try edit(a, "Edited on A again")
+        _ = try sync(a); _ = try sync(b)
+        XCTAssertEqual(try text(b), "Edited on B", "nothing from the folder is written over it")
+        XCTAssertEqual(b.conflicts.pending.first?.remote.plainText, "Edited on A again", "the pair carries the newest other version")
+        _ = try sync(a)
+        XCTAssertEqual(try text(a), "Edited on A again", "B's version never reached the folder")
+        XCTAssertTrue(a.conflicts.pending.isEmpty)
+
+        try b.conflicts.resolve(id: id, choice: .local, store: b.vault.library!.store)
+        XCTAssertTrue(b.conflicts.pending.isEmpty)
+        _ = try sync(b); _ = try sync(a)
+        XCTAssertEqual(try text(a), "Edited on B", "the kept version goes up once chosen")
+    }
+
+    /// Code review of the hold: a waiting conflict that doesn't open is kept, never deleted, so a
+    /// later conflict for the same Take is written beside it, never over it.
+    func testAConflictFileThatDoesNotOpenIsNeverOverwritten() throws {
+        let vault = Vault(secrets: MemorySecrets(), directory: root.appendingPathComponent("U"))
+        try vault.createAccount(words: try Vault.newPhrase(), restored: true)
+        let folder = vault.directory.appendingPathComponent("Conflicts")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let local = Take(blocks: [.text(TextBlock(text: "Mac"))])
+        var remote = local
+        remote.blocks = [.text(TextBlock(text: "iPhone"))]
+        let damaged = Data("not a sealed pair".utf8)
+        try damaged.write(to: folder.appendingPathComponent(local.id.uuidString.lowercased()).appendingPathExtension("conflict"))
+
+        let queue = ConflictQueue(directory: folder, keys: vault.keys)
+        XCTAssertTrue(queue.pending.isEmpty)
+        queue.enqueue([(local: local, remote: remote)])
+        try queue.keep((local: local, remote: remote))
+        try queue.resolve(id: local.id, choice: .local, store: vault.library!.store)
+
+        let files = try FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)
+        XCTAssertEqual(try files.filter { try Data(contentsOf: $0) == damaged }.count, 1, "the file that didn't open is still there, as it was")
+    }
+
+    /// As on the iPhone: a conflict file that doesn't open still holds its Take, named by the file
+    /// (`<id>.conflict`, or set aside as `<id>.<uuid>.unreadable`), so the Take is never uploaded.
+    func testADamagedConflictStillHoldsItsTake() throws {
+        let words = try Vault.newPhrase()
+        let a = try mac("A", words: words), b = try mac("B", words: words)
+        let id = try write("Original", on: a), other = try write("Other", on: a)
+        _ = try sync(a); _ = try sync(b)
+        let folder = b.vault.directory.appendingPathComponent("Conflicts")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try Data("damaged".utf8).write(to: folder.appendingPathComponent(id.uuidString.lowercased()).appendingPathExtension("conflict"))
+        try Data("damaged".utf8).write(to: folder.appendingPathComponent("\(other.uuidString.lowercased()).\(UUID().uuidString.lowercased()).unreadable"))
+        let relaunched = SyncService(vault: b.vault, folder: b.folder)
+        XCTAssertEqual(relaunched.conflicts.heldIDs, [id, other])
+        XCTAssertTrue(relaunched.conflicts.pending.isEmpty)
+
+        for take in [id, other] {
+            var edited = try b.vault.library!.store.take(id: take)!
+            edited.blocks = [.text(TextBlock(text: "Edited on B"))]
+            edited.modifiedAt = Date()
+            try b.vault.library!.store.upsert(edited)
+        }
+        _ = try sync(relaunched); _ = try sync(a)
+        XCTAssertEqual(try a.vault.library!.store.take(id: id)?.plainText, "Original", "never uploaded")
+        XCTAssertEqual(try a.vault.library!.store.take(id: other)?.plainText, "Other", "never uploaded")
+    }
+
+    /// A waiting Take another device turned into a Script leaves this Mac (Core lets it go): its
+    /// pair and file go too, so no conflict waits for a Take that isn't here.
+    func testAWaitingConflictWhoseTakeBecameAScriptElsewhereIsLetGo() throws {
+        let words = try Vault.newPhrase()
+        let a = try mac("A", words: words, syncScripts: true), b = try mac("B", words: words)
+        let id = try write("Original", on: a)
+        _ = try sync(a); _ = try sync(b)
+        for (s, text) in [(a, "Edited on A"), (b, "Edited on B")] {
+            var take = try s.vault.library!.store.take(id: id)!
+            take.blocks = [.text(TextBlock(text: text))]
+            take.modifiedAt = Date()
+            try s.vault.library!.store.upsert(take)
+        }
+        _ = try sync(a); _ = try sync(b)
+        XCTAssertEqual(b.conflicts.pending.count, 1)
+
+        try a.vault.library!.changeKind(["id": id.uuidString, "at": "2026-07-01T09:00:00.000Z", "mode": "a4", "blocks": ["# Edited on A"]], to: .scripts)
+        _ = try sync(a)
+        let report = try sync(b)
+        XCTAssertTrue(report.deletedLocally.contains(id), "Core let the Take go")
+        XCTAssertTrue(b.conflicts.pending.isEmpty)
+        XCTAssertFalse(b.conflicts.heldIDs.contains(id))
+        let folder = b.vault.directory.appendingPathComponent("Conflicts")
+        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: folder.path).filter { $0.hasSuffix(".conflict") }, [])
+        XCTAssertTrue(SyncService(vault: b.vault, folder: b.folder).conflicts.heldIDs.isEmpty, "nothing held after a relaunch either")
+    }
+
     /// #52 review (Greptile): a pass asked for while one runs (a save written once it ended) gets
     /// one more pass afterwards, so the save reaches the cloud without waiting for the next trigger.
     func testASyncAskedForDuringAPassRunsOnceMoreAfterIt() throws {

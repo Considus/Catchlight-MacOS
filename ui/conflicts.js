@@ -3,8 +3,9 @@
 // sync changed it. As the iPhone's DailiesView banner and ConflictResolutionView: a banner in
 // Dailies says how many, and Review opens both versions side by side. The user keeps this Mac's
 // version (Local), the other device's (Cloud), or both (owner, 2026-10-05); Skip for now leaves
-// it waiting. Until a choice, this Mac's version stands. The shell keeps the waiting pairs
-// (ConflictQueue, sealed on disk), so in a plain browser there are none and nothing here shows.
+// it waiting. Until a choice the item is held (owner, 2026-10-07): read-only on the page (app.js,
+// held), refused by the shell's saves, and never uploaded by sync. The shell keeps the waiting
+// pairs (ConflictQueue, sealed on disk), so in a plain browser there are none and nothing here shows.
 
 const conflictBanner = document.createElement('div');
 conflictBanner.className = 'conflict-banner';
@@ -20,6 +21,7 @@ let conflictList = [];
 const conflictChoice = {};              // id → 'local' | 'remote', picked but not yet kept
 const conflictSkipped = new Set();     // Skip for now: hidden until the next launch or sync finds it again
 const conflictSeen = {};               // id → the versions a pick was made against
+const conflictDamagedNoticed = new Set();   // damaged conflicts already in Notice History this launch
 
 // A Script's blocks are its markdown lines; a Take's are text and checklist items.
 const conflictText = t => t.kind === 'script'
@@ -40,8 +42,17 @@ const conflictWhen = t => {
 
 async function loadConflicts() {
   if (!window.catchlightBridge?.conflicts) return;
-  try { conflictList = await catchlightBridge.conflicts(); }
+  let all;
+  try { all = await catchlightBridge.conflicts(); }
   catch (e) { console.error('Reading the conflicts failed', e); return; }
+  // A conflict that doesn't open has no versions to choose between, but its Take stays held,
+  // and the user is told once a launch.
+  conflictList = all.filter(c => !c.damaged);
+  for (const c of all) if (c.damaged && !conflictDamagedNoticed.has(c.id)) {
+    conflictDamagedNoticed.add(c.id);
+    if (typeof notice === 'function') notice("A waiting conflict couldn't be opened, so its Take stays as it is and isn't synced. Report it so it can be looked at.", 'conflict');
+  }
+  setHeld(all);   // skipped ones too: they still wait for the choice
   // A pair the next sync found again is waiting again.
   for (const id of [...conflictSkipped]) if (!conflictList.some(c => c.id === id)) conflictSkipped.delete(id);
   // A pick only stands for the versions it was made against: if a sync replaced either side,
@@ -98,12 +109,17 @@ function openConflicts() {
 }
 
 async function resolveConflict(id, choice) {
+  // The choice names the pair it was made against: if a sync replaced it meanwhile, the shell
+  // refuses, and the user chooses again between the versions now waiting.
+  const revision = conflictList.find(c => c.id === id)?.revision ?? '';
   try {
-    await catchlightBridge.resolveConflict(id, choice);
+    await catchlightBridge.resolveConflict(id, choice, revision);
   } catch (e) {
     // Only this means the choice wasn't written: the store is as it was.
     console.error('Saving a conflict choice failed', e);
-    ask("Your choice wasn't saved", `Both versions are still there. Try again, and if it keeps happening, report it with this detail: ${e?.message ?? e}`, [['OK', null, 'cancel']]);
+    if (/changed while you were choosing/.test(String(e?.message ?? e)))
+      ask('The versions changed', 'This changed again on another device while you were choosing. Look at both versions again, then choose.', [['OK', null, 'cancel']]);
+    else ask("Your choice wasn't saved", `Both versions are still there. Try again, and if it keeps happening, report it with this detail: ${e?.message ?? e}`, [['OK', null, 'cancel']]);
     return loadConflicts();
   }
   delete conflictChoice[id];

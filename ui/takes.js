@@ -23,7 +23,7 @@ let takes = store.get('takes2', [
 const CLEANUP_DAYS = { daily: 1, weekly: 7, monthly: 31, annually: 365 };
 const hasNoteContent = t => t.blocks.some(b => b.k !== 'check' && b.text.trim());
 function autoCleanupEligible(t, maxAge, now) {
-  if (t.obie || repeats(t.reminder) || !isDone(t) || hasNoteContent(t)) return false;
+  if (t.obie || isHeld(t.id) || repeats(t.reminder) || !isDone(t) || hasNoteContent(t)) return false;
   return now - (t.modifiedAt ?? Date.parse(t.at)) > maxAge;
 }
 function runAutoCleanup(now = Date.now()) {
@@ -102,6 +102,9 @@ const canReorder = () => settings.takeArrangement === 'manual' && !storyboard &&
 function commitReorder(id, displayIds) {
   const canonical = settings.takeSort === 'newest' ? [...displayIds].reverse() : displayIds;
   const values = reorderValues(takes.filter(t => !t.obie), id, canonical.indexOf(id));
+  // A held Take never moves (it has no handle), and a move that would renumber one doesn't happen.
+  const heldOne = Object.keys(values).find(isHeld);
+  if (heldOne) { refuseHeld(heldOne); renderTakes(); return; }
   const now = Date.now();
   for (const [tid, order] of Object.entries(values)) {
     const t = takes.find(x => x.id === tid);
@@ -117,7 +120,8 @@ function takeCard(t) {
   const links = t.blocks.reduce((n, b) => n + detectLinks(b.text).length, 0);
   // Surface and border as TakeCardStyle on iOS: an Important Take sits on the Obie's surface;
   // the border shows state, and app.css orders the rules so the first that applies wins.
-  const cls = ['card', t.isImportant && 'important', t.reminder && 'remind', isTask(t) && 'task', isDone(t) && 'done', t.obie && 'obie', isOverdue(t) && 'overdue', links >= 2 && 'links'].filter(Boolean).join(' ');
+  const held = isHeld(t.id);
+  const cls = ['card', t.isImportant && 'important', t.reminder && 'remind', isTask(t) && 'task', isDone(t) && 'done', t.obie && 'obie', isOverdue(t) && 'overdue', links >= 2 && 'links', held && 'conflict-held'].filter(Boolean).join(' ');
   const body = t.blocks.map(b => `<span class="${b.k === 'check' && b.done ? 'ticked' : ''}">${linkify(b.text)}</span>`).join('\n');
   let meta = '';
   if (isTask(t)) {
@@ -126,11 +130,13 @@ function takeCard(t) {
   }
   if (t.reminder) meta += reminderMeta(t.reminder);   // reminders.js
   if (settings.creationStamp === 'always') meta += `<div class="stamp">${esc(createdLabel(t.at))}</div>`;   // Settings → Creation date
+  // Read-only while it waits for a conflict choice (app.js, held): says why, and where to choose.
+  if (held) meta += `<div class="held-note">${heldNote(t.id)}</div>`;
   return `<div class="${cls}${expanded.has(t.id) ? ' expanded' : ''}" data-take="${t.id}" ${cardA11y(t)}><span class="iris-wrap" data-iris="${t.id}" ${irisA11y(t)}>${irisHtml(typesOf(t), t.obie)}</span><div class="body">${body}</div>${meta}${reorderHandle(t)}</div>`;
 }
 // The ≡ strip on the card's trailing edge in Manual (TimelineDragHandle). It is a button so the
 // keyboard can reach it: ⌥↑ and ⌥↓ stand in for VoiceOver's Move up and Move down.
-const reorderHandle = t => !t.obie && canReorder() ? `<button class="thandle" type="button" aria-label="Move ${esc(t.blocks.find(b => b.text.trim())?.text.slice(0, 40) || 'Take')}" title="Drag to move, or ⌥↑ ⌥↓"></button>` : '';
+const reorderHandle = t => !t.obie && !isHeld(t.id) && canReorder() ? `<button class="thandle" type="button" aria-label="Move ${esc(t.blocks.find(b => b.text.trim())?.text.slice(0, 40) || 'Take')}" title="Drag to move, or ⌥↑ ⌥↓"></button>` : '';
 
 function renderTakes() {
   $('#dailies-heading').textContent = storyboard ? 'Storyboard' : { resting: 'Dailies', filtering: 'Sequence', searching: 'Search' }[dock];
@@ -187,6 +193,7 @@ const editingTake = () => !!(draft || focusRing || (typeof reminderFor !== 'unde
 let draftComplete = false;   // was every item ticked at the last change? (All tasks done)
 
 function beginEdit(t, isNew = false) {
+  if (!isNew && refuseHeld(t.id)) return;
   if (draft) commitEdit();
   if (dock === 'searching') exitToResting();   // opening a Take leaves search first (UIState)
   original = isNew ? null : t;
@@ -257,7 +264,11 @@ function commitEdit() {
     if (original) takes = takes.filter(t => t.id !== original.id);
   } else {
     // D-250: an edit that changes nothing writes nothing, so modifiedAt only moves on a change.
-    const same = original && JSON.stringify({ ...original, modifiedAt: 0 }) === JSON.stringify({ ...draft, modifiedAt: 0 });
+    // Keys sorted: the shell's objects come in whatever order its dictionaries have that launch.
+    const same = original && JSON.stringify(sortedKeys({ ...original, modifiedAt: 0 })) === JSON.stringify(sortedKeys({ ...draft, modifiedAt: 0 }));
+    // Held while it was open, unchanged: nothing to write, and the user hears why it waits. A
+    // changed one goes on: the save keeps the typing as a new Take (keepHeld in app.js).
+    if (same && isHeld(original.id)) refuseHeld(original.id);
     if (!same) {
       draft.modifiedAt = Date.now();
       if (draft.obie) takes.forEach(t => { if (t.id !== draft.id) t.obie = false; });
@@ -428,7 +439,7 @@ const MARKS = [
 ];
 
 function openFocusRing(t, irisEl, fromEditor) {
-  if (focusRing) return;
+  if (focusRing || (!fromEditor && refuseHeld(t.id))) return;
   closeReminder();   // a picker opened from the editor bar does not carry into the ring
   if (fromEditor) readRows();
   const box = irisEl.getBoundingClientRect(), host = sidebar.getBoundingClientRect();
@@ -580,6 +591,7 @@ sidebar.addEventListener('pointerdown', e => {
   const hold = irisHold = { id: ir.dataset.iris, x: e.clientX, y: e.clientY, fired: false, t: setTimeout(() => {
     hold.fired = true;
     const t = takes.find(x => x.id === hold.id);
+    if (refuseHeld(t.id)) return;
     if (!t.obie) makeObie(t);
     else { t.obie = false; touch(t); }   // holding the Obie's Iris makes it a standard Take again, without asking
   }, 450) };
@@ -807,6 +819,12 @@ function exportTakes(list) {
 function takeMenu(id) {
   const t = takes.find(x => x.id === id);
   const items = [];
+  // Held for a conflict choice: only what leaves it as it is, and the way to the choice.
+  if (isHeld(id)) {
+    if (!storyboard) items.push([expanded.has(id) ? 'Collapse Take' : 'Expand Take', () => toggleExpanded(id)], ['Export Take', () => exportTake(t)]);
+    items.push(['Review Conflict…', () => openConflicts()]);
+    return items;
+  }
   if (!storyboard) items.push([expanded.has(id) ? 'Collapse Take' : 'Expand Take', () => toggleExpanded(id)]);
   if (canBeMarkedDone(t)) items.push([isDone(t) ? 'Mark Not Done' : 'Mark Done', () => { toggleDone(t); touch(t); }]);
   // An Obie stays Important, so its menu has nothing to offer here.
@@ -826,15 +844,26 @@ function takeMenu(id) {
 // Making a Take the Obie when another already is asks first (RootView, owner copy 2026-06-17).
 // Becoming the Obie makes it Important; Important can be taken off later (Take.isObie).
 function makeObie(t) {
+  if (refuseHeld(t.id)) return;
+  // Making another Take the Obie changes the current one, which can't change while it waits for
+  // a conflict choice (the shell refuses it too, Library.save).
+  if (takes.some(x => x.obie && x.id !== t.id && isHeld(x.id))) {
+    ask('Resolve the conflict first', 'Your Obie changed on another device too. Choose which version of it to keep before you make another Take your Obie.',
+      [['Review', () => openConflicts()], ['OK', null, 'cancel']]);
+    return;
+  }
   const make = () => { takes.forEach(x => { x.obie = false; }); t.obie = true; t.isImportant = true; touch(t); };
   if (!takes.some(x => x.obie && x.id !== t.id)) { make(); return; }
   ask('Make this your Obie?', 'Your existing Obie returns to the timeline. Only one Take can be your Obie.', [['Make Obie', make], ['Cancel', null, 'cancel']]);
 }
 // Confirm before deleting (DeleteConfirmation): Delete first, then Cancel, as on iOS.
-const askDelete = t => ask('Delete this Take?', 'This cannot be undone.', [['Delete', () => deleteTake(t.id), 'danger'], ['Cancel', null, 'cancel']]);
-function touch(t) { t.modifiedAt = Date.now(); saveTakes(); renderTakes(); }
+const askDelete = t => refuseHeld(t.id) || ask('Delete this Take?', 'This cannot be undone.', [['Delete', () => deleteTake(t.id), 'danger'], ['Cancel', null, 'cancel']]);
+// A held Take is put back as stored by the save (keepHeld, app.js), so a change that reached it
+// anyway is undone on screen, and the user is told why.
+function touch(t) { if (isHeld(t.id)) refuseHeld(t.id); else t.modifiedAt = Date.now(); saveTakes(); renderTakes(); }
 function forgetExpanded(id) { if (expanded.delete(id)) store.set('expanded', [...expanded].sort()); }
 function deleteTake(id) {
+  if (refuseHeld(id)) return;
   takes = takes.filter(x => x.id !== id);
   forgetExpanded(id);
   saveTakes(); renderTakes();
@@ -846,6 +875,7 @@ function deleteTake(id) {
 // such dialog on iOS, so there a repeating Take deletes like any other.
 const asksWhichToDelete = t => !storyboard && repeats(t.reminder);
 function askWhichToDelete(t) {
+  if (refuseHeld(t.id)) return;
   ask('This is a repeating reminder.', 'Delete only the next occurrence, or the whole repeating series?', [
     ['Delete This Occurrence', () => {
       // Leave the editor first if this Take is open, or saving the draft would undo the skip.
@@ -897,6 +927,7 @@ async function changeKind(item, to) {
   }
 }
 async function expandIntoScript(t) {
+  if (refuseHeld(t.id)) return;
   kindChanging++;   // changeKind answers null on failure rather than throw
   const shaped = await changeKind({ id: t.id, at: t.at, mode: newScriptMode(), blocks: linesToBlocks(textOf(t)) }, 'scripts');
   if (!shaped) return endKindChange();
