@@ -41,8 +41,10 @@ packages:
   CatchlightCore:
     url: https://github.com/Considus/Catchlight-Core
     # 1.4.0: sync(holding:), so a Take waiting for a conflict choice is never uploaded or
-    # overwritten (Catchlight-Core#27).
-    exactVersion: 1.4.0
+    # overwritten (Catchlight-Core#27). 1.5.0: a held Take another device turned into a Script
+    # is reported in `SyncReport.heldConverted` instead of being let go or forked, and another
+    # device's Obie lands without the flag while this Mac's Obie is held (Catchlight-Core#29).
+    exactVersion: 1.5.0
   # The encrypted SQLite store, the Keychain items and the BIP-39 wordlist, shared with the
   # iPhone app so the two can't drift. From 1.4.0 it takes any Core 1.x
   # (Catchlight-AppleStorage#13), so a Core bump no longer needs a matching one here.

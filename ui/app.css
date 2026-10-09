@@ -643,6 +643,9 @@ body.with-menu-bar .app { height: calc(100vh - 26px); }
 .cf-label { font: 500 11px "DM Sans", sans-serif; letter-spacing: .06em; text-transform: uppercase; color: var(--text-2); }
 .cf-when { font-size: 11px; color: var(--text-2); }
 .cf-body { font-size: 15px; line-height: 1.4; white-space: pre-wrap; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.cf-note { margin: 0 0 10px; font-size: 15px; line-height: 1.4; }
+.cf-pair.cf-sole { grid-template-columns: 1fr; }
+.cf-guide.cf-after { margin: 12px 0 0; }
 .cf-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 12px; }
 .cf-actions .fr-pill:disabled { opacity: .38; }
 .cf-close { display: flex; justify-content: flex-end; border-top: 1px solid var(--divider); padding-top: 4px; }

@@ -40,7 +40,9 @@ enum SystemInfo {
 /// - `conflicts`, `resolveConflict {id, choice}`: the waiting conflicts and the user's choice. A
 ///   waiting item is held: `save` and `changeKind` refuse to change it (a save answers its id in
 ///   `held`) and sync never uploads it, until `resolveConflict {id, choice, revision}`, which
-///   alone writes it, and only for the pair the page read (`revision`, from `conflicts`);
+///   alone writes it, and only for the pair the page read (`revision`, from `conflicts`). A pair
+///   marked `converted` has no `remote`: its other side is now a Script on another device, and
+///   its choices are `new` (keep this Mac's version as a new Take) and `letGo`;
 /// - `importNotes`, `importFile`: notes from the sync folder's Import folder, or from files the
 ///   user picks, imported as Takes (`NoteImport`).
 final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
@@ -223,10 +225,15 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                 let store = vault?.library?.store
                 replyHandler(try sync.conflicts.pending.map { pair -> [String: Any] in
                     let stored = try store?.take(id: pair.local.id) ?? pair.local
-                    return ["id": pair.local.id.uuidString.lowercased(), "local": try side(pair.local), "remote": try side(pair.remote),
+                    var entry: [String: Any] = ["id": pair.local.id.uuidString.lowercased(), "local": try side(pair.local),
                             "stored": stored.isScript ? ScriptTranslation.page(from: stored) : try TakeTranslation.page(from: stored),
                             "storedKind": stored.isScript ? "scripts" : "takes",
                             "revision": sync.conflicts.revision(pair.local.id) ?? ""]
+                    // Converted: the other side is now a Script on another device, which this Mac
+                    // never reads, so the version the pair held before is not shown either.
+                    if sync.conflicts.converted.contains(pair.local.id) { entry["converted"] = true }
+                    else { entry["remote"] = try side(pair.remote) }
+                    return entry
                 } + sync.conflicts.damaged.subtracting(sync.conflicts.pending.map(\.local.id)).sorted { $0.uuidString < $1.uuidString }.map { id -> [String: Any] in
                     // A conflict that doesn't open: no versions to show, but its Take is held.
                     var entry: [String: Any] = ["id": id.uuidString.lowercased(), "damaged": true]
@@ -373,7 +380,7 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                 // already waiting for that choice is not changed at all (owner, 2026-10-07).
                 let report = try library.save(list, as: pageList, generation: body["generation"] as? Int,
                                               syncing: pageList == .takes || sync?.holdsScripts == true,
-                                              holding: sync?.conflicts.heldIDs ?? [],
+                                              holding: sync?.conflicts.saveRefusedIDs ?? [],
                                               keepConflict: { [sync] pair in try sync?.conflicts.keep(pair) })
                 Self.log.info("\(kind ?? "", privacy: .public) saved: \(report.upserted) written, \(report.deleted) deleted, \(report.rejected.count) rejected, \(report.held.count) held for a conflict choice, \(report.conflicts.count) to the conflict screen, \(report.keptOverDelete.count) kept over a delete")
                 if !report.rejected.isEmpty { Self.log.error("save kept \(report.rejected.count) items it could not read") }
@@ -390,7 +397,7 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                 }
                 var conflicts = 0
                 let changed = try library.changeKind(item, to: pageList, generation: body["generation"] as? Int,
-                                                     holding: sync?.conflicts.heldIDs ?? [],
+                                                     holding: sync?.conflicts.saveRefusedIDs ?? [],
                                                      keepConflict: { [sync] pair in try sync?.conflicts.keep(pair); conflicts += 1 })
                 // The item as stored, in its new list's shape: the page keeps this one, so its next
                 // save carries what the page's own copy didn't (a reminder, Important).

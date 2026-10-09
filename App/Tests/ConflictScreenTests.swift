@@ -343,6 +343,78 @@ final class ConflictScreenTests: XCTestCase {
         XCTAssertEqual(sync.conflicts.count, 0)
     }
 
+    /// Catchlight-Core#29: the other side became a Script on another device, which this Mac never
+    /// reads. The sheet says so and shows only this Mac's version; Keep this version as a new Take
+    /// leaves one Take, on a new id, and the original id is gone from the store.
+    func testAConvertedPairOffersANewTakeAndNeverShowsTheOtherSide() throws {
+        var h: WebViewHarness?
+        let (vault, sync, id) = try setUp(with: &h)
+        let harness = h!
+        sync.conflicts.markConverted([id])
+
+        let shown = try harness.run("""
+            for (let i = 0; i < 100 && conflictBanner.hidden; i++) await new Promise(r => setTimeout(r, 50));
+            await loadConflicts();   // marked after the page first read the queue, as a later pass would
+            openConflicts();
+            return JSON.stringify([conflictSheet.querySelector('.cf-note')?.textContent,
+              [...conflictSheet.querySelectorAll('.cf-version')].map(b => [b.querySelector('.cf-label').textContent, b.querySelector('.cf-body').textContent]),
+              [...conflictSheet.querySelectorAll('.cf-actions button')].map(b => b.textContent),
+              conflictSheet.textContent.includes('From the iPhone'), conflictSheet.querySelectorAll('[data-cf="pick"]').length]);
+            """, in: self) as? String
+        XCTAssertEqual(shown, #"["This Take was turned into a Script on another device.",[["Local","Mine, edited on the Mac"]],["Keep this version as a new Take","Let it go","Skip for now"],false,0]"#)
+        try snapshot(harness, name: "conflict-sheet-converted")
+
+        let after = try harness.run("""
+            conflictSheet.querySelector('[data-cf="asNew"]').click();
+            for (let i = 0; i < 100 && !conflictBanner.hidden; i++) await new Promise(r => setTimeout(r, 50));
+            for (let i = 0; i < 100 && takes.some(t => t.id === '\(id.uuidString.lowercased())'); i++) await new Promise(r => setTimeout(r, 50));
+            return JSON.stringify([conflictBanner.hidden, takes.map(t => [t.id === '\(id.uuidString.lowercased())', t.blocks[0].text])]);
+            """, in: self) as? String
+        XCTAssertEqual(after, #"[true,[[false,"Mine, edited on the Mac"]]]"#)
+        XCTAssertNil(try vault.library!.store.take(id: id), "the original id is never written, only let go")
+        XCTAssertEqual(try vault.library!.store.allTakes().map(\.plainText), ["Mine, edited on the Mac"])
+        XCTAssertEqual(sync.conflicts.count, 0)
+    }
+
+    /// Review of 1401408: the page drops the let-go original itself, so a refresh that fails can't
+    /// leave it on the page for an edit to write back over the Script.
+    func testAConvertedChoiceTakesTheOriginalOffThePageEvenIfTheRefreshFails() throws {
+        var h: WebViewHarness?
+        let (_, sync, id) = try setUp(with: &h)
+        let harness = h!
+        sync.conflicts.markConverted([id])
+
+        let after = try harness.run("""
+            for (let i = 0; i < 100 && conflictBanner.hidden; i++) await new Promise(r => setTimeout(r, 50));
+            await loadConflicts();
+            catchlightBridge.refresh = () => Promise.reject(new Error('refresh failed'));
+            openConflicts();
+            conflictSheet.querySelector('[data-cf="letGo"]').click();
+            for (let i = 0; i < 100 && !conflictBanner.hidden; i++) await new Promise(r => setTimeout(r, 50));
+            return JSON.stringify([conflictBanner.hidden, takes.some(t => t.id === '\(id.uuidString.lowercased())')]);
+            """, in: self) as? String
+        XCTAssertEqual(after, "[true,false]")
+    }
+
+    func testLetItGoOnAConvertedPairRemovesTheTake() throws {
+        var h: WebViewHarness?
+        let (vault, sync, id) = try setUp(with: &h)
+        let harness = h!
+        sync.conflicts.markConverted([id])
+
+        let after = try harness.run("""
+            for (let i = 0; i < 100 && conflictBanner.hidden; i++) await new Promise(r => setTimeout(r, 50));
+            await loadConflicts();
+            openConflicts();
+            conflictSheet.querySelector('[data-cf="letGo"]').click();
+            for (let i = 0; i < 100 && (takes.length || !conflictBanner.hidden); i++) await new Promise(r => setTimeout(r, 50));
+            return JSON.stringify([conflictBanner.hidden, takes.length]);
+            """, in: self) as? String
+        XCTAssertEqual(after, "[true,0]")
+        XCTAssertNil(try vault.library!.store.take(id: id))
+        XCTAssertTrue(sync.conflicts.heldIDs.isEmpty)
+    }
+
     /// Evidence for the PR: the sheet as drawn, saved beside the test results.
     private func snapshot(_ harness: WebViewHarness, name: String) throws {
         let done = expectation(description: "snapshot")

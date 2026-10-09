@@ -394,9 +394,11 @@ final class SyncServiceTests: XCTestCase {
         XCTAssertEqual(try a.vault.library!.store.take(id: other)?.plainText, "Other", "never uploaded")
     }
 
-    /// A waiting Take another device turned into a Script leaves this Mac (Core lets it go): its
-    /// pair and file go too, so no conflict waits for a Take that isn't here.
-    func testAWaitingConflictWhoseTakeBecameAScriptElsewhereIsLetGo() throws {
+    /// A waiting Take another device turned into a Script stays on this Mac, held, while the choice
+    /// waits (Catchlight-Core#29: before 1.5.0 Core let it go). The pair is marked converted, in its
+    /// file, so a relaunch still shows it as such; keeping this Mac's version as a new Take sends
+    /// only the new Take, and the other Mac's Script stays as it was.
+    func testAWaitingConflictWhoseTakeBecameAScriptElsewhereIsMarkedConverted() throws {
         let words = try Vault.newPhrase()
         let a = try mac("A", words: words, syncScripts: true), b = try mac("B", words: words)
         let id = try write("Original", on: a)
@@ -413,12 +415,23 @@ final class SyncServiceTests: XCTestCase {
         try a.vault.library!.changeKind(["id": id.uuidString, "at": "2026-07-01T09:00:00.000Z", "mode": "a4", "blocks": ["# Edited on A"]], to: .scripts)
         _ = try sync(a)
         let report = try sync(b)
-        XCTAssertTrue(report.deletedLocally.contains(id), "Core let the Take go")
-        XCTAssertTrue(b.conflicts.pending.isEmpty)
-        XCTAssertFalse(b.conflicts.heldIDs.contains(id))
+        XCTAssertEqual(report.heldConverted, [id])
+        XCTAssertFalse(report.deletedLocally.contains(id), "held, the Take is not let go")
+        XCTAssertEqual(try b.vault.library!.store.take(id: id)?.plainText, "Edited on B")
+        XCTAssertEqual(b.conflicts.converted, [id])
+
+        let relaunched = SyncService(vault: b.vault, folder: b.folder)
+        XCTAssertEqual(relaunched.conflicts.converted, [id], "the mark survives a relaunch")
+        XCTAssertEqual(relaunched.conflicts.heldIDs, [id])
+
+        let copy = try XCTUnwrap(try relaunched.conflicts.resolve(id: id, choice: .asNew, store: b.vault.library!.store))
+        XCTAssertNil(try b.vault.library!.store.take(id: id))
+        _ = try sync(relaunched); _ = try sync(a)
+        XCTAssertEqual(try a.vault.library!.store.take(id: id)?.isScript, true)
+        XCTAssertEqual(try a.vault.library!.pageScripts().first?["blocks"] as? [String], ["# Edited on A"], "the Script is as A left it")
+        XCTAssertEqual(try a.vault.library!.store.take(id: copy.id)?.plainText, "Edited on B", "B's version reaches A as a new Take")
         let folder = b.vault.directory.appendingPathComponent("Conflicts")
         XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: folder.path).filter { $0.hasSuffix(".conflict") }, [])
-        XCTAssertTrue(SyncService(vault: b.vault, folder: b.folder).conflicts.heldIDs.isEmpty, "nothing held after a relaunch either")
     }
 
     /// #52 review (Greptile): a pass asked for while one runs (a save written once it ended) gets

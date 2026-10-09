@@ -6,6 +6,9 @@
 // it waiting. Until a choice the item is held (owner, 2026-10-07): read-only on the page (app.js,
 // held), refused by the shell's saves, and never uploaded by sync. The shell keeps the waiting
 // pairs (ConflictQueue, sealed on disk), so in a plain browser there are none and nothing here shows.
+// A CONVERTED pair (`converted`, no `remote`): another device has since turned the Take into a
+// Script this Mac doesn't hold, so there is no other version to show. Its choices are keeping this
+// Mac's version as a new Take, or letting it go; never a pick, which would write into the Script.
 
 const conflictBanner = document.createElement('div');
 conflictBanner.className = 'conflict-banner';
@@ -18,6 +21,7 @@ conflictSheet.setAttribute('aria-labelledby', 'conflicts-heading');
 document.body.append(conflictSheet);
 
 let conflictList = [];
+let conflictAll = [];                  // as the shell sent them, damaged ones included (they hold too)
 const conflictChoice = {};              // id → 'local' | 'remote', picked but not yet kept
 const conflictSkipped = new Set();     // Skip for now: hidden until the next launch or sync finds it again
 const conflictSeen = {};               // id → the versions a pick was made against
@@ -47,6 +51,7 @@ async function loadConflicts() {
   catch (e) { console.error('Reading the conflicts failed', e); return; }
   // A conflict that doesn't open has no versions to choose between, but its Take stays held,
   // and the user is told once a launch.
+  conflictAll = all;
   conflictList = all.filter(c => !c.damaged);
   for (const c of all) if (c.damaged && !conflictDamagedNoticed.has(c.id)) {
     conflictDamagedNoticed.add(c.id);
@@ -58,7 +63,7 @@ async function loadConflicts() {
   // A pick only stands for the versions it was made against: if a sync replaced either side,
   // the user chooses again.
   for (const c of conflictList) {
-    const sig = JSON.stringify([c.local, c.remote]);
+    const sig = JSON.stringify([c.local, c.remote, !!c.converted]);
     if (conflictSeen[c.id] !== sig) { delete conflictChoice[c.id]; conflictSeen[c.id] = sig; }
   }
   paintConflicts();
@@ -84,6 +89,22 @@ function paintConflictSheet() {
     setTimeout(() => { if (!shownConflicts().length) conflictSheet.close(); }, 900);
     return;
   }
+  // This Mac's version alone, shown but not picked: a converted pair has nothing to choose between.
+  const solePanel = c => `<div class="cf-version">
+      <span class="cf-label">${L10N.t('Local')}</span>
+      <span class="cf-when">${esc(conflictWhen(c.local))}</span>
+      <span class="cf-body">${esc(conflictText(c.local))}</span>
+    </div>`;
+  const convertedItem = c => `<section class="cf-item cf-converted" data-id="${esc(c.id)}">
+      <p class="cf-note">${t('This Take was turned into a Script on another device.')}</p>
+      <div class="cf-pair cf-sole">${solePanel(c)}</div>
+      <p class="cf-guide cf-after">${t("The Script can't be shown here. Keep this version as a new Take, or let it go.")}</p>
+      <div class="cf-actions">
+        <button class="fr-pill primary" type="button" data-cf="asNew" data-id="${esc(c.id)}">${t('Keep this version as a new Take')}</button>
+        <button class="fr-pill" type="button" data-cf="letGo" data-id="${esc(c.id)}">${t('Let it go')}</button>
+        <button class="slink" type="button" data-cf="skip" data-id="${esc(c.id)}">${t('Skip for now')}</button>
+      </div>
+    </section>`;
   const panel = (c, side) => {
     const t = c[side], picked = conflictChoice[c.id] === side;
     return `<button class="cf-version${picked ? ' picked' : ''}" type="button" data-cf="pick" data-id="${esc(c.id)}" data-side="${side}" aria-pressed="${picked}">
@@ -92,12 +113,13 @@ function paintConflictSheet() {
       <span class="cf-body">${esc(conflictText(t))}</span>
     </button>`;
   };
-  const kinds = conflictKinds(list);
+  // The guide is about choosing between two versions, which a converted pair doesn't offer.
+  const pairs = list.filter(c => !c.converted), kinds = conflictKinds(pairs);
   conflictSheet.innerHTML = `<h2 id="conflicts-heading">${t('Sync conflicts')}</h2>
-    <p class="cf-guide">${kinds === 'both' ? t("These Takes and Scripts were edited on different devices, so we can't tell which to keep. Choose the version you'd like to keep, or keep both. A version you don't keep is removed.")
+    ${pairs.length ? `<p class="cf-guide">${kinds === 'both' ? t("These Takes and Scripts were edited on different devices, so we can't tell which to keep. Choose the version you'd like to keep, or keep both. A version you don't keep is removed.")
       : kinds === 'scripts' ? t("These Scripts were edited on different devices, so we can't tell which to keep. Choose the version you'd like to keep, or keep both. A version you don't keep is removed.")
-      : t("These Takes were edited on different devices, so we can't tell which to keep. Choose the version you'd like to keep, or keep both. A version you don't keep is removed.")}</p>
-    ${list.map(c => `<section class="cf-item" data-id="${esc(c.id)}">
+      : t("These Takes were edited on different devices, so we can't tell which to keep. Choose the version you'd like to keep, or keep both. A version you don't keep is removed.")}</p>` : ''}
+    ${list.map(c => c.converted ? convertedItem(c) : `<section class="cf-item" data-id="${esc(c.id)}">
       <div class="cf-pair">${panel(c, 'local')}${panel(c, 'remote')}</div>
       <div class="cf-actions">
         <button class="fr-pill primary" type="button" data-cf="keep" data-id="${esc(c.id)}"${conflictChoice[c.id] ? '' : ' disabled'}>${t('Keep this version')}</button>
@@ -111,7 +133,7 @@ function paintConflictSheet() {
 function openConflicts() {
   paintConflictSheet();
   conflictSheet.showModal();
-  conflictSheet.querySelector('.cf-version')?.focus();
+  conflictSheet.querySelector('button.cf-version, .cf-actions button')?.focus();
 }
 
 async function resolveConflict(id, choice) {
@@ -130,6 +152,19 @@ async function resolveConflict(id, choice) {
     return loadConflicts();
   }
   delete conflictChoice[id];
+  // The shell has lifted the hold: forget the held copy BEFORE the refresh, or a save in between
+  // would put it back into a list that no longer has it, and write it. For a converted pair that
+  // is the original id, which the folder now lists as another device's Script.
+  conflictAll = conflictAll.filter(c => c.id !== id);
+  conflictList = conflictList.filter(c => c.id !== id);
+  setHeld(conflictAll);
+  // A converted choice let the original go: it leaves the page's list now, not only at the
+  // refresh, so if the refresh fails no edit can reach its id (the shell refuses one too).
+  if (choice === 'new' || choice === 'letGo') {
+    const kept = x => x.id.toLowerCase() !== id.toLowerCase();
+    if (takes.some(x => !kept(x))) replaceTakes(takes.filter(kept));
+    if (scripts.some(x => !kept(x))) replaceScripts(scripts.filter(kept));
+  }
   // The choice is written. Show it, and send it to the other devices; a failure in either is
   // logged, and the next refresh or sync catches up.
   await catchlightBridge.refresh().catch(e => console.error('Refreshing the Takes failed', e));
@@ -146,6 +181,8 @@ conflictSheet.addEventListener('click', e => {
     case 'pick': conflictChoice[id] = b.dataset.side; paintConflictSheet(); break;
     case 'keep': if (conflictChoice[id]) resolveConflict(id, conflictChoice[id]); break;
     case 'both': resolveConflict(id, 'both'); break;
+    case 'asNew': resolveConflict(id, 'new'); break;
+    case 'letGo': resolveConflict(id, 'letGo'); break;
     case 'skip': conflictSkipped.add(id); paintConflictSheet(); break;
     case 'close': conflictSheet.close(); break;
   }
