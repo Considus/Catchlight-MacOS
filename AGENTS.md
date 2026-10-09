@@ -131,6 +131,20 @@ Look for WebKit process crashes in the log if the window is blank: `log show --l
 
 For `ui/`, serve it (`python3 -m http.server 8851 -d ui`, or the `catchlight-macos-ui` preview config) and prove changes in the browser with a screenshot in Night and Daylight. Clear `cl.*` keys from `localStorage` afterwards so the placeholder data is back to its defaults.
 
+### The copy Mark runs
+
+Mark runs `~/Applications/Catchlight.app`. Use `scripts/device/device.py`; never ask him which build he has or to export the log:
+
+```bash
+python3 scripts/device/device.py status                 # which build is installed, against origin/main
+python3 scripts/device/device.py install --ref <ref>    # clean build of a ref, swapped into ~/Applications, stamp checked
+python3 scripts/device/device.py logs --crashes         # diagnostics log and crash reports, as text
+```
+
+- **`install` after an app change merges**, with `--ref origin/main`, so Mark runs what was merged. Run it in the background (`run_in_background`): a clean universal build takes several minutes. It builds in a throwaway worktree, never the shared checkout; quits the app if it is open; keeps the previous copy until the new one reports the commit that was built, and puts it back if not. Only one install runs at a time. Ask Mark first when the build crosses a data-affecting change (a Core bump, the store, the Keychain, sync), because his real library is in this Mac's container.
+- **The build stamp:** `project.yml` stamps `CFBundleVersion` with the git short SHA, as the iPhone app does; archives keep the number. A copy built before the stamp existed reads "1", and `status` says to install a fresh one.
+- **`logs` when Mark reports a problem**, before asking him anything. It reads `catchlight-diagnostics.json` from the app's container (no Take content, by design), writes it as text, and with `--crashes` adds Catchlight's reports from `~/Library/Logs/DiagnosticReports`.
+
 ## Ship
 
 Run `/code-review` locally before opening the PR. Label `greptile` (filter in `.greptile/config.json`) only on a PR that changes behaviour (budgeted, 50 a month across the org). Every PR also gets one automatic Claude review (`.github/workflows/claude-review.yml`).

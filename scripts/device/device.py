@@ -146,7 +146,9 @@ def cmd_status(args):
         return 0
     code, out = run(["git", "-C", root, "rev-list", "--count", f"{stamp}..origin/main"],
                     GIT_TIMEOUT, label="git rev-list", check=False)
-    if code == 0:
+    if code == 0 and out.strip() == "0":
+        print("The installed copy has everything on origin/main: it is a branch build ahead of it.")
+    elif code == 0:
         print(f"The installed copy is {out.strip()} commits behind origin/main.")
     else:
         print(f"The installed build stamp {stamp!r} is not a commit this repo knows "
