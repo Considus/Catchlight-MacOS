@@ -83,14 +83,27 @@ def run(cmd, timeout, cwd=None, label=None, check=True):
 # ---- pure helpers (unit-tested in test_device.py) -------------------------
 
 def entry_line(entry):
-    """One diagnostics entry as the iPhone app's Export writes it, in local time."""
-    when = (APPLE_EPOCH + dt.timedelta(seconds=float(entry["timestamp"]))).astimezone()
-    return f"{when:%Y-%m-%d %H:%M:%S}  [{entry['category']}]  {entry['message']}"
+    """One diagnostics entry as the iPhone app's Export writes it, in local time.
+
+    A malformed entry is shown as raw JSON rather than stopping the whole log.
+    """
+    try:
+        when = (APPLE_EPOCH + dt.timedelta(seconds=float(entry["timestamp"]))).astimezone()
+        return f"{when:%Y-%m-%d %H:%M:%S}  [{entry['category']}]  {entry['message']}"
+    except (KeyError, TypeError, ValueError):
+        return f"(malformed entry) {json.dumps(entry)}"
+
+
+def _sort_key(entry):
+    try:
+        return float(entry["timestamp"])
+    except (KeyError, TypeError, ValueError):
+        return float("inf")
 
 
 def diagnostics_text(entries):
     """The whole log as text, oldest first."""
-    ordered = sorted(entries, key=lambda e: float(e["timestamp"]))
+    ordered = sorted(entries, key=_sort_key)
     return "\n".join(entry_line(e) for e in ordered) + ("\n" if ordered else "")
 
 
@@ -273,6 +286,12 @@ def cmd_logs(args):
             entries = json.load(f)
     except FileNotFoundError:
         entries = None
+    except json.JSONDecodeError:
+        # The app rewrites the file whole; a read mid-write or after a crash can
+        # catch it truncated. Keep going so the crash reports are still collected.
+        print(f"The diagnostics log at {DIAG_PATH} is truncated or damaged; run logs again "
+              "once the app has settled.")
+        entries = []
     except PermissionError:
         raise Failure("macOS refused access to the app's container: allow this terminal "
                       "under System Settings > Privacy & Security > App Management or Full Disk Access")
