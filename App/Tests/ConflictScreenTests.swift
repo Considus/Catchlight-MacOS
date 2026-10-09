@@ -376,6 +376,26 @@ final class ConflictScreenTests: XCTestCase {
         XCTAssertEqual(sync.conflicts.count, 0)
     }
 
+    /// Review of 1401408: the page drops the let-go original itself, so a refresh that fails can't
+    /// leave it on the page for an edit to write back over the Script.
+    func testAConvertedChoiceTakesTheOriginalOffThePageEvenIfTheRefreshFails() throws {
+        var h: WebViewHarness?
+        let (_, sync, id) = try setUp(with: &h)
+        let harness = h!
+        sync.conflicts.markConverted([id])
+
+        let after = try harness.run("""
+            for (let i = 0; i < 100 && conflictBanner.hidden; i++) await new Promise(r => setTimeout(r, 50));
+            await loadConflicts();
+            catchlightBridge.refresh = () => Promise.reject(new Error('refresh failed'));
+            openConflicts();
+            conflictSheet.querySelector('[data-cf="letGo"]').click();
+            for (let i = 0; i < 100 && !conflictBanner.hidden; i++) await new Promise(r => setTimeout(r, 50));
+            return JSON.stringify([conflictBanner.hidden, takes.some(t => t.id === '\(id.uuidString.lowercased())')]);
+            """, in: self) as? String
+        XCTAssertEqual(after, "[true,false]")
+    }
+
     func testLetItGoOnAConvertedPairRemovesTheTake() throws {
         var h: WebViewHarness?
         let (vault, sync, id) = try setUp(with: &h)

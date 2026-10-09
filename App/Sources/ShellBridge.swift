@@ -380,7 +380,7 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                 // already waiting for that choice is not changed at all (owner, 2026-10-07).
                 let report = try library.save(list, as: pageList, generation: body["generation"] as? Int,
                                               syncing: pageList == .takes || sync?.holdsScripts == true,
-                                              holding: sync?.conflicts.heldIDs ?? [],
+                                              holding: sync?.conflicts.saveRefusedIDs ?? [],
                                               keepConflict: { [sync] pair in try sync?.conflicts.keep(pair) })
                 Self.log.info("\(kind ?? "", privacy: .public) saved: \(report.upserted) written, \(report.deleted) deleted, \(report.rejected.count) rejected, \(report.held.count) held for a conflict choice, \(report.conflicts.count) to the conflict screen, \(report.keptOverDelete.count) kept over a delete")
                 if !report.rejected.isEmpty { Self.log.error("save kept \(report.rejected.count) items it could not read") }
@@ -397,7 +397,7 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                 }
                 var conflicts = 0
                 let changed = try library.changeKind(item, to: pageList, generation: body["generation"] as? Int,
-                                                     holding: sync?.conflicts.heldIDs ?? [],
+                                                     holding: sync?.conflicts.saveRefusedIDs ?? [],
                                                      keepConflict: { [sync] pair in try sync?.conflicts.keep(pair); conflicts += 1 })
                 // The item as stored, in its new list's shape: the page keeps this one, so its next
                 // save carries what the page's own copy didn't (a reminder, Important).

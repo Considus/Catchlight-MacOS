@@ -158,6 +158,13 @@ async function resolveConflict(id, choice) {
   conflictAll = conflictAll.filter(c => c.id !== id);
   conflictList = conflictList.filter(c => c.id !== id);
   setHeld(conflictAll);
+  // A converted choice let the original go: it leaves the page's list now, not only at the
+  // refresh, so if the refresh fails no edit can reach its id (the shell refuses one too).
+  if (choice === 'new' || choice === 'letGo') {
+    const kept = x => x.id.toLowerCase() !== id.toLowerCase();
+    if (takes.some(x => !kept(x))) replaceTakes(takes.filter(kept));
+    if (scripts.some(x => !kept(x))) replaceScripts(scripts.filter(kept));
+  }
   // The choice is written. Show it, and send it to the other devices; a failure in either is
   // logged, and the next refresh or sync catches up.
   await catchlightBridge.refresh().catch(e => console.error('Refreshing the Takes failed', e));

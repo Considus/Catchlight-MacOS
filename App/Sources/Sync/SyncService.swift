@@ -198,6 +198,16 @@ final class ConflictQueue {
     /// Pairs whose other side another device turned into a Script this Mac doesn't hold. Kept in
     /// each pair's file, so it survives a relaunch, and cleared only by `resolve` or `release`.
     private(set) var converted: Set<UUID> = []
+    /// For a converted pair whose "keep as new" has begun: the id its copy is written under.
+    /// Kept in the pair's file BEFORE the copy is written, so a retry after a failure (or a crash)
+    /// finds the copy instead of making a second one.
+    private var keptAs: [UUID: UUID] = [:]
+    /// Originals let go by a converted choice this launch. Their id is now another device's
+    /// Script: saves refuse to write it (`saveRefusedIDs`), so a page still holding the old copy
+    /// can never put it back.
+    private(set) var retired: Set<UUID> = []
+    /// What a save must refuse: everything held, and every original a converted choice let go.
+    var saveRefusedIDs: Set<UUID> { heldIDs.union(retired) }
 
     enum Failure: Error, LocalizedError, Equatable {
         /// The pair changed after the page read it: nothing is written, and the user chooses again.
@@ -244,6 +254,7 @@ final class ConflictQueue {
                 let file = try Self.openFile(Data(contentsOf: url), id: id, keys: keys)
                 add(file.pair)
                 if file.converted { converted.insert(id) }
+                if let copy = file.keptAs { keptAs[id] = copy }
             } catch {
                 // Kept as it is, never deleted or written over (`write` moves it aside first): it
                 // may hold the only copy of the other version. Its Take stays held.
@@ -255,9 +266,16 @@ final class ConflictQueue {
 
     /// An incoming pair replaces a pending one for the same Take, so the choice is always made
     /// against the newest versions.
+    /// A pair a pass reports is a readable Take on both sides, so a converted mark on it no
+    /// longer holds (the other device turned the Script back into a Take): it goes, and the
+    /// revision changes, so a choice made against the converted pair is refused.
     func enqueue(_ pairs: [(local: Take, remote: Take)]) {
         for pair in pairs {
             add(pair)
+            if converted.remove(pair.local.id) != nil {
+                keptAs[pair.local.id] = nil
+                revisions[pair.local.id] = UUID().uuidString.lowercased()
+            }
             persist(pair)
         }
     }
@@ -341,9 +359,7 @@ final class ConflictQueue {
         let pair = pending[i]
         if converted.contains(id) != [.asNew, .letGo].contains(choice) { throw Failure.choiceDoesNotFit }
         if converted.contains(id) {
-            let copy = try resolveConverted(pair, keepAsNew: choice == .asNew, store: store, now: now)
-            finish(id)
-            return copy
+            return try resolveConverted(pair, keepAsNew: choice == .asNew, store: store, now: now)
         }
         // This Mac's version is the Take as it is NOW. Saves can't change a held Take, so that is
         // the version the conflict was found against; reading the store still guards against
@@ -369,6 +385,7 @@ final class ConflictQueue {
         pending.removeAll { $0.local.id == id }
         revisions[id] = nil
         converted.remove(id)
+        keptAs[id] = nil
         if let url = fileURL(id) {
             try? setAsideIfUnreadable(url, id: id)
             try? FileManager.default.removeItem(at: url)
@@ -390,27 +407,42 @@ final class ConflictQueue {
         let current = try store.take(id: id)
         var copy: Take?
         if keepAsNew {
-            var made = Self.copy(of: current ?? pair.local)
-            made.modifiedAt = now
-            try store.upsert(made)
-            copy = made
+            if let earlier = keptAs[id], let made = try store.take(id: earlier) {
+                copy = made   // a retry: the copy was written before the failure
+            } else {
+                let copyID = keptAs[id] ?? UUID()
+                keptAs[id] = copyID
+                try write(pair)   // the copy's id is on disk before the copy is
+                var made = Self.copy(of: current ?? pair.local, id: copyID)
+                made.modifiedAt = now
+                try store.upsert(made)
+                copy = made
+            }
         }
         if let current, try !store.release(id: id, ifNotModifiedAfter: current.modifiedAt) {
             // Changed between the read and the release: withdraw the copy and write nothing.
             if let copy { _ = try store.release(id: copy.id, ifNotModifiedAfter: copy.modifiedAt) }
+            keptAs[id] = nil
             throw Failure.takeChanged
         }
-        if let made = copy, (current ?? pair.local).isObie {
-            try store.setObie(id: made.id, replaceExisting: true)
-            copy = try store.take(id: made.id) ?? made
+        // The original has gone: the pair goes now, so nothing after this can lead to a second copy.
+        retired.insert(id)
+        finish(id)
+        if let made = copy, (current ?? pair.local).isObie, try store.currentObie() == nil {
+            // As Core's fork: a failure here can cost the Obie marker, never the text.
+            do {
+                try store.setObie(id: made.id, replaceExisting: true)
+                copy = try store.take(id: made.id) ?? made
+            } catch {
+                Self.log.error("the kept copy could not take over the Obie: \(String(describing: error), privacy: .public)")
+            }
         }
         return copy
     }
 
     /// The other device's version as a Take of its own: a new id, a new notification id for its
     /// reminder so the two never cancel each other, and never the Obie (as Core's `SyncEngine.fork`).
-    static func copy(of take: Take) -> Take {
-        let id = UUID()
+    static func copy(of take: Take, id: UUID = UUID()) -> Take {
         var reminder = take.timeReminder
         reminder?.notificationIdentifier = id.uuidString
         return Take(id: id, createdAt: take.createdAt, modifiedAt: take.modifiedAt,
@@ -424,7 +456,8 @@ final class ConflictQueue {
     // MARK: On disk
 
     /// `converted` is absent in files from before Core 1.5, which read as not converted.
-    private struct Pair: Codable { let local: Take; let remote: Take; var converted: Bool? }
+    /// `keptAs`: the id a converted pair's "keep as new" copy is written under, once begun.
+    private struct Pair: Codable { let local: Take; let remote: Take; var converted: Bool?; var keptAs: UUID? }
 
     /// The id a conflict file is named for: `<id>.conflict`, `<id>.<uuid>.unreadable`.
     static func id(of url: URL) -> UUID? {
@@ -454,7 +487,7 @@ final class ConflictQueue {
         guard let directory, let keys, let url = fileURL(pair.local.id) else { return }
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         try setAsideIfUnreadable(url, id: pair.local.id)
-        try Self.seal(pair, converted: converted.contains(pair.local.id), keys: keys).write(to: url, options: .atomic)
+        try Self.seal(pair, converted: converted.contains(pair.local.id), keptAs: keptAs[pair.local.id], keys: keys).write(to: url, options: .atomic)
     }
 
     /// A file at `url` that doesn't open as `id`'s pair goes to `<id>.<new uuid>.unreadable`
@@ -468,8 +501,8 @@ final class ConflictQueue {
         Self.log.error("a waiting conflict that did not open was set aside: \(aside.lastPathComponent, privacy: .public)")
     }
 
-    static func seal(_ pair: (local: Take, remote: Take), converted: Bool = false, keys: KeyHierarchy) throws -> Data {
-        let plain = try PlatformJSON.encode(Pair(local: pair.local, remote: pair.remote, converted: converted ? true : nil))
+    static func seal(_ pair: (local: Take, remote: Take), converted: Bool = false, keptAs: UUID? = nil, keys: KeyHierarchy) throws -> Data {
+        let plain = try PlatformJSON.encode(Pair(local: pair.local, remote: pair.remote, converted: converted ? true : nil, keptAs: keptAs))
         let id = pair.local.id
         return try AES.GCM.seal(plain, using: keys.itemKey(takeUUID: id), authenticating: format + Data(id.uuidString.utf8)).combined!
     }
@@ -478,10 +511,10 @@ final class ConflictQueue {
         try openFile(sealed, id: id, keys: keys).pair
     }
 
-    static func openFile(_ sealed: Data, id: UUID, keys: KeyHierarchy) throws -> (pair: (local: Take, remote: Take), converted: Bool) {
+    static func openFile(_ sealed: Data, id: UUID, keys: KeyHierarchy) throws -> (pair: (local: Take, remote: Take), converted: Bool, keptAs: UUID?) {
         let box = try AES.GCM.SealedBox(combined: sealed)
         let plain = try AES.GCM.open(box, using: keys.itemKey(takeUUID: id), authenticating: format + Data(id.uuidString.utf8))
         let pair = try PlatformJSON.decode(Pair.self, from: plain)
-        return ((pair.local, pair.remote), pair.converted == true)
+        return ((pair.local, pair.remote), pair.converted == true, pair.keptAs)
     }
 }

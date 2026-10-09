@@ -217,6 +217,9 @@ final class Library {
         // Only Takes the page was given and no longer sends are deletions; a rejected Take keeps
         // its stored version, and a Take sync added since the snapshot was never the page's.
         for (id, was) in base where list.holds(was) && !seen.contains(id) {
+            // Already gone from the store (a converted conflict's original, let go): nothing to
+            // delete or to refuse, and no deletion record for an id that is now a Script elsewhere.
+            if held.contains(id), try stored(id) == nil { base[id] = nil; continue }
             if held.contains(id) {
                 // Kept in the snapshot too: the page's next save, which may still lack it, is refused again.
                 report.held.append(id.uuidString.lowercased())

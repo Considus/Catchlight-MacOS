@@ -198,4 +198,115 @@ final class HeldConvertedTests: XCTestCase {
         _ = try relaunched.resolve(id: local.id, choice: .letGo, store: InMemoryTakeStore())
         XCTAssertTrue(ConflictQueue(directory: directory, keys: keys).heldIDs.isEmpty, "resolved, nothing waits after a relaunch")
     }
+
+    // MARK: - Review of 1401408
+
+    /// The other device turned the Script back into a Take: a pass reports an ordinary pair for the
+    /// id, the mark goes and the revision changes, so the sheet offers the usual choices again.
+    func testAnOrdinaryPairForAConvertedIdClearsTheMark() throws {
+        let local = Take(blocks: [.text(TextBlock(text: "Mine"))])
+        var remote = local
+        remote.blocks = [.text(TextBlock(text: "Theirs"))]
+        let queue = ConflictQueue(directory: directory, keys: keys)
+        queue.enqueue([(local: local, remote: remote)])
+        queue.markConverted([local.id])
+        let marked = queue.revision(local.id)
+
+        var again = remote
+        again.blocks = [.text(TextBlock(text: "A Take again"))]
+        queue.enqueue([(local: local, remote: again)])
+
+        XCTAssertTrue(queue.converted.isEmpty)
+        XCTAssertNotEqual(queue.revision(local.id), marked)
+        XCTAssertTrue(ConflictQueue(directory: directory, keys: keys).converted.isEmpty, "and on disk")
+    }
+
+    /// A failure partway through keep-as-new (here the release throws once) leaves the pair, and
+    /// the retry finds the copy already made rather than making a second one.
+    func testKeepAsNewRetriedAfterAFailureMakesOneCopy() throws {
+        let queue = ConflictQueue(directory: directory, keys: keys)
+        let id = try convertedPair(queue: queue)
+        queue.markConverted([id])   // persists the mark now the queue is on disk
+        let flaky = FlakyStore(mac, failReleases: 1)
+
+        XCTAssertThrowsError(try queue.resolve(id: id, choice: .asNew, store: flaky))
+        XCTAssertEqual(queue.heldIDs, [id], "the pair stays for a retry")
+        let relaunched = ConflictQueue(directory: directory, keys: keys)   // or a crash and a relaunch
+        let copy = try XCTUnwrap(try relaunched.resolve(id: id, choice: .asNew, store: flaky))
+
+        XCTAssertEqual(try mac.allTakes().map(\.id), [copy.id], "one copy, and the original gone")
+    }
+
+    /// The Obie can't be handed over: the copy is kept all the same and the pair is gone, so a
+    /// retry can't make another.
+    func testKeepAsNewWhenTheObieCantMoveStillEndsThePair() throws {
+        let queue = ConflictQueue()
+        let id = try convertedPair(queue: queue, obie: true)
+        let flaky = FlakyStore(mac, failSetObie: true)
+
+        let copy = try XCTUnwrap(try queue.resolve(id: id, choice: .asNew, store: flaky))
+
+        XCTAssertTrue(queue.heldIDs.isEmpty)
+        XCTAssertEqual(try mac.allTakes().map(\.id), [copy.id])
+        XCTAssertNil(try queue.resolve(id: id, choice: .asNew, store: flaky), "nothing left to resolve")
+    }
+
+    /// An edit to the let-go original that still reaches a save (a page that missed the refresh)
+    /// is kept as a new Take, never written on the original id.
+    func testASaveNamingALetGoOriginalNeverWritesIt() throws {
+        let vault = Vault(secrets: MemorySecrets(), directory: directory.appendingPathComponent("Library"))
+        try vault.createAccount(words: try Vault.newPhrase(), restored: true)
+        let library = vault.library!
+        let original = Take(blocks: [.text(TextBlock(text: "Mine"))])
+        try library.store.upsert(original)
+        let queue = ConflictQueue()
+        queue.enqueue([(local: original, remote: original)])
+        queue.markConverted([original.id])
+        let page = try library.pageTakes()
+        _ = try queue.resolve(id: original.id, choice: .letGo, store: library.store)
+
+        var edited = page
+        edited[0]["blocks"] = [["k": "text", "text": "Typed after it was let go"]]
+        let report = try library.saveTakes(edited, holding: queue.saveRefusedIDs)
+
+        XCTAssertNil(try library.store.take(id: original.id), "the original id is never written")
+        XCTAssertEqual(report.forked.count, 1, "the typing is kept as a new Take")
+        _ = try library.saveTakes([], holding: queue.saveRefusedIDs)
+        XCTAssertNil(try library.store.take(id: original.id))
+    }
+}
+
+/// A store that fails on cue, for the partial-failure cases.
+private final class FlakyStore: TakeStore {
+    let base: InMemoryTakeStore
+    var failReleases: Int
+    let failSetObie: Bool
+    init(_ base: InMemoryTakeStore, failReleases: Int = 0, failSetObie: Bool = false) {
+        self.base = base; self.failReleases = failReleases; self.failSetObie = failSetObie
+    }
+    struct Failed: Error {}
+    func release(id: UUID, ifNotModifiedAfter cutoff: Date) throws -> Bool {
+        if failReleases > 0 { failReleases -= 1; throw Failed() }
+        return try base.release(id: id, ifNotModifiedAfter: cutoff)
+    }
+    func setObie(id: UUID, replaceExisting: Bool) throws {
+        if failSetObie { throw Failed() }
+        try base.setObie(id: id, replaceExisting: replaceExisting)
+    }
+    func upsert(_ take: Take) throws { try base.upsert(take) }
+    func delete(id: UUID) throws { try base.delete(id: id) }
+    func applyRemote(_ take: Take) throws -> Bool { try base.applyRemote(take) }
+    func take(id: UUID) throws -> Take? { try base.take(id: id) }
+    func allTakes() throws -> [Take] { try base.allTakes() }
+    func takesModified(since date: Date?) throws -> [Take] { try base.takesModified(since: date) }
+    func search(_ query: String) throws -> [Take] { try base.search(query) }
+    func upsert(_ sequence: CatchlightSequence) throws { try base.upsert(sequence) }
+    func sequence(id: UUID) throws -> CatchlightSequence? { try base.sequence(id: id) }
+    func allSequences() throws -> [CatchlightSequence] { try base.allSequences() }
+    func deleteSequence(id: UUID) throws { try base.deleteSequence(id: id) }
+    func currentObie() throws -> Take? { try base.currentObie() }
+    func lastSyncDate() -> Date? { base.lastSyncDate() }
+    func setLastSyncDate(_ date: Date) { base.setLastSyncDate(date) }
+    func tombstones() throws -> [Tombstone] { try base.tombstones() }
+    func purgeTombstones(ids: [UUID]) throws { try base.purgeTombstones(ids: ids) }
 }
