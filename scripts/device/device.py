@@ -188,6 +188,13 @@ def install_locked(args):
         run(["git", "-C", root, "worktree", "add", "--detach", src, sha], GIT_TIMEOUT,
             label="git worktree add")
         run(["xcodegen", "generate"], XCODEGEN_TIMEOUT, cwd=src, label="xcodegen")
+        # The stamp adds "+dirty" when the tree has changes, and xcodegen rewrites
+        # tracked plists: stop here, with the reason, rather than fail the stamp
+        # check after a full build.
+        changed = run(["git", "-C", src, "status", "--porcelain"], GIT_TIMEOUT, label="git status")[1]
+        if changed.strip():
+            raise Failure("xcodegen changed tracked files, so the build would be stamped "
+                          "+dirty; commit the regenerated files on the branch first:\n" + changed.strip())
         run(["xcodebuild", "-scheme", SCHEME, "-configuration", "Debug",
              "-derivedDataPath", derived, "-allowProvisioningUpdates", "ONLY_ACTIVE_ARCH=NO",
              "build"], BUILD_TIMEOUT, cwd=src, label="xcodebuild")
@@ -261,17 +268,19 @@ def cmd_logs(args):
     build = bundle_build(args.dest)
     label = build[1] if build else "not installed"
 
-    if not os.path.isfile(DIAG_PATH):
+    try:
+        with open(DIAG_PATH) as f:
+            entries = json.load(f)
+    except FileNotFoundError:
+        entries = None
+    except PermissionError:
+        raise Failure("macOS refused access to the app's container: allow this terminal "
+                      "under System Settings > Privacy & Security > App Management or Full Disk Access")
+    if entries is None:
         print(f"No diagnostics log yet at {DIAG_PATH} (installed build: {label}). "
               "The log appears once a build that writes it has run.")
         entries = []
     else:
-        try:
-            with open(DIAG_PATH) as f:
-                entries = json.load(f)
-        except PermissionError:
-            raise Failure("macOS refused access to the app's container: allow this terminal "
-                          "under System Settings > Privacy & Security > App Management or Full Disk Access")
         shutil.copy2(DIAG_PATH, os.path.join(out_dir, "catchlight-diagnostics.json"))
         text_path = os.path.join(out_dir, "catchlight-diagnostics.txt")
         with open(text_path, "w") as f:
