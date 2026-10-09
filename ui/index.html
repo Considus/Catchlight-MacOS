@@ -20,67 +20,67 @@
        Mac window; in the Mac shell they are the OS's own (.in-shell in app.css). -->
   <header class="toolbar">
     <div class="lights" aria-hidden="true"><i></i><i></i><i></i></div>
-    <button class="tb" id="tb-layout" title="Layout: where each section sits (⌃⌘S hides Dailies, ⌃⌘L Scripts)" aria-label="Layout" aria-expanded="false">
+    <button class="tb" id="tb-layout" data-i18n-attrs="title aria-label" title="Layout: where each section sits (⌃⌘S hides Dailies, ⌃⌘L Scripts)" aria-label="Layout" aria-expanded="false">
       <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M8.5 5v14M15.5 5v14"/></svg>
     </button>
     <div class="tb-spacer"></div>
-    <button class="tb" id="tb-page" title="Page: continuous, A4 or US Letter" aria-label="Page mode" aria-expanded="false">
+    <button class="tb" id="tb-page" data-i18n-attrs="title aria-label" title="Page: continuous, A4 or US Letter" aria-label="Page mode" aria-expanded="false">
       <svg viewBox="0 0 24 24"><path d="M5 7h14M5 12h14M5 17h9"/></svg>
     </button>
     <div class="popover page-pop" id="page-pop" hidden>
-      <div class="pop-row"><span>Page</span><div class="seg small" id="page-mode" role="radiogroup" aria-label="Page mode">
-        <button data-mode="continuous" role="radio">Continuous</button>
+      <div class="pop-row"><span data-i18n>Page</span><div class="seg small" id="page-mode" role="radiogroup" data-i18n-attrs="aria-label" aria-label="Page mode">
+        <button data-mode="continuous" role="radio" data-i18n>Continuous</button>
         <button data-mode="a4" role="radio">A4</button>
-        <button data-mode="letter" role="radio">US Letter</button>
+        <button data-mode="letter" role="radio" data-i18n>US Letter</button>
       </div></div>
     </div>
-    <button class="tb" id="tb-scene" title="Scene: follows the system, Night or Daylight" aria-label="Change Scene">
+    <button class="tb" id="tb-scene" data-i18n-attrs="aria-label" title="Scene: follows the system, Night or Daylight" aria-label="Change Scene">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/></svg>
     </button>
     <div class="popover layout-pop" id="layout-pop" hidden>
-      <div class="pop-row"><span>Dailies</span><div class="seg small" data-pane="dailies"></div></div>
-      <div class="pop-row"><span>Script area</span><div class="seg small" data-pane="editor"></div></div>
-      <div class="pop-row"><span>Scripts</span><div class="seg small" data-pane="scripts"></div></div>
+      <div class="pop-row"><span data-i18n>Dailies</span><div class="seg small" data-pane="dailies"></div></div>
+      <div class="pop-row"><span data-i18n>Script area</span><div class="seg small" data-pane="editor"></div></div>
+      <div class="pop-row"><span data-i18n>Scripts</span><div class="seg small" data-pane="scripts"></div></div>
     </div>
   </header>
 
   <!-- Sidebar: the iOS app, as if on a taller device. -->
-  <aside class="pane sidebar" id="sidebar" aria-label="Takes">
+  <aside class="pane sidebar" id="sidebar" data-i18n-attrs="aria-label" aria-label="Takes">
     <h1 class="page-heading" id="dailies-heading" tabindex="-1">Dailies</h1>
-    <button class="sr-only" id="show-all" type="button" hidden>Show all Takes</button>
-    <button class="sheet-close" id="sb-close" type="button" aria-label="Close Storyboard" title="Close Storyboard" hidden><svg viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg></button>
+    <button class="sr-only" id="show-all" type="button" data-i18n hidden>Show all Takes</button>
+    <button class="sheet-close" id="sb-close" type="button" data-i18n-attrs="aria-label title" aria-label="Close Storyboard" title="Close Storyboard" hidden><svg viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg></button>
     <div class="pinned" id="pinned" hidden></div>
     <div class="timeline" id="takes"></div>
     <!-- The edited Take floats above the editor bar, which stands in for the dock (iOS:
          KeyboardTakeEditor and EditorKeyboardBar). -->
     <div class="card take-editor" id="take-editor" hidden>
-      <span class="iris-wrap" id="take-editor-iris" role="button" tabindex="0" aria-label="Open the Focus-ring"></span>
-      <div class="take-rows" id="take-rows" aria-label="Take"></div>
+      <span class="iris-wrap" id="take-editor-iris" role="button" tabindex="0" data-i18n-attrs="aria-label" aria-label="Open the Focus-ring"></span>
+      <div class="take-rows" id="take-rows" data-i18n-attrs="aria-label" aria-label="Take"></div>
       <div class="stamp" id="take-editor-stamp"></div>
     </div>
-    <nav class="dock editor-bar" id="editor-bar" aria-label="Editor">
-      <button class="dock-btn" id="eb-discard" aria-label="Discard changes" title="Discard changes"><svg viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg></button>
-      <button class="dock-btn" id="eb-remind" aria-label="Reminder" title="Reminder"><svg viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20.5h4"/></svg></button>
+    <nav class="dock editor-bar" id="editor-bar" data-i18n-attrs="aria-label" aria-label="Editor">
+      <button class="dock-btn" id="eb-discard" data-i18n-attrs="aria-label title" aria-label="Discard changes" title="Discard changes"><svg viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg></button>
+      <button class="dock-btn" id="eb-remind" data-i18n-attrs="aria-label title" aria-label="Reminder" title="Reminder"><svg viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20.5h4"/></svg></button>
       <button class="dock-btn" id="eb-third"></button>
       <button class="dock-btn" id="eb-done" aria-label="Mark done" title="Mark done"><svg viewBox="0 0 24 24"><path d="M5.5 12.5l4.2 4.2 8.8-9.4"/></svg></button>
     </nav>
     <div class="focus-ring" id="focus-ring" hidden></div>
     <!-- Painted by paintDock() in takes.js: resting, Sequence filters, or search (BottomDockView). -->
-    <nav class="dock" id="takes-dock" aria-label="Takes dock"></nav>
+    <nav class="dock" id="takes-dock" data-i18n-attrs="aria-label" aria-label="Takes dock"></nav>
   </aside>
 
   <!-- Script list: mirrors Dailies. -->
-  <section class="pane scriptlist" id="scriptlist" aria-label="Scripts">
-    <h1 class="page-heading">Scripts</h1>
+  <section class="pane scriptlist" id="scriptlist" data-i18n-attrs="aria-label" aria-label="Scripts">
+    <h1 class="page-heading" data-i18n>Scripts</h1>
     <div class="search-row" id="search-row" hidden>
-      <input type="search" id="search" placeholder="Search Scripts" aria-label="Search Scripts">
+      <input type="search" id="search" data-i18n-attrs="placeholder aria-label" placeholder="Search Scripts" aria-label="Search Scripts">
     </div>
     <div class="timeline" id="scripts"></div>
-    <nav class="dock" aria-label="Scripts dock">
-      <button class="dock-btn" id="new-script" aria-label="New Script"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
-      <button class="dock-btn" id="scripts-angle" aria-label="Angle (not built yet)" title="Angle (not built yet)"><svg viewBox="0 0 24 24"><path d="M5 18h14M5 18l9-11M10.5 18a6 6 0 0 0-1.9-4.4"/></svg></button>
-      <button class="dock-btn" id="view-opts" aria-label="Script timeline settings" title="Script timeline settings"><svg viewBox="0 0 24 24"><path d="M4 8h10M18 8h2M4 16h2M10 16h10"/><circle cx="16" cy="8" r="2"/><circle cx="8" cy="16" r="2"/></svg></button>
-      <button class="dock-btn" id="search-btn" aria-label="Search Scripts"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="5.5"/><path d="M15 15l4.5 4.5"/></svg></button>
+    <nav class="dock" data-i18n-attrs="aria-label" aria-label="Scripts dock">
+      <button class="dock-btn" id="new-script" data-i18n-attrs="aria-label" aria-label="New Script"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+      <button class="dock-btn" id="scripts-angle" data-i18n-attrs="aria-label title" aria-label="Angle (not built yet)" title="Angle (not built yet)"><svg viewBox="0 0 24 24"><path d="M5 18h14M5 18l9-11M10.5 18a6 6 0 0 0-1.9-4.4"/></svg></button>
+      <button class="dock-btn" id="view-opts" data-i18n-attrs="aria-label title" aria-label="Script timeline settings" title="Script timeline settings"><svg viewBox="0 0 24 24"><path d="M4 8h10M18 8h2M4 16h2M10 16h10"/><circle cx="16" cy="8" r="2"/><circle cx="8" cy="16" r="2"/></svg></button>
+      <button class="dock-btn" id="search-btn" data-i18n-attrs="aria-label" aria-label="Search Scripts"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="5.5"/><path d="M15 15l4.5 4.5"/></svg></button>
     </nav>
   </section>
 
@@ -91,7 +91,7 @@
     <div class="editor-scroll" id="editor-scroll">
       <div class="paper" id="paper">
         <div class="sheets" id="sheets" aria-hidden="true"></div>
-        <div class="doc" id="doc" aria-label="Script"></div>
+        <div class="doc" id="doc" data-i18n-attrs="aria-label" aria-label="Script"></div>
       </div>
     </div>
   </main>
@@ -103,8 +103,9 @@
 <section class="settings-sheet" id="settings" hidden></section>
 
 <!-- First run: painted by first-run.js until an account exists. -->
-<section class="first-run" id="first-run" aria-label="Set up Catchlight" hidden></section>
+<section class="first-run" id="first-run" data-i18n-attrs="aria-label" aria-label="Set up Catchlight" hidden></section>
 
+<script src="i18n.js"></script>
 <script src="bridge.js"></script>
 <script src="app.js"></script>
 <script src="settings.js"></script>

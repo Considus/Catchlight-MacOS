@@ -126,7 +126,7 @@ function takeCard(t) {
   let meta = '';
   if (isTask(t)) {
     const checks = t.blocks.filter(b => b.k === 'check');
-    meta += `<div class="meta">${checks.filter(b => b.done).length} of ${checks.length} completed</div>`;
+    meta += `<div class="meta">${esc(L10N.t('%1$lld of %2$lld completed', checks.filter(b => b.done).length, checks.length))}</div>`;
   }
   if (t.reminder) meta += reminderMeta(t.reminder);   // reminders.js
   if (settings.creationStamp === 'always') meta += `<div class="stamp">${esc(createdLabel(t.at))}</div>`;   // Settings → Creation date
@@ -136,10 +136,10 @@ function takeCard(t) {
 }
 // The ≡ strip on the card's trailing edge in Manual (TimelineDragHandle). It is a button so the
 // keyboard can reach it: ⌥↑ and ⌥↓ stand in for VoiceOver's Move up and Move down.
-const reorderHandle = t => !t.obie && !isHeld(t.id) && canReorder() ? `<button class="thandle" type="button" aria-label="Move ${esc(t.blocks.find(b => b.text.trim())?.text.slice(0, 40) || 'Take')}" title="Drag to move, or ⌥↑ ⌥↓"></button>` : '';
+const reorderHandle = t => !t.obie && !isHeld(t.id) && canReorder() ? `<button class="thandle" type="button" aria-label="${esc(L10N.t('Move %@', t.blocks.find(b => b.text.trim())?.text.slice(0, 40) || L10N.t('Take')))}" title="${esc(L10N.t('Drag to move, or ⌥↑ ⌥↓'))}"></button>` : '';
 
 function renderTakes() {
-  $('#dailies-heading').textContent = storyboard ? 'Storyboard' : { resting: 'Dailies', filtering: 'Sequence', searching: 'Search' }[dock];
+  $('#dailies-heading').textContent = storyboard ? t('Storyboard') : { resting: t('Dailies'), filtering: t('Sequence'), searching: t('Search') }[dock];
   $('#show-all').hidden = storyboard || (dock === 'resting' && !filterMonth);   // iOS offers it only away from resting
   $('#sb-close').hidden = !storyboard;
   sidebar.classList.toggle('storyboard', storyboard);
@@ -155,7 +155,7 @@ function renderTakes() {
     const open = takes.filter(t => isTask(t) && !isComplete(t));
     const items = settings.takeArrangement === 'manual' ? inOrder(arranged(open)) : open.sort(order);
     list.innerHTML = items.length ? items.map(takeCard).join('')
-      : '<div class="empty"><p class="empty-title">Nothing planned yet</p><p>Takes with a task appear here.</p></div>';
+      : `<div class="empty"><p class="empty-title">${t('Nothing planned yet')}</p><p>${t('Takes with a task appear here.')}</p></div>`;
   } else {
     // The Obie is pinned above the timeline, never scrolls and is never filtered, as on iOS.
     const obie = takes.find(t => t.obie);
@@ -167,7 +167,7 @@ function renderTakes() {
     const shown = takes.filter(t => t !== obie && matches(t));
     list.classList.toggle('reorderable', canReorder());
     // Nothing at all yet (not a filter that matches nothing): iOS's empty state.
-    if (!takes.length) list.innerHTML = '<div class="empty first-take"><p>Your first Take is waiting.</p></div>';
+    if (!takes.length) list.innerHTML = `<div class="empty first-take"><p>${t('Your first Take is waiting.')}</p></div>`;
     else if (settings.takeArrangement === 'manual') list.innerHTML = inOrder(arranged(shown)).map(takeCard).join('');
     else timeline(list, shown.sort(order), takeCard, true);
     const lit = filterMonth && list.querySelector(`.month[data-month="${filterMonth}"]`);
@@ -175,8 +175,8 @@ function renderTakes() {
       lit.classList.add('on');
       const label = lit.querySelector('.month-label');
       label.insertAdjacentHTML('beforeend', ICON_XMARK);
-      label.setAttribute('aria-label', `${label.textContent.trim()}, filtering`);   // as iOS reads it
-      label.setAttribute('aria-description', 'Shows every month again.');
+      label.setAttribute('aria-label', t('%@, filtering', label.textContent.trim()));   // as iOS reads it
+      label.setAttribute('aria-description', t('Shows every month again.'));
     }
   }
   paintDock();
@@ -238,7 +238,7 @@ function rowFor(b) {
 
 // The box reads as the item it ticks, as on iOS: its text (or "Checklist item"), checked or not.
 function labelCheck(box, text, done) {
-  box.setAttribute('aria-label', text.trim() || 'Checklist item');
+  box.setAttribute('aria-label', text.trim() || t('Checklist item'));
   box.setAttribute('aria-checked', String(!!done));
 }
 function readRows() {
@@ -371,15 +371,15 @@ function paintBar() {
   $('#eb-third').innerHTML = task ? ICON_CHECKLIST : ICON_IMPORTANT;
   // Important is one label with an on/off state, and says why it's disabled on an Obie.
   const third = $('#eb-third'), locked = !task && !!draft.obie;
-  third.setAttribute('aria-label', task ? 'Open Shot List' : 'Important');
+  third.setAttribute('aria-label', task ? t('Open Shot List') : t('Important'));
   if (task) third.removeAttribute('aria-pressed'); else third.setAttribute('aria-pressed', String(!!draft.isImportant));
-  third.title = task ? 'Open Shot List' : locked ? 'An Obie is always Important.' : 'Important';
-  if (locked) third.setAttribute('aria-description', 'An Obie is always Important.'); else third.removeAttribute('aria-description');
+  third.title = task ? t('Open Shot List') : locked ? t('An Obie is always Important.') : t('Important');
+  if (locked) third.setAttribute('aria-description', t('An Obie is always Important.')); else third.removeAttribute('aria-description');
   third.disabled = locked;   // an Obie stays Important
-  const doneLabel = isDone(draft) ? 'Mark not done' : 'Mark done';
+  const doneLabel = isDone(draft) ? t('Mark not done') : t('Mark done');
   $('#eb-done').setAttribute('aria-label', doneLabel); $('#eb-done').title = doneLabel;
   $('#eb-done').disabled = !canBeMarkedDone(draft);
-  const remind = draft.reminder ? 'Edit reminder' : 'Add reminder';   // EditorKeyboardBar's label
+  const remind = draft.reminder ? t('Edit reminder') : t('Add reminder');   // EditorKeyboardBar's label
   $('#eb-remind').setAttribute('aria-label', remind); $('#eb-remind').title = remind;
   noteTicks();
 }
@@ -395,9 +395,9 @@ function noteTicks() {
   const r = draft.reminder;
   if (!isTimeR(r) || r.notify === false || r.done) return;
   if (!repeats(r) && draft.blocks.every(b => b.k === 'check')) return;
-  ask('All tasks done.', 'Every task on this Take is ticked. Stop its reminder?', [
-    ['Stop', () => { if (!draft) return; delete draft.reminder; noteFloor(draft); paintIris(); paintBar(); }],
-    ['Ignore', null, 'cancel'],
+  ask(t('All tasks done.'), t('Every task on this Take is ticked. Stop its reminder?'), [
+    [t('Stop'), () => { if (!draft) return; delete draft.reminder; noteFloor(draft); paintIris(); paintBar(); }],
+    [t('Ignore'), null, 'cancel'],
   ]);
 }
 $('#eb-discard').addEventListener('click', discardEdit);
@@ -432,10 +432,10 @@ function toggleDone(t) {
 // Remind +26.7°, Important +80°. A Take is never "none": with Task and Remind both off,
 // Note comes back on. Clicking the veil applies the selection and closes.
 const MARKS = [
-  { key: 'note', deg: -80, label: 'Note', icon: '<svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="16" rx="2"/><path d="M8.5 9h7M8.5 12.5h7M8.5 16h4"/></svg>' },
-  { key: 'task', deg: -26.67, label: 'Task', icon: '<svg viewBox="0 0 24 24"><rect x="4.5" y="4.5" width="15" height="15" rx="3"/><path d="M8.5 12.2l2.6 2.6 4.6-5.3"/></svg>' },
-  { key: 'remind', deg: 26.67, label: 'Remind', icon: '<svg viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20.5h4"/></svg>' },
-  { key: 'important', deg: 80, label: 'Important', icon: '<span class="bang">!</span>' },
+  { key: 'note', deg: -80, label: t('Note'), adds: t('Adds Note.'), removes: t('Removes Note.'), icon: '<svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="16" rx="2"/><path d="M8.5 9h7M8.5 12.5h7M8.5 16h4"/></svg>' },
+  { key: 'task', deg: -26.67, label: t('Task'), adds: t('Adds Task.'), removes: t('Removes Task.'), icon: '<svg viewBox="0 0 24 24"><rect x="4.5" y="4.5" width="15" height="15" rx="3"/><path d="M8.5 12.2l2.6 2.6 4.6-5.3"/></svg>' },
+  { key: 'remind', deg: 26.67, label: t('Remind'), adds: t('Adds Remind.'), removes: t('Removes Remind.'), icon: '<svg viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20.5h4"/></svg>' },
+  { key: 'important', deg: 80, label: t('Important'), adds: t('Adds Important.'), removes: t('Removes Important.'), icon: '<span class="bang">!</span>' },
 ];
 
 function openFocusRing(t, irisEl, fromEditor) {
@@ -466,7 +466,7 @@ function openFocusRing(t, irisEl, fromEditor) {
   // The veil closes the ring; for the keyboard and a screen reader it is a button, first.
   const veil = document.createElement('button');
   veil.type = 'button'; veil.className = 'sr-only ring-close';
-  veil.textContent = 'Save and close'; veil.setAttribute('aria-description', 'Applies your selection and closes.');
+  veil.textContent = L10N.t('Save and close'); veil.setAttribute('aria-description', L10N.t('Applies your selection and closes.'));
   ring.prepend(veil);
   for (const m of MARKS) {
     const b = document.createElement('button');
@@ -478,11 +478,11 @@ function openFocusRing(t, irisEl, fromEditor) {
     b.style.setProperty('--dy', (68 * Math.sin(rad)).toFixed(1) + 'px');
     b.innerHTML = m.icon;
     // An Obie is always Important, so its Mark stays on and does nothing, with the reason (as iOS).
-    if (m.key === 'important' && t.obie) { b.setAttribute('aria-disabled', 'true'); b.title = 'An Obie is always Important.'; b.setAttribute('aria-description', b.title); }
+    if (m.key === 'important' && t.obie) { b.setAttribute('aria-disabled', 'true'); b.title = L10N.t('An Obie is always Important.'); b.setAttribute('aria-description', b.title); }
     ring.append(b);
   }
   focusRing = { t, sel, fromEditor };
-  ring.setAttribute('role', 'dialog'); ring.setAttribute('aria-label', 'Focus-ring');
+  ring.setAttribute('role', 'dialog'); ring.setAttribute('aria-label', L10N.t('Focus-ring'));
   ring.hidden = false;
   ringInert(true);
   paintRing();
@@ -493,21 +493,21 @@ function openFocusRing(t, irisEl, fromEditor) {
 
 // What the Iris shows, in words (TakeCircleView.activityDescription).
 function activityDescription(t, sel) {
-  const parts = [t.obie && 'Obie', sel.has('important') && 'Important', sel.has('note') && 'Note',
-    sel.has('task') && (isComplete(t) ? 'completed Task' : 'Task'), sel.has('remind') && 'Reminder'].filter(Boolean);
-  return parts.join(', ') || 'Note';
+  const parts = [t.obie && L10N.t('Obie'), sel.has('important') && L10N.t('Important'), sel.has('note') && L10N.t('Note'),
+    sel.has('task') && (isComplete(t) ? L10N.t('completed Task') : L10N.t('Task')), sel.has('remind') && L10N.t('Reminder')].filter(Boolean);
+  return L10N.list(parts) || L10N.t('Note');
 }
 function paintRing() {
   const { t, sel } = focusRing;
   document.querySelectorAll('#focus-ring .mark').forEach(b => {
-    const on = sel.has(b.dataset.key), label = b.getAttribute('aria-label');
+    const on = sel.has(b.dataset.key), mark = MARKS.find(m => m.key === b.dataset.key);
     b.classList.toggle('on', on);
     b.setAttribute('aria-pressed', String(on));
-    if (b.getAttribute('aria-disabled') !== 'true') b.setAttribute('aria-description', `${on ? 'Removes' : 'Adds'} ${label}.`);
+    if (b.getAttribute('aria-disabled') !== 'true') b.setAttribute('aria-description', on ? mark.removes : mark.adds);
   });
   const hub = $('#focus-ring .hub');
   hub.innerHTML = irisHtml([...sel], t.obie) + '<i class="tick"></i>';
-  hub.setAttribute('aria-label', 'Selected: ' + activityDescription(t, sel));
+  hub.setAttribute('aria-label', L10N.t('Selected: %@', activityDescription(t, sel)));
 }
 // While the ring is up, nothing else in the window takes focus or reads out, as iOS's ring
 // covers the screen. The ring itself and the reminder picker it can open stay live.
@@ -675,21 +675,21 @@ function paintDock() {
   announceDock();   // a11y.js
   bar.hidden = storyboard;   // the Storyboard covers Dailies and carries only its ×
   bar.dataset.mode = dock;
-  const btn = (act, icon, label, extra = '') => `<button class="dock-btn${extra}" type="button" data-act="${act}" aria-label="${label}" title="${label}">${icon}</button>`;
+  const btn = (act, icon, label, extra = '') => `<button class="dock-btn${extra}" type="button" data-act="${act}" aria-label="${esc(label)}" title="${esc(label)}">${icon}</button>`;
   const tog = (act, icon, label, on, fill) => btn(act, icon, label, ` toggle${on ? ' on' : ''}" style="--fill: var(--iris-${fill})" aria-pressed="${on}`);
   if (dock === 'resting') {
-    bar.innerHTML = btn('add', ICON.add, 'Add Take') + btn('storyboard', ICON.angle, 'Storyboard')
-      + btn('sequence', ICON.sequence, 'Sequence') + btn('search', ICON.search, 'Search');
+    bar.innerHTML = btn('add', ICON.add, t('Add Take')) + btn('storyboard', ICON.angle, t('Storyboard'))
+      + btn('sequence', ICON.sequence, t('Sequence')) + btn('search', ICON.search, t('Search'));
   } else if (dock === 'filtering') {
-    bar.innerHTML = tog('important', ICON_IMPORTANT, 'Important filter', seq.important, 'important')
-      + tog('notes', ICON.note, 'Notes filter', seq.notes, 'note')
-      + tog('tasks', seq.tasksDone ? ICON.taskDone : ICON.task, seq.tasksDone ? 'Tasks filter, done only' : 'Tasks filter', seq.tasks, 'task')
-      + tog('reminders', seq.remindersExpired ? ICON.expired : ICON.bell, seq.remindersExpired ? 'Reminders filter, expired only' : 'Reminders filter', seq.reminders, 'remind');
+    bar.innerHTML = tog('important', ICON_IMPORTANT, t('Important filter'), seq.important, 'important')
+      + tog('notes', ICON.note, t('Notes filter'), seq.notes, 'note')
+      + tog('tasks', seq.tasksDone ? ICON.taskDone : ICON.task, seq.tasksDone ? t('Tasks filter, done only') : t('Tasks filter'), seq.tasks, 'task')
+      + tog('reminders', seq.remindersExpired ? ICON.expired : ICON.bell, seq.remindersExpired ? t('Reminders filter, expired only') : t('Reminders filter'), seq.reminders, 'remind');
   } else if (!bar.querySelector('#take-search')) {
     // Built once per search, so typing never loses the caret to a repaint.
-    bar.innerHTML = btn('cancel-search', ICON.cancel, 'Cancel search', ' filled')
-      + '<input class="dock-search" id="take-search" type="search" placeholder="Search your Takes" aria-label="Search Takes" autocomplete="off" spellcheck="false">'
-      + btn('focus-search', ICON.search, 'Search');
+    bar.innerHTML = btn('cancel-search', ICON.cancel, t('Cancel search'), ' filled')
+      + `<input class="dock-search" id="take-search" type="search" placeholder="${esc(t('Search your Takes'))}" aria-label="${esc(t('Search Takes'))}" autocomplete="off" spellcheck="false">`
+      + btn('focus-search', ICON.search, t('Search'));
   }
 }
 
@@ -821,24 +821,24 @@ function takeMenu(id) {
   const items = [];
   // Held for a conflict choice: only what leaves it as it is, and the way to the choice.
   if (isHeld(id)) {
-    if (!storyboard) items.push([expanded.has(id) ? 'Collapse Take' : 'Expand Take', () => toggleExpanded(id)], ['Export Take', () => exportTake(t)]);
-    items.push(['Review Conflict…', () => openConflicts()]);
+    if (!storyboard) items.push([expanded.has(id) ? L10N.t('Collapse Take') : L10N.t('Expand Take'), () => toggleExpanded(id)], [L10N.t('Export Take'), () => exportTake(t)]);
+    items.push([L10N.t('Review Conflict…'), () => openConflicts()]);
     return items;
   }
-  if (!storyboard) items.push([expanded.has(id) ? 'Collapse Take' : 'Expand Take', () => toggleExpanded(id)]);
-  if (canBeMarkedDone(t)) items.push([isDone(t) ? 'Mark Not Done' : 'Mark Done', () => { toggleDone(t); touch(t); }]);
+  if (!storyboard) items.push([expanded.has(id) ? L10N.t('Collapse Take') : L10N.t('Expand Take'), () => toggleExpanded(id)]);
+  if (canBeMarkedDone(t)) items.push([isDone(t) ? L10N.t('Mark Not Done') : L10N.t('Mark Done'), () => { toggleDone(t); touch(t); }]);
   // An Obie stays Important, so its menu has nothing to offer here.
-  if (!t.obie) items.push([t.isImportant ? 'Remove Important' : 'Make Important', () => {
+  if (!t.obie) items.push([t.isImportant ? L10N.t('Remove Important') : L10N.t('Make Important'), () => {
     t.isImportant = !t.isImportant;
     if (!t.isImportant) noteFloor(t);
     touch(t);
   }]);
   if (!storyboard) {
-    if (!t.obie) items.push(['Make Obie', () => makeObie(t)]);
-    items.push(['Export Take', () => exportTake(t)]);
-    items.push(['Expand into a Script', () => expandIntoScript(t)]);
+    if (!t.obie) items.push([L10N.t('Make Obie'), () => makeObie(t)]);
+    items.push([L10N.t('Export Take'), () => exportTake(t)]);
+    items.push([L10N.t('Expand into a Script'), () => expandIntoScript(t)]);
   }
-  items.push(['Delete Take', null, 'danger']);
+  items.push([L10N.t('Delete Take'), null, 'danger']);
   return items;
 }
 // Making a Take the Obie when another already is asks first (RootView, owner copy 2026-06-17).
@@ -848,16 +848,16 @@ function makeObie(t) {
   // Making another Take the Obie changes the current one, which can't change while it waits for
   // a conflict choice (the shell refuses it too, Library.save).
   if (takes.some(x => x.obie && x.id !== t.id && isHeld(x.id))) {
-    ask('Resolve the conflict first', 'Your Obie changed on another device too. Choose which version of it to keep before you make another Take your Obie.',
-      [['Review', () => openConflicts()], ['OK', null, 'cancel']]);
+    ask(L10N.t('Resolve the conflict first'), L10N.t('Your Obie changed on another device too. Choose which version of it to keep before you make another Take your Obie.'),
+      [[L10N.t('Review'), () => openConflicts()], [L10N.t('OK'), null, 'cancel']]);
     return;
   }
   const make = () => { takes.forEach(x => { x.obie = false; }); t.obie = true; t.isImportant = true; touch(t); };
   if (!takes.some(x => x.obie && x.id !== t.id)) { make(); return; }
-  ask('Make this your Obie?', 'Your existing Obie returns to the timeline. Only one Take can be your Obie.', [['Make Obie', make], ['Cancel', null, 'cancel']]);
+  ask(L10N.t('Make this your Obie?'), L10N.t('Your existing Obie returns to the timeline. Only one Take can be your Obie.'), [[L10N.t('Make Obie'), make], [L10N.t('Cancel'), null, 'cancel']]);
 }
 // Confirm before deleting (DeleteConfirmation): Delete first, then Cancel, as on iOS.
-const askDelete = t => refuseHeld(t.id) || ask('Delete this Take?', 'This cannot be undone.', [['Delete', () => deleteTake(t.id), 'danger'], ['Cancel', null, 'cancel']]);
+const askDelete = t => refuseHeld(t.id) || ask(L10N.t('Delete this Take?'), L10N.t('This cannot be undone.'), [[L10N.t('Delete'), () => deleteTake(t.id), 'danger'], [L10N.t('Cancel'), null, 'cancel']]);
 // A held Take is put back as stored by the save (keepHeld, app.js), so a change that reached it
 // anyway is undone on screen, and the user is told why.
 function touch(t) { if (isHeld(t.id)) refuseHeld(t.id); else t.modifiedAt = Date.now(); saveTakes(); renderTakes(); }
@@ -876,14 +876,14 @@ function deleteTake(id) {
 const asksWhichToDelete = t => !storyboard && repeats(t.reminder);
 function askWhichToDelete(t) {
   if (refuseHeld(t.id)) return;
-  ask('This is a repeating reminder.', 'Delete only the next occurrence, or the whole repeating series?', [
-    ['Delete This Occurrence', () => {
+  ask(L10N.t('This is a repeating reminder.'), L10N.t('Delete only the next occurrence, or the whole repeating series?'), [
+    [L10N.t('Delete This Occurrence'), () => {
       // Leave the editor first if this Take is open, or saving the draft would undo the skip.
       if (draft && original?.id === t.id) discardEdit();
       advanceRepeat(t.reminder); touch(t);
     }],
-    ['Delete Series', () => deleteTake(t.id), 'danger'],
-    ['Cancel', null, 'cancel'],
+    [L10N.t('Delete Series'), () => deleteTake(t.id), 'danger'],
+    [L10N.t('Cancel'), null, 'cancel'],
   ]);
 }
 
@@ -922,7 +922,7 @@ async function changeKind(item, to) {
   try { return (await catchlightBridge.changeKind(item, to))?.item ?? item; }
   catch (e) {
     console.error('Changing kind failed', e);
-    ask("That couldn't be changed", `Nothing has changed. Try again, and if it keeps happening, report it with this detail: ${e?.message ?? e}`, [['OK', null, 'cancel']]);
+    ask(t("That couldn't be changed"), t('Nothing has changed. Try again, and if it keeps happening, report it with this detail: %@', String(e?.message ?? e)), [[t('OK'), null, 'cancel']]);
     return null;
   }
 }

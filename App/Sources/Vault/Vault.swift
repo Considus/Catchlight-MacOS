@@ -24,9 +24,9 @@ final class Vault {
 
         var errorDescription: String? {
             switch self {
-            case .invalidPhrase: return "That isn't a valid Privacy phrase."
-            case .noAccount: return "There is no account on this Mac."
-            case .restoreNeeded: return "Catchlight couldn't finish adding this Mac and has locked your Takes to keep them safe. Quit Catchlight, open it again, and choose I already use Catchlight with your current Privacy phrase. Your Takes will be there."
+            case .invalidPhrase: return String(localized: "That isn't a valid Privacy phrase.")
+            case .noAccount: return String(localized: "There is no account on this Mac.")
+            case .restoreNeeded: return String(localized: "Catchlight couldn't finish adding this Mac and has locked your Takes to keep them safe. Quit Catchlight, open it again, and choose I already use Catchlight with your current Privacy phrase. Your Takes will be there.")
             }
         }
     }
@@ -72,7 +72,7 @@ final class Vault {
     @discardableResult
     /// macOS puts `reason` inside its own sentence ("Catchlight is trying to unlock your Takes."),
     /// so it starts lower case.
-    func start(reason: String = "unlock your Takes") throws -> State {
+    func start(reason: String = String(localized: "unlock your Takes", comment: "macOS puts it inside its own sentence: Catchlight is trying to unlock your Takes.")) throws -> State {
         state = .locked
         let key: SymmetricKey
         do { key = try secrets.masterKey(reason: reason) }
@@ -157,7 +157,7 @@ final class Vault {
         try createAccount(words: words, restored: true)
     }
 
-    func phrase() -> [String]? { secrets.phrase(reason: "show your Privacy phrase") }
+    func phrase() -> [String]? { secrets.phrase(reason: String(localized: "show your Privacy phrase", comment: "macOS puts it inside its own sentence: Catchlight is trying to show your Privacy phrase.")) }
 
     /// Settings ▸ Erase everything: the library, any earlier library moved aside, then the
     /// Keychain items, as the iPhone's reset. The files go first: if removing one fails, the key

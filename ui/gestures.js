@@ -18,8 +18,8 @@ function actionsFor(card) {
   const t = takes.find(x => x.id === card.dataset.take);
   return {
     t,
-    leading: t && canBeMarkedDone(t) ? (isDone(t) ? { label: 'Not done', icon: '<path d="M9 7L5 11l4 4M5 11h9a5 5 0 0 1 0 10h-2"/>' } : { label: 'Done', icon: '<path d="M5 12.5l4.5 4.5L19 7.5"/>' }) : null,
-    trailing: { label: 'Delete', icon: '<path d="M5 7h14M10 7V5h4v2M7 7l1 13h8l1-13"/>' },
+    leading: t && canBeMarkedDone(t) ? (isDone(t) ? { label: L10N.t('Not done'), icon: '<path d="M9 7L5 11l4 4M5 11h9a5 5 0 0 1 0 10h-2"/>' } : { label: L10N.t('Done'), icon: '<path d="M5 12.5l4.5 4.5L19 7.5"/>' }) : null,
+    trailing: { label: L10N.t('Delete'), icon: '<path d="M5 7h14M10 7V5h4v2M7 7l1 13h8l1-13"/>' },
   };
 }
 

@@ -70,7 +70,7 @@
       // replace it with the stored version before the user could see it.
       if (r?.conflicts) window.loadConflicts?.();   // a Take changed here and by sync: the choice screen
       if (r?.keptOverDelete && !r?.rejected?.length) window.catchlightBridge.refresh().catch(e => console.error('Refreshing the Takes failed', e));
-      const [one, many] = kind === 'scripts' ? ['Script', 'Scripts'] : ['Take', 'Takes'];
+      const scriptsKind = kind === 'scripts';
       // A change to an item waiting for a conflict choice, refused by the shell (the page refuses
       // them first; this is one already on its way when the conflict was found). The stored version
       // stands: show it, and say why the change didn't stick.
@@ -79,13 +79,27 @@
         if (!r?.rejected?.length || r?.forked) window.catchlightBridge.refresh().catch(e => console.error('Refreshing the Takes failed', e));
         const n = r.held.length;
         // Owner, 2026-10-08: the typing was kept as a new item beside the held one.
-        if (r?.forked) whenNoDialog(() => ask(`Saved as a new ${one}`, `This ${one} changed on another device, so your edit was saved as a new ${one}.`, [['OK', null, 'cancel']]));
-        else whenNoDialog(() => ask(n === 1 ? `A ${one} wasn't changed` : `${n} ${many} weren't changed`, n === 1
-          ? `This ${one} changed on another device too, so your change to it wasn't saved. Choose which version to keep, then make the change again.`
-          : `These ${many} changed on another device too, so your changes to them weren't saved. Choose which version of each to keep, then make the changes again.`,
-          [['Review', () => window.openConflicts?.()], ['OK', null, 'cancel']]));
+        if (r?.forked) whenNoDialog(() => savedAsNew(scriptsKind));
+        else whenNoDialog(() => ask(
+          n === 1 ? (scriptsKind ? t("A Script wasn't changed") : t("A Take wasn't changed"))
+            : scriptsKind ? t("%lld Scripts weren't changed", n) : t("%lld Takes weren't changed", n),
+          n === 1
+            ? scriptsKind ? t("This Script changed on another device too, so your change to it wasn't saved. Choose which version to keep, then make the change again.")
+              : t("This Take changed on another device too, so your change to it wasn't saved. Choose which version to keep, then make the change again.")
+            : scriptsKind ? t("These Scripts changed on another device too, so your changes to them weren't saved. Choose which version of each to keep, then make the changes again.")
+              : t("These Takes changed on another device too, so your changes to them weren't saved. Choose which version of each to keep, then make the changes again."),
+          [[t('Review'), () => window.openConflicts?.()], [t('OK'), null, 'cancel']]));
       }
-      if (r?.rejected?.length) whenNoDialog(() => ask(`A ${one} wasn't saved`, `Catchlight couldn't read ${r.rejected.length === 1 ? `one ${one}` : `${r.rejected.length} ${many}`}, so the last version of it is kept. Report it, with this detail: ${r.rejected.join(', ')}`, [['OK', null, 'cancel']]));
+      if (r?.rejected?.length) {
+        const n = r.rejected.length, detail = r.rejected.join(', ');
+        whenNoDialog(() => ask(scriptsKind ? t("A Script wasn't saved") : t("A Take wasn't saved"),
+          n === 1
+            ? scriptsKind ? t("Catchlight couldn't read one Script, so the last version of it is kept. Report it, with this detail: %@", detail)
+              : t("Catchlight couldn't read one Take, so the last version of it is kept. Report it, with this detail: %@", detail)
+            : scriptsKind ? t("Catchlight couldn't read %lld Scripts, so the last version of each is kept. Report it, with this detail: %@", n, detail)
+              : t("Catchlight couldn't read %lld Takes, so the last version of each is kept. Report it, with this detail: %@", n, detail),
+          [[t('OK'), null, 'cancel']]));
+      }
     })
     .catch(e => {
       if (kind === 'scripts') scriptsUnsaved = true;
@@ -95,10 +109,10 @@
       if (refusalShown) return;
       refusalShown = true;
       const warn = () => {
-        ask("That change wasn't saved", /locked/.test(String(e?.message ?? e))
-          ? 'Your Takes are locked on this Mac, so nothing more can be saved now. Quit Catchlight, open it again, and choose I already use Catchlight with your current Privacy phrase. Everything saved before this is safe.'
-          : `Catchlight couldn't save it. Quit and open Catchlight again, and if this keeps happening, report it with this detail: ${e?.message ?? e}`,
-          [['OK', null, 'cancel']]);
+        ask(t("That change wasn't saved"), /locked/.test(String(e?.message ?? e))
+          ? t('Your Takes are locked on this Mac, so nothing more can be saved now. Quit Catchlight, open it again, and choose I already use Catchlight with your current Privacy phrase. Everything saved before this is safe.')
+          : t("Catchlight couldn't save it. Quit and open Catchlight again, and if this keeps happening, report it with this detail: %@", String(e?.message ?? e)),
+          [[t('OK'), null, 'cancel']]);
         alertBox.addEventListener('close', () => { refusalShown = false; }, { once: true });   // however it is dismissed
       };
       whenNoDialog(warn);
@@ -117,11 +131,11 @@
   let refusalShown = false;
   // The shell couldn't read the library: say so, rather than show an empty Catchlight that
   // looks as if everything has gone. The shell refuses every save until it can read it.
-  if (library?.unreadableScripts) addEventListener('load', () => ask(`${library.unreadableScripts === 1 ? 'A Script' : `${library.unreadableScripts} Scripts`} couldn't be opened`,
-    'It is kept on this Mac as it was, nothing has been deleted, and the others are fine. Report it so it can be looked at.', [['OK', null, 'cancel']]));
-  if (library?.loadError) addEventListener('load', () => ask("Catchlight couldn't read your Takes",
-    `Nothing has been changed or deleted, and nothing you do now will be saved. Quit and open Catchlight again, and if this keeps happening, report it with this detail: ${library.loadError}`,
-    [['OK', null, 'cancel']]));
+  if (library?.unreadableScripts) addEventListener('load', () => ask(library.unreadableScripts === 1 ? t("A Script couldn't be opened") : t("%lld Scripts couldn't be opened", library.unreadableScripts),
+    t('It is kept on this Mac as it was, nothing has been deleted, and the others are fine. Report it so it can be looked at.'), [[t('OK'), null, 'cancel']]));
+  if (library?.loadError) addEventListener('load', () => ask(t("Catchlight couldn't read your Takes"),
+    t("Nothing has been changed or deleted, and nothing you do now will be saved. Quit and open Catchlight again, and if this keeps happening, report it with this detail: %@", String(library.loadError)),
+    [[t('OK'), null, 'cancel']]));
 
   // The shell is the authority on the sync folder: the page's account record shows the folder
   // the shell can actually open, or none, so a deleted folder or a lost bookmark never looks connected.
@@ -141,7 +155,6 @@
   // `following`: the promise of that follow-up pass, so whoever asked (Sync Now) waits for it.
   let syncing = null, again = null, following = null, saveTimer = 0, lastFocusSync = 0;
   const syncMode = () => (typeof settings !== 'undefined' && settings.syncMode) || 'automatic';
-  const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
   function sync(trigger) {
     if (!library?.account || !store.get('account', {})?.folder) return Promise.resolve({ skipped: true });
     const mode = syncMode();
@@ -161,12 +174,13 @@
         if (r?.conflicts) window.loadConflicts?.();
         if (r?.newConflicts) {
           const scripts = r.newConflictScripts || 0, takes = r.newConflicts - scripts;
-          const what = [takes && plural(takes, 'Take', 'Takes'), scripts && plural(scripts, 'Script', 'Scripts')].filter(Boolean).join(' and ');
-          notice(`${what} changed on another device.`, 'conflict');
+          notice(!scripts ? t('%lld Takes changed on another device.', takes)
+            : !takes ? t('%lld Scripts changed on another device.', scripts)
+            : t('%1$lld Takes and %2$lld Scripts changed on another device.', takes, scripts), 'conflict');
         }
-        if (r?.newUnverified) notice(`${plural(r.newUnverified, 'Take', 'Takes')} couldn't be verified and need a choice.`, 'conflict');
-        if (r?.quarantined) notice(`${plural(r.quarantined, 'Take', 'Takes')} couldn't be verified and were skipped.`, 'quarantine');
-        if (r?.heldBack) notice(`${plural(r.heldBack, 'Take', 'Takes')} not re-uploaded. This device was away too long to rule out deletion elsewhere. Edit a Take to sync it again.`, 'sync');
+        if (r?.newUnverified) notice(t("%lld Takes couldn't be verified and need a choice.", r.newUnverified), 'conflict');
+        if (r?.quarantined) notice(t("%lld Takes couldn't be verified and were skipped.", r.quarantined), 'quarantine');
+        if (r?.heldBack) notice(t('%lld Takes not re-uploaded. This device was away too long to rule out deletion elsewhere. Edit a Take to sync it again.', r.heldBack), 'sync');
         return r;
       })
       .catch(e => { console.error('Sync failed', e); return { error: String(e?.message ?? e) }; })

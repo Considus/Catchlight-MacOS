@@ -61,11 +61,26 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
     /// The open panel for Import from a File. Replaced in tests, which can't drive a panel.
     var pickImportFiles: (NSWindow?, @escaping ([URL]?) -> Void) -> Void = NoteImport.pickFiles
 
+    /// The languages the app is translated into, as `knownRegions` in project.yml lists them and
+    /// `ui/i18n.js` reads them.
+    static let languages = ["en", "es", "fr", "de", "zh-Hans", "zh-Hant", "da", "nl", "fi", "it", "ja", "nb", "pl", "pt-BR", "pt-PT", "sv", "th", "tr", "ko"]
+
+    /// The language the page speaks: the first of the user's preferred languages the app has,
+    /// else English. It is the same choice the bundle makes for `String(localized:)`, so the page
+    /// and the native menus and alerts always agree.
+    static var preferredLanguage: String {
+        Bundle.preferredLocalizations(from: languages, forPreferences: Locale.preferredLanguages).first ?? "en"
+    }
+
+    /// The page's language. Tests set it to load the page in one.
+    var language = ShellBridge.preferredLanguage
+
     /// Defines `window.catchlightShell` before any of the page's own scripts run, with the values
     /// baked in, so `shell.systemInfo()` stays synchronous. `folder` is the sync folder's path as
-    /// the page shows it, or absent when none is chosen or its bookmark no longer opens.
-    static func injectedValues(folder: String? = nil) -> WKUserScript {
-        var values: [String: String] = ["platform": "mac", "osName": "macOS", "osVersion": SystemInfo.osVersion, "model": SystemInfo.model]
+    /// the page shows it, or absent when none is chosen or its bookmark no longer opens; `language`
+    /// is the one the page reads in (`ui/i18n.js`).
+    static func injectedValues(folder: String? = nil, language: String = preferredLanguage) -> WKUserScript {
+        var values: [String: String] = ["platform": "mac", "osName": "macOS", "osVersion": SystemInfo.osVersion, "model": SystemInfo.model, "language": language]
         if let folder { values["folder"] = folder }
         let json = (try? JSONSerialization.data(withJSONObject: values, options: [.sortedKeys])).flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
         let source = "window.catchlightShell = Object.freeze(\(json));"
@@ -121,7 +136,7 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
     }
 
     private func addUserScripts(to controller: WKUserContentController) {
-        controller.addUserScript(Self.injectedValues(folder: syncFolder?.displayPath))
+        controller.addUserScript(Self.injectedValues(folder: syncFolder?.displayPath, language: language))
         if vault != nil { controller.addUserScript(injectedLibrary()) }
     }
 
@@ -317,7 +332,7 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
         guard let library = vault?.library, !libraryUnreadable else { return reply(nil, "locked") }
         let done = library.importItems(outcome.items, holding: sync?.conflicts.heldIDs ?? [])
         if done.takes + done.scripts > 0 {
-            let summary = "Import successful. \(Self.importedWords(done.takes, done.scripts)) added."
+            let summary = Self.importSummary(done.takes, done.scripts)
             _ = library.importItems([Take(createdAt: Date(), modifiedAt: Date(), blocks: [.text(TextBlock(text: summary))], isNote: true)])
         }
         Self.log.info("import: \(done.takes) Takes, \(done.scripts) Scripts, \(done.failed) failed, \(outcome.skipped) files skipped")
@@ -325,10 +340,12 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                "scanned": outcome.scanned, "skipped": outcome.skipped], nil)
     }
 
-    /// "3 Takes", "1 Take and 2 Scripts".
-    static func importedWords(_ takes: Int, _ scripts: Int) -> String {
-        let t = "\(takes) \(takes == 1 ? "Take" : "Takes")", s = "\(scripts) \(scripts == 1 ? "Script" : "Scripts")"
-        return scripts == 0 ? t : takes == 0 ? s : "\(t) and \(s)"
+    /// The summary Take an import leaves in Dailies, in the user's language: "Import successful.
+    /// 3 Takes added.", one whole sentence for each mix, the counts' plurals in the catalog.
+    static func importSummary(_ takes: Int, _ scripts: Int) -> String {
+        if scripts == 0 { return String(localized: "Import successful. \(takes) Takes added.") }
+        if takes == 0 { return String(localized: "Import successful. \(scripts) Scripts added.") }
+        return String(localized: "Import successful. \(takes) Takes and \(scripts) Scripts added.")
     }
 
     // MARK: The library and the account

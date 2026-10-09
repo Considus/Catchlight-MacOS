@@ -109,7 +109,7 @@ final class MenuController: NSObject, NSMenuDelegate, NSMenuItemValidation {
     /// be quit, built by the same code as the full bar.
     static let bootstrapModel: [MenuEntry] = [
         .submenu(title: "Catchlight", items: [
-            .item(MenuItemModel(id: "quit", label: "Quit Catchlight", shortcut: "Mod+Q", role: "quit", enabled: true, checked: nil)),
+            .item(MenuItemModel(id: "quit", label: String(localized: "Quit Catchlight"), shortcut: "Mod+Q", role: "quit", enabled: true, checked: nil)),
         ]),
     ]
 
@@ -213,16 +213,15 @@ final class MenuController: NSObject, NSMenuDelegate, NSMenuItemValidation {
 
 extension MenuController {
     /// Makes `bar` the app's main menu, with the menus AppKit treats specially registered as
-    /// such: Window gets the window list, Help the search field, Services its entries.
+    /// such: Window gets the window list, Help the search field, Services its entries. Each is
+    /// found by an item it holds, never by its title, which is in the user's language.
     func install(_ bar: NSMenu, in app: NSApplication = .shared) {
         app.mainMenu = bar
         app.servicesMenu = servicesMenu
+        let holds = { (menu: NSMenu?, id: String) in menu?.items.contains { $0.identifier?.rawValue == id } == true }
         for top in bar.items {
-            switch top.submenu?.title {
-            case "Window": app.windowsMenu = top.submenu
-            case "Help": app.helpMenu = top.submenu
-            default: break
-            }
+            if holds(top.submenu, "minimize") { app.windowsMenu = top.submenu }
+            if holds(top.submenu, "help") { app.helpMenu = top.submenu }
         }
     }
 }

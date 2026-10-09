@@ -14,9 +14,9 @@
 
 const shot = document.createElement('section');
 shot.id = 'shot-list'; shot.className = 'shot-list'; shot.hidden = true;
-shot.setAttribute('role', 'dialog'); shot.setAttribute('aria-modal', 'true'); shot.setAttribute('aria-label', 'Shot List');
-shot.innerHTML = `<header class="sl-head"><h2>Shot List</h2>
-  <button class="sl-close" type="button" aria-label="Close Shot List"><svg viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg></button></header>
+shot.setAttribute('role', 'dialog'); shot.setAttribute('aria-modal', 'true'); shot.setAttribute('aria-label', t('Shot List'));
+shot.innerHTML = `<header class="sl-head"><h2>${t('Shot List')}</h2>
+  <button class="sl-close" type="button" aria-label="${esc(t('Close Shot List'))}"><svg viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg></button></header>
   <div class="sl-rows"></div>`;
 document.body.append(shot);
 const slRows = shot.querySelector('.sl-rows');
@@ -44,10 +44,10 @@ function paintShotList(focusIndex) {
   slRows.innerHTML = draft.blocks.map((b, i) => b.k === 'check'
     ? `<div class="sl-item" data-i="${i}"><div class="sl-row${b.done ? ' ticked' : ''}">
         <button class="sl-box" type="button" role="checkbox" aria-checked="${!!b.done}"
-          ${b.text.trim() ? `aria-labelledby="sl-text-${i}"` : 'aria-label="Item"'}
-          title="${b.done ? 'Untick' : 'Tick'} · ⌥↑ ⌥↓ to move · ⌫ to delete"></button>
+          ${b.text.trim() ? `aria-labelledby="sl-text-${i}"` : `aria-label="${esc(t('Item'))}"`}
+          title="${esc(b.done ? t('Untick · ⌥↑ ⌥↓ to move · ⌫ to delete') : t('Tick · ⌥↑ ⌥↓ to move · ⌫ to delete'))}"></button>
         <span class="sl-text" id="sl-text-${i}">${linkify(b.text)}</span>
-        <span class="sl-handle" aria-label="Reorder item" role="img"></span></div></div>`
+        <span class="sl-handle" aria-label="${esc(t('Reorder item'))}" role="img"></span></div></div>`
     : `<div class="sl-prose" data-i="${i}">${linkify(b.text)}</div>`).join('');
   if (focusIndex != null) slRows.querySelector(`.sl-item[data-i="${focusIndex}"] .sl-box`)?.focus();
 }
@@ -94,8 +94,8 @@ function shotFill(item, offset) {
     fill?.remove();
     const done = draft.blocks[item.dataset.i].done;
     const [label, icon] = side === 'leading'
-      ? (done ? ['Not done', '<path d="M9 7L5 11l4 4M5 11h9a5 5 0 0 1 0 10h-2"/>'] : ['Done', '<path d="M5 12.5l4.5 4.5L19 7.5"/>'])
-      : ['Delete', '<path d="M5 7h14M10 7V5h4v2M7 7l1 13h8l1-13"/>'];
+      ? (done ? [t('Not done'), '<path d="M9 7L5 11l4 4M5 11h9a5 5 0 0 1 0 10h-2"/>'] : [t('Done'), '<path d="M5 12.5l4.5 4.5L19 7.5"/>'])
+      : [t('Delete'), '<path d="M5 7h14M10 7V5h4v2M7 7l1 13h8l1-13"/>'];
     fill = document.createElement('button');
     fill.type = 'button'; fill.className = `sl-fill swipe-fill ${side}`; fill.dataset.side = side;
     fill.setAttribute('aria-label', label);
