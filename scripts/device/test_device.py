@@ -39,21 +39,9 @@ class DiagnosticsText(unittest.TestCase):
                          "2001-01-01 00:00:00  [storage]  [CCIOS-101] first\n"
                          "2026-10-03 00:00:00  [sync]  pass complete\n")
 
-
-class MalformedLog(unittest.TestCase):
     def test_a_bad_entry_is_shown_raw_and_sorted_last(self):
-        saved = os.environ.get("TZ")
-        os.environ["TZ"] = "UTC"
-        __import__("time").tzset()
-        try:
-            text = device.diagnostics_text([{"category": "storage"},
-                                            {"timestamp": 0, "category": "storage", "message": "ok"}])
-        finally:
-            if saved is None:
-                os.environ.pop("TZ", None)
-            else:
-                os.environ["TZ"] = saved
-            __import__("time").tzset()
+        text = device.diagnostics_text([{"category": "storage"},
+                                        {"timestamp": 0, "category": "storage", "message": "ok"}])
         self.assertEqual(text, '2001-01-01 00:00:00  [storage]  ok\n'
                                '(malformed entry) {"category": "storage"}\n')
 
@@ -78,6 +66,62 @@ class BundleBuild(unittest.TestCase):
 
     def test_missing_bundle_is_none(self):
         self.assertIsNone(device.bundle_build("/nonexistent/Catchlight.app"))
+
+
+def fake_app(path, stamp):
+    os.makedirs(os.path.join(path, "Contents"))
+    with open(os.path.join(path, "Contents", "Info.plist"), "wb") as f:
+        plistlib.dump({"CFBundleShortVersionString": "0.1.0", "CFBundleVersion": stamp}, f)
+
+
+class SwapIn(unittest.TestCase):
+    """The previous copy survives a failed or interrupted install."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dest = os.path.join(self.tmp.name, "Applications", "Catchlight.app")
+        self.built = os.path.join(self.tmp.name, "built", "Catchlight.app")
+        fake_app(self.dest, "aaaaaaa")
+        self._running, device.app_running = device.app_running, lambda: False
+
+    def tearDown(self):
+        device.app_running = self._running
+        self.tmp.cleanup()
+
+    def test_good_build_replaces_the_copy(self):
+        fake_app(self.built, "bbbbbbb")
+        device.swap_in(self.built, self.dest, "bbbbbbb")
+        self.assertEqual(device.bundle_build(self.dest), ("0.1.0", "bbbbbbb"))
+        self.assertFalse(os.path.exists(self.dest + ".previous"))
+
+    def test_wrong_stamp_puts_the_previous_copy_back(self):
+        fake_app(self.built, "ccccccc")
+        with self.assertRaises(device.Failure):
+            device.swap_in(self.built, self.dest, "bbbbbbb")
+        self.assertEqual(device.bundle_build(self.dest), ("0.1.0", "aaaaaaa"))
+
+    def test_interrupt_mid_copy_puts_the_previous_copy_back(self):
+        fake_app(self.built, "bbbbbbb")
+        real_run = device.run
+
+        def interrupted(cmd, *a, **k):
+            if cmd[0] == "ditto":
+                raise KeyboardInterrupt
+            return real_run(cmd, *a, **k)
+        device.run = interrupted
+        try:
+            with self.assertRaises(KeyboardInterrupt):
+                device.swap_in(self.built, self.dest, "bbbbbbb")
+        finally:
+            device.run = real_run
+        self.assertEqual(device.bundle_build(self.dest), ("0.1.0", "aaaaaaa"))
+
+    def test_a_copy_stranded_at_previous_is_recovered_not_deleted(self):
+        os.rename(self.dest, self.dest + ".previous")
+        fake_app(self.built, "ccccccc")
+        with self.assertRaises(device.Failure):
+            device.swap_in(self.built, self.dest, "bbbbbbb")
+        self.assertEqual(device.bundle_build(self.dest), ("0.1.0", "aaaaaaa"))
 
 
 if __name__ == "__main__":

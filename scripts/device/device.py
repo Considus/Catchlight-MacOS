@@ -226,7 +226,13 @@ def install_locked(args):
 
 
 def swap_in(built, dest, sha):
-    """Quit the app, replace dest with built, check the stamp, roll back on failure."""
+    """Quit the app, replace dest with built, check the stamp, roll back on any failure."""
+    backup = dest + ".previous"
+    # A .previous with no app beside it is a working copy an interrupted run left
+    # behind: put it back before anything else, never delete it.
+    if os.path.exists(backup) and not os.path.exists(dest):
+        os.rename(backup, dest)
+        print("[recover] put back the copy an interrupted install left at .previous")
     if app_running():
         run(["osascript", "-e", f'tell application id "{BUNDLE_ID}" to quit'],
             QUIT_TIMEOUT, label="osascript quit")
@@ -239,24 +245,26 @@ def swap_in(built, dest, sha):
                               f"{QUIT_TIMEOUT}s (an unsaved prompt?): close it and run this again")
             time.sleep(1)
     os.makedirs(os.path.dirname(dest), exist_ok=True)
-    backup = None
-    if os.path.exists(dest):
-        backup = dest + ".previous"
+    had_previous = os.path.exists(dest)
+    if had_previous:
         shutil.rmtree(backup, ignore_errors=True)
         os.rename(dest, backup)
+    committed = False
     try:
         run(["ditto", built, dest], GIT_TIMEOUT, label="ditto")
         build = bundle_build(dest)
         if build is None or build[1] != sha:
             raise Failure(f"the installed copy reports build {build[1] if build else 'none'}, "
                           f"not {sha}")
-    except Failure:
-        shutil.rmtree(dest, ignore_errors=True)
-        if backup:
-            os.rename(backup, dest)
-            print("[rollback] the previous copy is back in place")
-        raise
-    if backup:
+        committed = True
+    finally:
+        # Runs on Ctrl-C and on any exception too, so Mark always keeps a working copy.
+        if not committed:
+            shutil.rmtree(dest, ignore_errors=True)
+            if had_previous:
+                os.rename(backup, dest)
+                print("[rollback] the previous copy is back in place")
+    if had_previous:
         shutil.rmtree(backup, ignore_errors=True)
 
 
