@@ -142,7 +142,7 @@ python3 scripts/device/device.py logs --crashes         # diagnostics log and cr
 ```
 
 - **`install` after an app change merges**, with `--ref origin/main`, so Mark runs what was merged. Run it in the background (`run_in_background`): a clean universal build takes several minutes. It builds in a throwaway worktree, never the shared checkout; quits the app if it is open; keeps the previous copy until the new one reports the commit that was built, and puts it back if not. Only one install runs at a time. Ask Mark first when the build crosses a data-affecting change (a Core bump, the store, the Keychain, sync), because his real library is in this Mac's container.
-- **The build stamp:** `project.yml` stamps `CFBundleVersion` with the git short SHA, as the iPhone app does; archives keep the number. A copy built before the stamp existed reads "1", and `status` says to install a fresh one.
+- **The build stamp:** `project.yml` stamps `CFBundleVersion` with the git short SHA, as the iPhone app does, on a clean build only: an incremental build into existing derived data reads "1", and so does a copy built before the stamp existed. `install` always builds clean. When `status` reads "1", install a fresh build rather than guessing which one it is.
 - **`logs` when Mark reports a problem**, before asking him anything. It reads `catchlight-diagnostics.json` from the app's container (no Take content, by design), writes it as text, and with `--crashes` adds Catchlight's reports from `~/Library/Logs/DiagnosticReports`.
 
 ## Ship

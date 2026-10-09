@@ -33,6 +33,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 
 BUNDLE_ID = "com.considus.catchlight.mac"
 SCHEME = "Catchlight"
@@ -183,9 +184,9 @@ def install_locked(args):
     work = tempfile.mkdtemp(prefix=f"mac-{sha}-", dir=BUILD_ROOT)
     src = os.path.join(work, "src")
     derived = os.path.join(work, "dd")  # fresh derived data, so the stamp applies
-    run(["git", "-C", root, "worktree", "add", "--detach", src, sha], GIT_TIMEOUT,
-        label="git worktree add")
     try:
+        run(["git", "-C", root, "worktree", "add", "--detach", src, sha], GIT_TIMEOUT,
+            label="git worktree add")
         run(["xcodegen", "generate"], XCODEGEN_TIMEOUT, cwd=src, label="xcodegen")
         run(["xcodebuild", "-scheme", SCHEME, "-configuration", "Debug",
              "-derivedDataPath", derived, "-allowProvisioningUpdates", "ONLY_ACTIVE_ARCH=NO",
@@ -209,8 +210,14 @@ def swap_in(built, dest, sha):
     if app_running():
         run(["osascript", "-e", f'tell application id "{BUNDLE_ID}" to quit'],
             QUIT_TIMEOUT, label="osascript quit")
-        if app_running():
-            raise Failure("Catchlight did not quit (an unsaved prompt?): close it and run this again")
+        # osascript returns once the app accepts the quit, before the process has
+        # exited (it saves and tears down its web view first), so wait for it.
+        deadline = time.monotonic() + QUIT_TIMEOUT
+        while app_running():
+            if time.monotonic() > deadline:
+                raise Failure("Catchlight did not quit within "
+                              f"{QUIT_TIMEOUT}s (an unsaved prompt?): close it and run this again")
+            time.sleep(1)
     os.makedirs(os.path.dirname(dest), exist_ok=True)
     backup = None
     if os.path.exists(dest):

@@ -99,8 +99,11 @@ targets:
     # scripts/device/device.py can tell which commit is installed: otherwise every
     # build reads "0.1.0 (1)". A postBuildScript, because Process Info.plist runs
     # after postCompile and would rewrite the stamp; postBuild runs after it and
-    # before signing, so the signature covers the stamp. Archives keep the numeric
-    # build number, and a build with no git (a CI source archive) keeps "1".
+    # before signing, so the signature covers the stamp. It holds on a CLEAN build
+    # only (as on the iPhone): an incremental build re-runs Process Info.plist after
+    # the stamp and leaves "1", which is why device.py always builds into fresh
+    # derived data. Archives keep the numeric build number, and a build with no git
+    # (a CI source archive) keeps "1".
     postBuildScripts:
       - name: "Stamp build number with git short SHA"
         basedOnDependencyAnalysis: false
