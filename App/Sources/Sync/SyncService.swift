@@ -126,6 +126,11 @@ final class SyncService {
                 }
                 if case .finished(let report) = outcome {
                     conflicts.enqueue(report.conflicts)
+                    // A waiting Take whose other side another device turned into a Script this Mac
+                    // doesn't hold (`syncScripts` off): Core leaves it as it is and names it on
+                    // every pass. The pair can no longer be resolved by re-stamping it, which would
+                    // send the choice into the Script (Catchlight-Core#29).
+                    conflicts.markConverted(report.heldConverted)
                     conflicts.enqueueUnverified(report.unverified)
                     // A waiting Take another device turned into a Script has left this Mac (Core
                     // releases it, or keeps this Mac's edit as a new Take): its pair goes too, so
@@ -171,6 +176,12 @@ final class SyncService {
 /// takes it along. A resolved conflict is stamped as a fresh edit so the next push makes the
 /// chosen version the newest everywhere.
 ///
+/// A pair whose other side another device has since turned into a Script this Mac doesn't hold
+/// (`SyncReport.heldConverted`, only with `syncScripts` off: with it on, the Script arrives as the
+/// pair's other side) is CONVERTED, kept in its file across relaunches until it is resolved. Its
+/// Take must never be re-stamped or written on its own id, or the next push sends the choice into
+/// the Script: `resolve` offers only `.asNew` and `.letGo` for it, and refuses the usual choices.
+///
 /// Unverified copies stay in memory, as on the iPhone: the engine never writes them, so the next
 /// pass finds them again.
 final class ConflictQueue {
@@ -184,12 +195,23 @@ final class ConflictQueue {
     /// pair must never apply to another. Changes whenever the pair does. In memory only.
     private var revisions: [UUID: String] = [:]
 
+    /// Pairs whose other side another device turned into a Script this Mac doesn't hold. Kept in
+    /// each pair's file, so it survives a relaunch, and cleared only by `resolve` or `release`.
+    private(set) var converted: Set<UUID> = []
+
     enum Failure: Error, LocalizedError, Equatable {
         /// The pair changed after the page read it: nothing is written, and the user chooses again.
         case pairChanged
+        /// A choice that doesn't fit the pair: a version picked for a converted pair, whose other
+        /// side is a Script this Mac never reads, or `.asNew` / `.letGo` for an ordinary pair.
+        case choiceDoesNotFit
+        /// The Take changed between reading it and letting it go, so nothing was kept.
+        case takeChanged
         var errorDescription: String? {
             switch self {
             case .pairChanged: return "the versions changed while you were choosing"
+            case .choiceDoesNotFit: return "that choice does not fit this conflict"
+            case .takeChanged: return "the Take changed while its conflict was resolved"
             }
         }
     }
@@ -218,7 +240,11 @@ final class ConflictQueue {
         }
         for url in files where url.pathExtension == "conflict" {
             guard let id = UUID(uuidString: url.deletingPathExtension().lastPathComponent) else { continue }
-            do { add(try Self.open(Data(contentsOf: url), id: id, keys: keys)) } catch {
+            do {
+                let file = try Self.openFile(Data(contentsOf: url), id: id, keys: keys)
+                add(file.pair)
+                if file.converted { converted.insert(id) }
+            } catch {
                 // Kept as it is, never deleted or written over (`write` moves it aside first): it
                 // may hold the only copy of the other version. Its Take stays held.
                 damaged.insert(id)
@@ -243,6 +269,7 @@ final class ConflictQueue {
         for id in ids where heldIDs.contains(id) {
             pending.removeAll { $0.local.id == id }
             revisions[id] = nil
+            converted.remove(id)
             if let url = fileURL(id) {
                 try? setAsideIfUnreadable(url, id: id)
                 try? FileManager.default.removeItem(at: url)
@@ -257,6 +284,19 @@ final class ConflictQueue {
 
     /// The token for the pair now waiting for `id`, or nil when none waits.
     func revision(_ id: UUID) -> String? { revisions[id] }
+
+    /// Marks waiting pairs whose other side another device has turned into a Script this Mac
+    /// doesn't hold (`SyncReport.heldConverted`, named on every pass while held). The mark is
+    /// written to the pair's file, so it survives a relaunch, and the pair's revision changes, so
+    /// a version picked before it can't be applied. An id with no readable pair is left alone.
+    func markConverted(_ ids: [UUID]) {
+        for id in ids where !converted.contains(id) {
+            guard let pair = pending.first(where: { $0.local.id == id }) else { continue }
+            converted.insert(id)
+            revisions[id] = UUID().uuidString.lowercased()
+            persist(pair)
+        }
+    }
 
     private func add(_ pair: (local: Take, remote: Take)) {
         if let i = pending.firstIndex(where: { $0.local.id == pair.local.id }) {
@@ -283,7 +323,9 @@ final class ConflictQueue {
         }
     }
 
-    enum Choice: String { case local, remote, both }
+    /// `.local`, `.remote` and `.both` for an ordinary pair; `.asNew` and `.letGo` for a converted
+    /// one, whose other side is a Script this Mac never reads.
+    enum Choice: String { case local, remote, both, asNew = "new", letGo }
 
     /// Write the user's choice (owner, 2026-10-05: keep this Mac's version, the other device's, or
     /// both). The kept version is stamped as a fresh edit so the next push makes it the newest
@@ -297,6 +339,12 @@ final class ConflictQueue {
         guard let i = pending.firstIndex(where: { $0.local.id == id }) else { return nil }
         if let revision, revision != revisions[id] { throw Failure.pairChanged }
         let pair = pending[i]
+        if converted.contains(id) != [.asNew, .letGo].contains(choice) { throw Failure.choiceDoesNotFit }
+        if converted.contains(id) {
+            let copy = try resolveConverted(pair, keepAsNew: choice == .asNew, store: store, now: now)
+            finish(id)
+            return copy
+        }
         // This Mac's version is the Take as it is NOW. Saves can't change a held Take, so that is
         // the version the conflict was found against; reading the store still guards against
         // anything that wrote it outside a save. Only if it has gone does the copy stand in.
@@ -311,12 +359,50 @@ final class ConflictQueue {
             try store.upsert(other)
             copy = other
         }
-        pending.remove(at: i)
+        finish(id)
+        return copy
+    }
+
+    /// The pair is resolved: it, its mark and its file go. Only this pair's own file goes: one that
+    /// doesn't open is set aside first, never removed.
+    private func finish(_ id: UUID) {
+        pending.removeAll { $0.local.id == id }
         revisions[id] = nil
+        converted.remove(id)
         if let url = fileURL(id) {
-            // Only this pair's own file goes: one that doesn't open is set aside first, never removed.
             try? setAsideIfUnreadable(url, id: id)
             try? FileManager.default.removeItem(at: url)
+        }
+    }
+
+    /// A converted pair: the other side is now a Script on another device, which this Mac never
+    /// reads. Nothing is written on the Take's own id, which the folder now lists as that Script.
+    /// - Keep as new: this Mac's version is saved as a NEW Take, as Core's `SyncEngine.fork`
+    ///   makes one: a new id, a new notification id for its reminder, its `createdAt` kept, and the
+    ///   Obie only if the original was, applied once the original has gone. It is stamped as a
+    ///   fresh edit so the next push uploads it. The original is then let go.
+    /// - Let it go: the original leaves this Mac now, with no deletion record (`TakeStore.release`),
+    ///   so it can't be edited into the Script before the next pass.
+    /// Either way the Script in the folder is left exactly as the other device wrote it.
+    private func resolveConverted(_ pair: (local: Take, remote: Take), keepAsNew: Bool,
+                                  store: TakeStore, now: Date) throws -> Take? {
+        let id = pair.local.id
+        let current = try store.take(id: id)
+        var copy: Take?
+        if keepAsNew {
+            var made = Self.copy(of: current ?? pair.local)
+            made.modifiedAt = now
+            try store.upsert(made)
+            copy = made
+        }
+        if let current, try !store.release(id: id, ifNotModifiedAfter: current.modifiedAt) {
+            // Changed between the read and the release: withdraw the copy and write nothing.
+            if let copy { _ = try store.release(id: copy.id, ifNotModifiedAfter: copy.modifiedAt) }
+            throw Failure.takeChanged
+        }
+        if let made = copy, (current ?? pair.local).isObie {
+            try store.setObie(id: made.id, replaceExisting: true)
+            copy = try store.take(id: made.id) ?? made
         }
         return copy
     }
@@ -337,7 +423,8 @@ final class ConflictQueue {
 
     // MARK: On disk
 
-    private struct Pair: Codable { let local: Take; let remote: Take }
+    /// `converted` is absent in files from before Core 1.5, which read as not converted.
+    private struct Pair: Codable { let local: Take; let remote: Take; var converted: Bool? }
 
     /// The id a conflict file is named for: `<id>.conflict`, `<id>.<uuid>.unreadable`.
     static func id(of url: URL) -> UUID? {
@@ -367,7 +454,7 @@ final class ConflictQueue {
         guard let directory, let keys, let url = fileURL(pair.local.id) else { return }
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         try setAsideIfUnreadable(url, id: pair.local.id)
-        try Self.seal(pair, keys: keys).write(to: url, options: .atomic)
+        try Self.seal(pair, converted: converted.contains(pair.local.id), keys: keys).write(to: url, options: .atomic)
     }
 
     /// A file at `url` that doesn't open as `id`'s pair goes to `<id>.<new uuid>.unreadable`
@@ -381,16 +468,20 @@ final class ConflictQueue {
         Self.log.error("a waiting conflict that did not open was set aside: \(aside.lastPathComponent, privacy: .public)")
     }
 
-    static func seal(_ pair: (local: Take, remote: Take), keys: KeyHierarchy) throws -> Data {
-        let plain = try PlatformJSON.encode(Pair(local: pair.local, remote: pair.remote))
+    static func seal(_ pair: (local: Take, remote: Take), converted: Bool = false, keys: KeyHierarchy) throws -> Data {
+        let plain = try PlatformJSON.encode(Pair(local: pair.local, remote: pair.remote, converted: converted ? true : nil))
         let id = pair.local.id
         return try AES.GCM.seal(plain, using: keys.itemKey(takeUUID: id), authenticating: format + Data(id.uuidString.utf8)).combined!
     }
 
     static func open(_ sealed: Data, id: UUID, keys: KeyHierarchy) throws -> (local: Take, remote: Take) {
+        try openFile(sealed, id: id, keys: keys).pair
+    }
+
+    static func openFile(_ sealed: Data, id: UUID, keys: KeyHierarchy) throws -> (pair: (local: Take, remote: Take), converted: Bool) {
         let box = try AES.GCM.SealedBox(combined: sealed)
         let plain = try AES.GCM.open(box, using: keys.itemKey(takeUUID: id), authenticating: format + Data(id.uuidString.utf8))
         let pair = try PlatformJSON.decode(Pair.self, from: plain)
-        return (pair.local, pair.remote)
+        return ((pair.local, pair.remote), pair.converted == true)
     }
 }
