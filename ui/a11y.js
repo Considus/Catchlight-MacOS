@@ -31,7 +31,7 @@ function spokenLine(line) {
     const address = at < 0 ? raw : L10N.t('%1$@ at %2$@', raw.slice(0, at), raw.slice(at + 1));
     phrases.push(mail.length === 1 ? L10N.t('Email to %@', address) : L10N.t('Email to %1$@ and %2$lld more emails', address, mail.length - 1));
   }
-  return [words, ...phrases].filter(Boolean).join('. ') || line;
+  return L10N.clauses([words, ...phrases]) || line;
 }
 
 // The state part of a card's label (statusDescription).
@@ -49,12 +49,12 @@ function statusDescription(t) {
     parts.push(r.notify !== false ? (arrive ? L10N.t('Reminds on arrival') : L10N.t('Reminds on leaving')) : (arrive ? L10N.t('Place set, arrival, silent') : L10N.t('Place set, leaving, silent')));
   }
   if (t.isNote && !isTask(t) && !r) parts.push(L10N.t('Note'));
-  return parts.join('. ');
+  return L10N.clauses(parts);
 }
 
 const firstLine = t => (t.blocks[0]?.text ?? '').split('\n')[0];
 // The card: first line, state, and the reminder's "when" (time reminders only, as on iOS).
-const takeLabel = t => [spokenLine(firstLine(t)), statusDescription(t), isTimeR(t.reminder) ? reminderLine(t.reminder) : ''].filter(Boolean).join('. ');
+const takeLabel = t => L10N.clauses([spokenLine(firstLine(t)), statusDescription(t), isTimeR(t.reminder) ? reminderLine(t.reminder) : '']);
 
 // The Iris: named for its Take so one Iris can be told from another (VC2), cut to 40
 // characters at a word.
@@ -62,7 +62,7 @@ function irisLabel(t) {
   let name = spokenLine(firstLine(t));
   if (name.length > 40) { const cut = name.slice(0, 40); name = (cut.lastIndexOf(' ') > 0 ? cut.slice(0, cut.lastIndexOf(' ')) : cut) + '…'; }
   const activity = L10N.list([t.isImportant && L10N.t('Important'), t.isNote && L10N.t('Note'), isTask(t) && (isComplete(t) ? L10N.t('completed Task') : L10N.t('Task')), t.reminder && L10N.t('Reminder')].filter(Boolean));
-  return [name ? L10N.t('Iris, %@', name) : L10N.t('Iris'), t.obie && L10N.t('Obie: your pinned Take'), activity].filter(Boolean).join('. ');
+  return L10N.clauses([name ? L10N.t('Iris, %@', name) : L10N.t('Iris'), t.obie && L10N.t('Obie: your pinned Take'), activity]);
 }
 const irisHint = t => t.obie ? L10N.t('Opens the Focus ring. ⌥Return turns this back into a standard Take.') : L10N.t('Opens the Focus ring. ⌥Return makes this your Obie.');
 

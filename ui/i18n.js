@@ -93,11 +93,56 @@
     });
   }
 
-  // English is the key itself, unless the catalog gives English its own forms (a plural's).
+  // English is the key itself, unless the catalog gives English its own text: a plural's forms,
+  // two counts' substitutions, or a key whose English differs ("View menu" reads "View"). Those
+  // are also here, so a page whose catalog didn't load still reads right ("1 Take changed…").
+  // LocalisationTests checks this table against the catalog's English.
+  const ENGLISH = {
+    "%1$@ at %2$@": "%1$@ at %2$@",
+    "%1$@ · %2$lld pages": {"one": "%1$@ · %2$lld page", "other": "%1$@ · %2$lld pages"},
+    "%1$@. %2$@": "%1$@. %2$@",
+    "%1$lld Takes and %2$lld Scripts changed on another device.": {"value": "%#@takes@ and %#@scripts@ changed on another device.", "substitutions": {"scripts": [2, "%arg Script", "%arg Scripts"], "takes": [1, "%arg Take", "%arg Takes"]}},
+    "%1$lld of %2$lld completed": "%1$lld of %2$lld completed",
+    "%lld Scripts changed on another device.": {"one": "%lld Script changed on another device.", "other": "%lld Scripts changed on another device."},
+    "%lld Scripts couldn't be opened": {"one": "%lld Script couldn't be opened", "other": "%lld Scripts couldn't be opened"},
+    "%lld Scripts weren't changed": {"one": "%lld Script wasn't changed", "other": "%lld Scripts weren't changed"},
+    "%lld Takes and Scripts changed on another device.": {"one": "%lld Take or Script changed on another device.", "other": "%lld Takes and Scripts changed on another device."},
+    "%lld Takes changed on another device.": {"one": "%lld Take changed on another device.", "other": "%lld Takes changed on another device."},
+    "%lld Takes couldn't be verified and need a choice.": {"one": "%lld Take couldn't be verified and needs a choice.", "other": "%lld Takes couldn't be verified and need a choice."},
+    "%lld Takes couldn't be verified and were skipped.": {"one": "%lld Take couldn't be verified and was skipped.", "other": "%lld Takes couldn't be verified and were skipped."},
+    "%lld Takes not re-uploaded. This device was away too long to rule out deletion elsewhere. Edit a Take to sync it again.": {"one": "%lld Take not re-uploaded. This device was away too long to rule out deletion elsewhere. Edit a Take to sync it again.", "other": "%lld Takes not re-uploaded. This device was away too long to rule out deletion elsewhere. Edit a Take to sync it again."},
+    "%lld Takes weren't changed": {"one": "%lld Take wasn't changed", "other": "%lld Takes weren't changed"},
+    "%lld notes couldn't be saved. Import again to try them, and if it keeps happening, report it.": {"one": "%lld note couldn't be saved. Import again to try it, and if it keeps happening, report it.", "other": "%lld notes couldn't be saved. Import again to try them, and if it keeps happening, report it."},
+    "Catchlight couldn't read %lld Scripts, so the last version of each is kept. Report it, with this detail: %@": {"one": "Catchlight couldn't read %lld Script, so the last version of it is kept. Report it, with this detail: %@", "other": "Catchlight couldn't read %lld Scripts, so the last version of each is kept. Report it, with this detail: %@"},
+    "Catchlight couldn't read %lld Takes, so the last version of each is kept. Report it, with this detail: %@": {"one": "Catchlight couldn't read %lld Take, so the last version of it is kept. Report it, with this detail: %@", "other": "Catchlight couldn't read %lld Takes, so the last version of each is kept. Report it, with this detail: %@"},
+    "Created on %1$@ at %2$@": "Created on %1$@ at %2$@",
+    "Email to %1$@ and %2$lld more emails": {"one": "Email to %@ and %lld more email", "other": "Email to %@ and %lld more emails"},
+    "Import successful. %1$lld Takes and %2$lld Scripts added to your timeline.": {"value": "Import successful. %#@takes@ and %#@scripts@ added to your timeline.", "substitutions": {"scripts": [2, "%arg Script", "%arg Scripts"], "takes": [1, "%arg Take", "%arg Takes"]}},
+    "Import successful. %lld Scripts added to your timeline.": {"one": "Import successful. %lld Script added to your timeline.", "other": "Import successful. %lld Scripts added to your timeline."},
+    "Import successful. %lld Takes added to your timeline.": {"one": "Import successful. %lld Take added to your timeline.", "other": "Import successful. %lld Takes added to your timeline."},
+    "Link to %1$@ and %2$lld more links": {"one": "Link to %@ and %lld more link", "other": "Link to %@ and %lld more links"},
+    "Task, %1$lld of %2$lld complete": "Task, %1$lld of %2$lld complete",
+    "View menu": "View",
+  };
+  function english(key, args) {
+    const e = ENGLISH[key];
+    if (e == null) return null;
+    if (typeof e === 'string') return e;
+    const n = firstNumber(args) ?? 0;
+    if (!e.substitutions) return n === 1 ? e.one : e.other;
+    return e.value.replace(/%(?:\d+\$)?#@(\w+)@/g, (whole, name) => {
+      const [argNum, one, other] = e.substitutions[name] || [];
+      if (!argNum) return whole;
+      const v = args[argNum - 1];
+      return (v === 1 ? one : other).replace(/%arg/g, () => format(v));
+    });
+  }
   function t(key, ...args) {
-    const text = lookup(key, lang, args) ?? lookup(key, 'en', args) ?? key;
+    const text = lookup(key, lang, args) ?? lookup(key, 'en', args) ?? english(key, args) ?? key;
     return fill(text, args);
   }
+  // English from the built-in table alone, as a page without its catalog would read.
+  t.fallback = (key, ...args) => fill(english(key, args) ?? key, args);
 
   // Static text in index.html (and any fragment painted later that carries the attributes).
   function apply(root = document) {
@@ -124,7 +169,10 @@
   };
   // Whole sentences one after another: a space between them, none in Chinese or Japanese.
   const sentences = (...parts) => parts.filter(Boolean).join(/^(ja|zh)/.test(lang) ? '' : ' ');
-  window.L10N = Object.freeze({ lang, locale: regional, supported: SUPPORTED, match, t, apply, dateLocale, list, sentences });
+  // Phrases a screen reader reads as one label ("Buy film. Task, 1 of 2 complete. Overdue"), with
+  // the pause the language marks: a full stop and space, 。 in Chinese and Japanese, a space in Thai.
+  const clauses = parts => parts.filter(Boolean).join(/^(ja|zh)/.test(lang) ? '。' : lang === 'th' ? ' ' : '. ');
+  window.L10N = Object.freeze({ lang, locale: regional, supported: SUPPORTED, match, t, apply, dateLocale, list, sentences, clauses });
   window.t = t;
   apply();
 })();

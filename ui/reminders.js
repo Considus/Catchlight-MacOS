@@ -14,6 +14,11 @@
 // A reminder written before kinds existed ({ when, done }) is a time.
 
 const isTimeR = r => !!r && r.kind !== 'place';
+// A place named "Current location" is stored in English, as the iPhone stores it: its address
+// lookup replaces only that exact name (LocationEditor.shouldAdoptGeocodedName). Shown translated.
+const CURRENT_LOCATION = 'Current location';
+const placeName = name => name === CURRENT_LOCATION ? t('Current location') : name;
+const storedPlaceName = shown => shown === t('Current location') ? CURRENT_LOCATION : shown;
 // The Mac app can't make a place reminder yet: Core needs coordinates and the Mac has no map
 // (owner 2026-10-03, places on desktop wait until asked for). One made on the iPhone still
 // opens here, with its name, mode and radius editable.
@@ -76,7 +81,7 @@ function dayAndTime(d) {
 // The line on a card: "Tomorrow at 09:00 · Daily", the date alone when all-day, or
 // "Home · On arrival". The weekdays of a custom repeat are not shown, as on iOS.
 function reminderLine(r) {
-  if (isPlaceR(r)) return `${r.name || t('Location')} · ${r.mode === 'leave' ? t('On leaving') : t('On arrival')}`;
+  if (isPlaceR(r)) return `${placeName(r.name) || t('Location')} · ${r.mode === 'leave' ? t('On leaving') : t('On arrival')}`;
   const d = nextDue(r);
   const when = r.allDay ? dayWord(d) : dayAndTime(d);
   return repeats(r) ? `${when} · ${REPEAT_SHOWN[r.repeat]}` : when;
@@ -211,7 +216,7 @@ function placeTab() {
         <div class="srow"><div class="seg small" role="radiogroup"><button type="button" role="radio" data-r="arrive" aria-checked="${p.mode !== 'leave'}">${t('When I arrive')}</button><button type="button" role="radio" data-r="leave" aria-checked="${p.mode === 'leave'}">${t('When I leave')}</button></div></div>
         ${rrow(RI('<circle cx="12" cy="12" r="8" stroke-dasharray="3 2.5"/>'), t('Radius'), rselect('radius', [['100', '100 m'], ['150', '150 m'], ['250', '250 m'], ['500', '500 m']], String(p.radius)))}
         ${rrow(RI(p.notify ? 'bell' : '<path d="M6 16V11a6 6 0 0 1 9.5-4.9M18 11v5l1.5 2h-15M10 20.5h4M4 4l16 16"/>'), t('Notify'), rswitch('placeNotify', p.notify))}
-        ${rrow(`<span class="srow-icon">${ICON_PIN}</span>`, t('Place'), `<input type="text" class="rname" data-r="name" placeholder="${esc(t('e.g. Home'))}" value="${esc(p.name || '')}" aria-label="${esc(t('Place name'))}">`)}
+        ${rrow(`<span class="srow-icon">${ICON_PIN}</span>`, t('Place'), `<input type="text" class="rname" data-r="name" placeholder="${esc(t('e.g. Home'))}" value="${esc(placeName(p.name) || '')}" aria-label="${esc(t('Place name'))}">`)}
       </div>
       ${p.radius === 100 ? `<p class="sgroup-foot">${PLATFORM.text.tightRadius()}</p>` : ''}
       ${p.notify ? '' : `<p class="sgroup-foot">${t('Silent. Keeps the place on the Take, with no alert when you arrive or leave.')}</p>`}` : ''}`;
@@ -262,7 +267,7 @@ rsheet.addEventListener('click', e => {
     const w = +b.dataset.wd, i = rs.weekdays.indexOf(w);
     if (i >= 0) rs.weekdays.splice(i, 1); else rs.weekdays.push(w);   // the last one can go too: Interval then reads Weekly, as on iOS
   }
-  else if (k === 'current') { rs.place = { name: t('Current location'), mode: 'arrive', radius: 150, notify: true, ...(rs.place || {}), name: rs.place?.name || t('Current location') }; }
+  else if (k === 'current') { rs.place = { name: CURRENT_LOCATION, mode: 'arrive', radius: 150, notify: true, ...(rs.place || {}), name: rs.place?.name || CURRENT_LOCATION }; }
   else if (k === 'arrive' || k === 'leave') rs.place.mode = k;
   else return;
   paintReminder();
@@ -278,7 +283,7 @@ rsheet.addEventListener('change', e => {
   else if (k === 'interval') setInterval_(v);
   else if (k === 'radius') rs.place.radius = +v;
   else if (k === 'placeNotify') rs.place.notify = v;
-  else if (k === 'name') { rs.place.name = v; return; }
+  else if (k === 'name') { rs.place.name = storedPlaceName(v); return; }
   else return;
   paintReminder();
   rsheet.querySelector(`[data-r="${k}"]`)?.focus();
@@ -293,6 +298,6 @@ rsheet.addEventListener('keydown', e => {
     paintReminder();
   }
 });
-rsheet.addEventListener('input', e => { if (e.target.dataset?.r === 'name' && rs?.place) rs.place.name = e.target.value; if (e.target.dataset?.r === 'query' && rs) rs.query = e.target.value; });
+rsheet.addEventListener('input', e => { if (e.target.dataset?.r === 'name' && rs?.place) rs.place.name = storedPlaceName(e.target.value); if (e.target.dataset?.r === 'query' && rs) rs.query = e.target.value; });
 // Escape closes the picker only, not the ring or the edit beneath it.
 document.addEventListener('keydown', e => { if (reminderFor && e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); cancelReminder(); } });

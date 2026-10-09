@@ -61,15 +61,13 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
     /// The open panel for Import from a File. Replaced in tests, which can't drive a panel.
     var pickImportFiles: (NSWindow?, @escaping ([URL]?) -> Void) -> Void = NoteImport.pickFiles
 
-    /// The languages the app is translated into, as `knownRegions` in project.yml lists them and
-    /// `ui/i18n.js` reads them.
-    static let languages = ["en", "es", "fr", "de", "zh-Hans", "zh-Hant", "da", "nl", "fi", "it", "ja", "nb", "pl", "pt-BR", "pt-PT", "sv", "th", "tr", "ko"]
+    /// The language the page speaks: the bundle's own choice for `String(localized:)` (the first of
+    /// the user's preferred languages among the `.lproj` folders the String Catalogs built), so the
+    /// page and the native menus and alerts always agree. English when none is available.
+    static var preferredLanguage: String { language(from: .main) }
 
-    /// The language the page speaks: the first of the user's preferred languages the app has,
-    /// else English. It is the same choice the bundle makes for `String(localized:)`, so the page
-    /// and the native menus and alerts always agree.
-    static var preferredLanguage: String {
-        Bundle.preferredLocalizations(from: languages, forPreferences: Locale.preferredLanguages).first ?? "en"
+    static func language(from bundle: Bundle) -> String {
+        bundle.preferredLocalizations.first { $0 != "Base" } ?? "en"
     }
 
     /// The page's language. Tests set it to load the page in one.
@@ -340,12 +338,12 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                "scanned": outcome.scanned, "skipped": outcome.skipped], nil)
     }
 
-    /// The summary Take an import leaves in Dailies, in the user's language: "Import successful.
-    /// 3 Takes added.", one whole sentence for each mix, the counts' plurals in the catalog.
+    /// The summary Take an import leaves in Dailies: "Import successful. 3 Takes added.", or "1 Take
+    /// and 2 Scripts". Always English, as the iPhone writes it (`SettingsView.announceImport`): it is
+    /// a stored Take that syncs, so both apps write the same words whatever the device language.
     static func importSummary(_ takes: Int, _ scripts: Int) -> String {
-        if scripts == 0 { return String(localized: "Import successful. \(takes) Takes added.") }
-        if takes == 0 { return String(localized: "Import successful. \(scripts) Scripts added.") }
-        return String(localized: "Import successful. \(takes) Takes and \(scripts) Scripts added.")
+        let t = "\(takes) \(takes == 1 ? "Take" : "Takes")", s = "\(scripts) \(scripts == 1 ? "Script" : "Scripts")"
+        return "Import successful. \(scripts == 0 ? t : takes == 0 ? s : "\(t) and \(s)") added."
     }
 
     // MARK: The library and the account

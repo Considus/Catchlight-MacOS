@@ -12,7 +12,8 @@ each catalog it fails when:
   ui/*.js, a `data-i18n` text or `data-i18n-attrs` attribute in ui/index.html, a
   `String(localized: "…")` literal in App/Sources);
 - the catalog holds a key no code uses (a stale key is a translation nobody sees);
-- a key lacks one of the 18 languages, or a plural form a language needs (`other` always);
+- a key lacks one of the 18 languages, or one of the CLDR plural categories a language needs
+  (pl one/few/many/other, fr one/many/other, ja other…), in a plural or a substitution;
 - a translation's placeholders differ from the English: same type at each position, in every
   plural form and substitution (`%1$@ … %2$lld` may reorder `%@ … %lld`). A dropped or retyped
   placeholder garbles or crashes at run time, and nothing else would say so.
@@ -28,6 +29,14 @@ import sys
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 LANGUAGES = ["es", "fr", "de", "zh-Hans", "zh-Hant", "da", "nl", "fi", "it", "ja", "nb", "pl",
              "pt-BR", "pt-PT", "sv", "th", "tr", "ko"]
+# The CLDR plural categories each language needs for whole numbers, as Intl.PluralRules and
+# Foundation choose them. A plural or substitution missing one would fall back to `other`.
+PLURAL_CATEGORIES = {
+    **{l: {"one", "other"} for l in ("en", "de", "da", "nl", "fi", "nb", "sv", "tr")},
+    **{l: {"one", "many", "other"} for l in ("es", "fr", "it", "pt-BR", "pt-PT")},
+    "pl": {"one", "few", "many", "other"},
+    **{l: {"other"} for l in ("ja", "ko", "th", "zh-Hans", "zh-Hant")},
+}
 UI_CATALOG = os.path.join(REPO, "ui", "l10n", "Localizable.xcstrings")
 APP_CATALOG = os.path.join(REPO, "App", "Resources", "Localizable.xcstrings")
 
@@ -148,6 +157,9 @@ def check(catalog_path, used, label):
     for key, entry in sorted(strings.items()):
         locs = entry.get("localizations", {})
         want = signature(key)
+        en_forms = locs.get("en", {}).get("variations", {}).get("plural")
+        if en_forms is not None and not PLURAL_CATEGORIES["en"] <= set(en_forms):
+            problems.append(f"{label}: en {key!r} lacks plural forms")
         if "en" in locs:
             for lab, text in expanded(locs["en"]):
                 if signature(text) != want and text != key:
@@ -158,12 +170,14 @@ def check(catalog_path, used, label):
             if not loc:
                 problems.append(f"{label}: {lang} missing for {key!r}")
                 continue
+            need = PLURAL_CATEGORIES[lang]
             forms = loc.get("variations", {}).get("plural")
-            if forms is not None and "other" not in forms:
-                problems.append(f"{label}: {lang} {key!r} has no 'other' plural form")
+            if forms is not None and not need <= set(forms):
+                problems.append(f"{label}: {lang} {key!r} lacks plural forms {sorted(need - set(forms))}")
             for sub, s in loc.get("substitutions", {}).items():
-                if "other" not in s.get("variations", {}).get("plural", {}):
-                    problems.append(f"{label}: {lang} {key!r} substitution {sub} has no 'other' form")
+                got = set(s.get("variations", {}).get("plural", {}))
+                if not need <= got:
+                    problems.append(f"{label}: {lang} {key!r} substitution {sub} lacks forms {sorted(need - got)}")
             texts = expanded(loc)
             if not texts:
                 problems.append(f"{label}: {lang} has no text for {key!r}")

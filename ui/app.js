@@ -377,7 +377,7 @@ const script = () => scripts.find(s => s.id === current);
 function paintScriptHeld() {
   const note = $('#script-held'), id = script()?.id, held = isHeld(id);
   note.hidden = !held;
-  note.innerHTML = held ? `<span>${heldNote(id)}</span>${heldDamaged.has(id.toLowerCase()) ? '' : '<button class="slink" type="button">Review</button>'}` : '';
+  note.innerHTML = held ? `<span>${heldNote(id)}</span>${heldDamaged.has(id.toLowerCase()) ? '' : `<button class="slink" type="button">${t('Review')}</button>`}` : '';
 }
 $('#script-held').addEventListener('click', e => { if (e.target.closest('button')) window.openConflicts?.(); });
 function renderDoc() {

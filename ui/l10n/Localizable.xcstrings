@@ -180,6 +180,12 @@
         "es" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%1$@ · %2$lld páginas"
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -216,6 +222,12 @@
         "fr" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%1$@ · %2$lld pages"
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -234,6 +246,12 @@
         "it" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%1$@ · %2$lld pagine"
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -342,6 +360,12 @@
         "pt-BR" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%1$@ · %2$lld páginas"
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -360,6 +384,12 @@
         "pt-PT" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%1$@ · %2$lld páginas"
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -726,6 +756,12 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
+                  "many" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%arg Scripts"
+                    }
+                  },
                   "one" : {
                     "stringUnit" : {
                       "state" : "needs_review",
@@ -746,6 +782,12 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
+                  "many" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%arg Takes"
+                    }
+                  },
                   "one" : {
                     "stringUnit" : {
                       "state" : "needs_review",
@@ -822,6 +864,12 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
+                  "many" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%arg Scripts"
+                    }
+                  },
                   "one" : {
                     "stringUnit" : {
                       "state" : "needs_review",
@@ -842,6 +890,12 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
+                  "many" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%arg Takes"
+                    }
+                  },
                   "one" : {
                     "stringUnit" : {
                       "state" : "needs_review",
@@ -870,6 +924,12 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
+                  "many" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%arg Script"
+                    }
+                  },
                   "one" : {
                     "stringUnit" : {
                       "state" : "needs_review",
@@ -890,6 +950,12 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
+                  "many" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%arg Take"
+                    }
+                  },
                   "one" : {
                     "stringUnit" : {
                       "state" : "needs_review",
@@ -1158,6 +1224,12 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
+                  "many" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%arg Scripts"
+                    }
+                  },
                   "one" : {
                     "stringUnit" : {
                       "state" : "needs_review",
@@ -1178,6 +1250,12 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
+                  "many" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%arg Takes"
+                    }
+                  },
                   "one" : {
                     "stringUnit" : {
                       "state" : "needs_review",
@@ -1206,6 +1284,12 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
+                  "many" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%arg Scripts"
+                    }
+                  },
                   "one" : {
                     "stringUnit" : {
                       "state" : "needs_review",
@@ -1226,6 +1310,12 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
+                  "many" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%arg Takes"
+                    }
+                  },
                   "one" : {
                     "stringUnit" : {
                       "state" : "needs_review",
@@ -1741,6 +1831,12 @@
         "es" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Scripts cambiaron en otro dispositivo."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -1777,6 +1873,12 @@
         "fr" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Scripts modifiés sur un autre appareil."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -1795,6 +1897,12 @@
         "it" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Script modificati su un altro dispositivo."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -1903,6 +2011,12 @@
         "pt-BR" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Os %lld Scripts foram alterados em outro dispositivo."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -1921,6 +2035,12 @@
         "pt-PT" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Scripts alterados noutro dispositivo."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -2070,6 +2190,12 @@
         "es" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "No se pudieron abrir %lld Scripts"
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -2106,6 +2232,12 @@
         "fr" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Impossible d’ouvrir %lld Scripts"
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -2124,6 +2256,12 @@
         "it" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Impossibile aprire %lld Script"
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -2232,6 +2370,12 @@
         "pt-BR" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Não foi possível abrir %lld Scripts"
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -2250,6 +2394,12 @@
         "pt-PT" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Não foi possível abrir %lld Scripts"
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -2399,6 +2549,12 @@
         "es" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Scripts no se modificaron"
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -2435,6 +2591,12 @@
         "fr" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Scripts n’ont pas été modifiés"
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -2453,6 +2615,12 @@
         "it" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Script non sono stati modificati"
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -2561,6 +2729,12 @@
         "pt-BR" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Scripts não foram alterados"
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -2579,6 +2753,12 @@
         "pt-PT" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Scripts não foram alterados"
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -2728,6 +2908,12 @@
         "es" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Takes y Scripts cambiaron en otro dispositivo."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -2764,6 +2950,12 @@
         "fr" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Takes et Scripts modifiés sur un autre appareil."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -2782,6 +2974,12 @@
         "it" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Take e Script modificati su un altro dispositivo."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -2890,6 +3088,12 @@
         "pt-BR" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Takes e Scripts foram alterados em outro dispositivo."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -2908,6 +3112,12 @@
         "pt-PT" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Takes e Scripts alterados noutro dispositivo."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -3057,6 +3267,12 @@
         "es" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Takes cambiaron en otro dispositivo."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -3093,6 +3309,12 @@
         "fr" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Takes modifiés sur un autre appareil."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -3111,6 +3333,12 @@
         "it" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Take modificati su un altro dispositivo."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -3201,6 +3429,18 @@
         "pl" : {
           "variations" : {
             "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Takes zostały zmienione na innym urządzeniu."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Takes zostało zmienionych na innym urządzeniu."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -3219,6 +3459,12 @@
         "pt-BR" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Os %lld Takes foram alterados em outro dispositivo."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -3237,6 +3483,12 @@
         "pt-PT" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Takes alterados noutro dispositivo."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -3404,6 +3656,12 @@
         "es" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Takes no se pudieron verificar y requieren una decisión."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -3440,6 +3698,12 @@
         "fr" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Takes n’ont pas pu être vérifiés et nécessitent un choix."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -3458,6 +3722,12 @@
         "it" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Takes non verificati e richiedono una scelta."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -3548,6 +3818,18 @@
         "pl" : {
           "variations" : {
             "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Takes nie mogły zostać zweryfikowane i wymagają wyboru."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Takes nie mogło zostać zweryfikowanych i wymaga wyboru."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -3566,6 +3848,12 @@
         "pt-BR" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Não foi possível verificar os %lld Takes; é necessário escolher uma opção."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -3584,6 +3872,12 @@
         "pt-PT" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Não foi possível verificar %lld Takes, sendo necessária uma escolha."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -3751,6 +4045,12 @@
         "es" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Takes no se pudieron verificar y se omitieron."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -3787,6 +4087,12 @@
         "fr" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Takes n’ont pas pu être vérifiés et ont été ignorés."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -3805,6 +4111,12 @@
         "it" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Takes non verificati e sono stati saltati."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -3895,6 +4207,18 @@
         "pl" : {
           "variations" : {
             "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Takes nie mogły zostać zweryfikowane i zostały pominięte."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Takes nie mogło zostać zweryfikowanych i zostało pominiętych."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -3913,6 +4237,12 @@
         "pt-BR" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Não foi possível verificar os %lld Takes, que foram ignorados."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -3931,6 +4261,12 @@
         "pt-PT" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Não foi possível verificar %lld Takes, que foram ignorados."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -4098,6 +4434,12 @@
         "es" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Takes no se volvieron a subir. Este dispositivo estuvo desconectado demasiado tiempo para descartar que se hayan eliminado en otro lugar. Edita un Take para volver a sincronizarlo."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -4134,6 +4476,12 @@
         "fr" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Takes non réuploadés. Cet appareil a été absent trop longtemps pour exclure une suppression ailleurs. Modifiez un Take pour le synchroniser à nouveau."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -4152,6 +4500,12 @@
         "it" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Takes non ri-caricati. Questo dispositivo è stato offline troppo a lungo per escludere una cancellazione altrove. Modifica un Take per sincronizzarlo di nuovo."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -4242,6 +4596,18 @@
         "pl" : {
           "variations" : {
             "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Takes nie zostały ponownie przesłane. To urządzenie było zbyt długo poza zasięgiem, aby wykluczyć usunięcie gdzie indziej. Edytuj Take, aby zsynchronizować je ponownie."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Takes nie zostało ponownie przesłanych. To urządzenie było zbyt długo poza zasięgiem, aby wykluczyć usunięcie gdzie indziej. Edytuj Take, aby zsynchronizować je ponownie."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -4260,6 +4626,12 @@
         "pt-BR" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Os %lld Takes não foram reenviados. Este dispositivo ficou desconectado por tempo demais para confirmar que eles não foram excluídos em outro lugar. Edite um Take para sincronizá-los novamente."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -4278,6 +4650,12 @@
         "pt-PT" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Takes não foram reenviados. Este dispositivo esteve inativo demasiado tempo para descartar a eliminação noutro local. Edite um Take para voltar a sincronizar."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -4445,6 +4823,12 @@
         "es" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Takes no se modificaron"
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -4481,6 +4865,12 @@
         "fr" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Takes n’ont pas été modifiés"
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -4499,6 +4889,12 @@
         "it" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Take non sono stati modificati"
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -4607,6 +5003,12 @@
         "pt-BR" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Takes não foram alterados"
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -4625,6 +5027,12 @@
         "pt-PT" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Takes não foram alterados"
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -4774,6 +5182,12 @@
         "es" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "No se pudieron guardar %lld notas. Vuelve a importar para intentarlo de nuevo y, si sigue ocurriendo, infórmalo."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -4810,6 +5224,12 @@
         "fr" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Impossible d’enregistrer %lld notes. Importez à nouveau pour réessayer et, si le problème persiste, signalez-le."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -4828,6 +5248,12 @@
         "it" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Impossibile salvare %lld note. Importa di nuovo per riprovare e, se il problema si ripete, segnalalo."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -4936,6 +5362,12 @@
         "pt-BR" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Não foi possível salvar %lld notas. Importe novamente para tentar outra vez e, se continuar acontecendo, relate o problema."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -4954,6 +5386,12 @@
         "pt-PT" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Não foi possível guardar %lld notas. Importe novamente para voltar a tentar e, se continuar a acontecer, reporte o problema."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -12561,6 +12999,12 @@
         "es" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Catchlight no pudo leer %lld Scripts, así que se conserva la última versión de cada uno. Infórmalo con este detalle: %@"
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -12597,6 +13041,12 @@
         "fr" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Catchlight n’a pas pu lire %lld Scripts ; la dernière version de chacun est donc conservée. Signalez-le avec ce détail : %@"
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -12615,6 +13065,12 @@
         "it" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Catchlight non è riuscito a leggere %lld Script, quindi viene mantenuta l’ultima versione di ciascuno. Segnalalo con questo dettaglio: %@"
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -12723,6 +13179,12 @@
         "pt-BR" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "O Catchlight não conseguiu ler %lld Scripts, por isso a última versão de cada um foi mantida. Relate o problema com este detalhe: %@"
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -12741,6 +13203,12 @@
         "pt-PT" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "O Catchlight não conseguiu ler %lld Scripts, por isso foi mantida a última versão de cada um. Reporte o problema com este detalhe: %@"
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -12890,6 +13358,12 @@
         "es" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Catchlight no pudo leer %lld Takes, así que se conserva la última versión de cada uno. Infórmalo con este detalle: %@"
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -12926,6 +13400,12 @@
         "fr" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Catchlight n’a pas pu lire %lld Takes ; la dernière version de chacun est donc conservée. Signalez-le avec ce détail : %@"
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -12944,6 +13424,12 @@
         "it" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Catchlight non è riuscito a leggere %lld Take, quindi viene mantenuta l’ultima versione di ciascuno. Segnalalo con questo dettaglio: %@"
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -13052,6 +13538,12 @@
         "pt-BR" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "O Catchlight não conseguiu ler %lld Takes, por isso a última versão de cada um foi mantida. Relate o problema com este detalhe: %@"
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -13070,6 +13562,12 @@
         "pt-PT" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "O Catchlight não conseguiu ler %lld Takes, por isso foi mantida a última versão de cada um. Reporte o problema com este detalhe: %@"
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -22378,6 +22876,12 @@
         "es" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Correo electrónico a %1$@ y %2$lld correos más"
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -22414,6 +22918,12 @@
         "fr" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Envoyer par e-mail à %1$@ et %2$lld autres e-mails"
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -22432,6 +22942,12 @@
         "it" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Email a %1$@ e ad altre %2$lld email"
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -22522,6 +23038,18 @@
         "pl" : {
           "variations" : {
             "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "E-mail do %1$@ i %2$lld inne adresy"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "E-mail do %1$@ i %2$lld innych adresów"
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -22540,6 +23068,12 @@
         "pt-BR" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Enviar e-mail para %1$@ e mais %2$lld e-mails"
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -22558,6 +23092,12 @@
         "pt-PT" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "E-mail para %1$@ e mais %2$lld e-mails"
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -29038,6 +29578,12 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
+                  "many" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%arg Scripts"
+                    }
+                  },
                   "one" : {
                     "stringUnit" : {
                       "state" : "needs_review",
@@ -29058,6 +29604,12 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
+                  "many" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%arg Takes"
+                    }
+                  },
                   "one" : {
                     "stringUnit" : {
                       "state" : "needs_review",
@@ -29134,6 +29686,12 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
+                  "many" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%arg Scripts"
+                    }
+                  },
                   "one" : {
                     "stringUnit" : {
                       "state" : "needs_review",
@@ -29154,6 +29712,12 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
+                  "many" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%arg Takes"
+                    }
+                  },
                   "one" : {
                     "stringUnit" : {
                       "state" : "needs_review",
@@ -29182,6 +29746,12 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
+                  "many" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%arg Script"
+                    }
+                  },
                   "one" : {
                     "stringUnit" : {
                       "state" : "needs_review",
@@ -29202,6 +29772,12 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
+                  "many" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%arg Take"
+                    }
+                  },
                   "one" : {
                     "stringUnit" : {
                       "state" : "needs_review",
@@ -29470,6 +30046,12 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
+                  "many" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%arg Scripts"
+                    }
+                  },
                   "one" : {
                     "stringUnit" : {
                       "state" : "needs_review",
@@ -29490,6 +30072,12 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
+                  "many" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%arg Takes"
+                    }
+                  },
                   "one" : {
                     "stringUnit" : {
                       "state" : "needs_review",
@@ -29518,6 +30106,12 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
+                  "many" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%arg Scripts"
+                    }
+                  },
                   "one" : {
                     "stringUnit" : {
                       "state" : "needs_review",
@@ -29538,6 +30132,12 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
+                  "many" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%arg Takes"
+                    }
+                  },
                   "one" : {
                     "stringUnit" : {
                       "state" : "needs_review",
@@ -29821,6 +30421,12 @@
         "es" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Importación completada. Se han añadido %lld Scripts a tu línea de tiempo."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -29857,6 +30463,12 @@
         "fr" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Importation réussie. %lld Scripts ajoutés à votre chronologie."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -29875,6 +30487,12 @@
         "it" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Importazione riuscita. %lld Script aggiunti alla cronologia."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -29983,6 +30601,12 @@
         "pt-BR" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Importação concluída. %lld Scripts adicionados à sua linha do tempo."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -30001,6 +30625,12 @@
         "pt-PT" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Importação bem-sucedida. %lld Scripts adicionados à sua linha do tempo."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -30150,6 +30780,12 @@
         "es" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Importación completada. Se han añadido %lld Takes a tu línea de tiempo."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -30186,6 +30822,12 @@
         "fr" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Importation réussie. %lld Takes ajoutés à votre chronologie."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -30204,6 +30846,12 @@
         "it" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Importazione riuscita. %lld Take aggiunti alla cronologia."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -30294,6 +30942,18 @@
         "pl" : {
           "variations" : {
             "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Import zakończony. Dodano %lld Takes do osi czasu."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Import zakończony. Dodano %lld Takes do osi czasu."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -30312,6 +30972,12 @@
         "pt-BR" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Importação concluída. %lld Takes adicionados à sua linha do tempo."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -30330,6 +30996,12 @@
         "pt-PT" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Importação bem-sucedida. %lld Takes adicionados à sua linha do tempo."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -32531,6 +33203,12 @@
         "es" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Enlace a %1$@ y %2$lld enlaces más"
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -32567,6 +33245,12 @@
         "fr" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Lien vers %1$@ et %2$lld autres liens"
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -32585,6 +33269,12 @@
         "it" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Collegamento a %1$@ e ad altri %2$lld collegamenti"
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -32675,6 +33365,18 @@
         "pl" : {
           "variations" : {
             "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Link do %1$@ i %2$lld inne linki"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Link do %1$@ i %2$lld innych linków"
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -32693,6 +33395,12 @@
         "pt-BR" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Link para %1$@ e mais %2$lld links"
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -32711,6 +33419,12 @@
         "pt-PT" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Link para %1$@ e mais %2$lld links"
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -47068,7 +47782,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bewerten"
+            "value" : "Prüfen"
           }
         },
         "es" : {
@@ -47086,19 +47800,19 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Évaluer"
+            "value" : "Examiner"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Recensisci"
+            "value" : "Rivedi"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "レビュー"
+            "value" : "確認"
           }
         },
         "ko" : {
@@ -47110,13 +47824,13 @@
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Vurder"
+            "value" : "Se gjennom"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Beoordelen"
+            "value" : "Bekijken"
           }
         },
         "pl" : {
@@ -47134,7 +47848,7 @@
         "pt-PT" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Analisar"
+            "value" : "Rever"
           }
         },
         "sv" : {
@@ -47158,7 +47872,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "评价"
+            "value" : "查看"
           }
         },
         "zh-Hant" : {
@@ -60402,19 +61116,19 @@
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Skriv + første linje"
+            "value" : "Type + første linje"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tippen + erste Zeile"
+            "value" : "Typ + erste Zeile"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Escribir + primera línea"
+            "value" : "Tipo + primera línea"
           }
         },
         "fi" : {
@@ -60432,31 +61146,31 @@
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Digita + prima riga"
+            "value" : "Tipo + prima riga"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "入力＋1行目"
+            "value" : "種類＋1行目"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "입력 + 첫 줄"
+            "value" : "유형 + 첫 줄"
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Skriv + første linje"
+            "value" : "Type + første linje"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Typen + eerste regel"
+            "value" : "Type + eerste regel"
           }
         },
         "pl" : {
@@ -60480,13 +61194,13 @@
         "sv" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Skriv + första raden"
+            "value" : "Typ + första raden"
           }
         },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "พิมพ์ + บรรทัดแรก"
+            "value" : "ประเภท + บรรทัดแรก"
           }
         },
         "tr" : {
@@ -60498,13 +61212,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "输入 + 首行"
+            "value" : "类型 + 首行"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "輸入文字 + 第一行"
+            "value" : "類型 + 第一行"
           }
         }
       }
@@ -60515,19 +61229,19 @@
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Skriv + fuld tekst"
+            "value" : "Type + fuld tekst"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tippen + vollständiger Text"
+            "value" : "Typ + vollständiger Text"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Escribir + texto completo"
+            "value" : "Tipo + texto completo"
           }
         },
         "fi" : {
@@ -60545,31 +61259,31 @@
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Digita + testo completo"
+            "value" : "Tipo + testo completo"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "入力＋全文"
+            "value" : "種類＋全文"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "입력 + 전체 텍스트"
+            "value" : "유형 + 전체 텍스트"
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Skriv + full tekst"
+            "value" : "Type + full tekst"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Typen + volledige tekst"
+            "value" : "Type + volledige tekst"
           }
         },
         "pl" : {
@@ -60593,13 +61307,13 @@
         "sv" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Skriv + hela texten"
+            "value" : "Typ + hela texten"
           }
         },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "พิมพ์ + ข้อความทั้งหมด"
+            "value" : "ประเภท + ข้อความทั้งหมด"
           }
         },
         "tr" : {
@@ -60611,13 +61325,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "输入 + 全文"
+            "value" : "类型 + 全文"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "輸入文字 + 全文"
+            "value" : "類型 + 全文"
           }
         }
       }
@@ -60628,19 +61342,19 @@
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kun tekst"
+            "value" : "Kun type"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nur tippen"
+            "value" : "Nur Typ"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Solo escribir"
+            "value" : "Solo el tipo"
           }
         },
         "fi" : {
@@ -60658,37 +61372,37 @@
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Solo digitazione"
+            "value" : "Solo il tipo"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "入力のみ"
+            "value" : "種類のみ"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "입력만"
+            "value" : "유형만"
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bare skriv"
+            "value" : "Bare type"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Alleen typen"
+            "value" : "Alleen type"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tylko wpisywanie"
+            "value" : "Tylko typ"
           }
         },
         "pt-BR" : {
@@ -60706,13 +61420,13 @@
         "sv" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Skriv endast"
+            "value" : "Endast typ"
           }
         },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "พิมพ์เฉพาะ"
+            "value" : "ประเภทเท่านั้น"
           }
         },
         "tr" : {
@@ -60724,13 +61438,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "仅输入"
+            "value" : "仅类型"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "僅輸入文字"
+            "value" : "僅類型"
           }
         }
       }

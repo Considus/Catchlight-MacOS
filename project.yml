@@ -172,6 +172,8 @@ targets:
         excludes:
           - main.swift
       - path: App/Tests
+      # So a test can read the native strings in another language (LocalisationTests).
+      - path: App/Resources/Localizable.xcstrings
     dependencies:
       - package: CatchlightCore
         product: CatchlightCore
