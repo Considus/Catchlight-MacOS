@@ -15,6 +15,10 @@ options:
   deploymentTarget:
     macOS: "13.0"
   createIntermediateGroups: true
+  # Localisation: English is the source. The 18 other languages come from the String Catalogs,
+  # which the build compiles into one .lproj each; XcodeGen has no knownRegions option and
+  # lists only the regions of .lproj folders it finds, which this project has none of.
+  developmentLanguage: en
 
 settings:
   base:
@@ -52,6 +56,8 @@ targets:
     platform: macOS
     sources:
       - path: App/Sources
+      # The native menus' and alerts' strings (String(localized:)). The page's are in ui/l10n.
+      - path: App/Resources/Localizable.xcstrings
       # The shared interface, copied into the bundle as Contents/Resources/ui on
       # every build. A folder reference rather than a group, so a file added to
       # ui/ is picked up without regenerating the project and the bundle always
@@ -166,6 +172,8 @@ targets:
         excludes:
           - main.swift
       - path: App/Tests
+      # So a test can read the native strings in another language (LocalisationTests).
+      - path: App/Resources/Localizable.xcstrings
     dependencies:
       - package: CatchlightCore
         product: CatchlightCore
@@ -187,5 +195,8 @@ schemes:
       targets:
         Catchlight: all
     test:
+      # English whatever the Mac is set to: the tests read the English copy. A test that wants
+      # another language sets ShellBridge.language.
+      language: en
       targets:
         - CatchlightTests

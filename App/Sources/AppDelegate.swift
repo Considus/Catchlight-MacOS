@@ -40,15 +40,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 Self.log.error("start failed: \(String(describing: error), privacy: .public)")
                 let alert = NSAlert()
                 if error is KeychainError {
-                    alert.messageText = "Catchlight is locked"
-                    alert.informativeText = "Your Takes stay encrypted until you unlock them with Touch ID or your Mac's password."
+                    alert.messageText = String(localized: "Catchlight is locked")
+                    alert.informativeText = String(localized: "Your Takes stay encrypted until you unlock them with Touch ID or your Mac's password.")
                 } else {
                     // Unlocked, but the library didn't open: say so, with what to report.
-                    alert.messageText = "Catchlight couldn't open your Takes"
-                    alert.informativeText = "Nothing has been changed or deleted. If trying again doesn't help, report it with this detail: \(error)"
+                    alert.messageText = String(localized: "Catchlight couldn't open your Takes")
+                    alert.informativeText = String(localized: "Nothing has been changed or deleted. If trying again doesn't help, report it with this detail: \(String(describing: error))")
                 }
-                alert.addButton(withTitle: "Try Again")
-                alert.addButton(withTitle: "Quit")
+                alert.addButton(withTitle: String(localized: "Try Again"))
+                alert.addButton(withTitle: String(localized: "Quit"))
                 if alert.runModal() != .alertFirstButtonReturn { return nil }
             }
         }

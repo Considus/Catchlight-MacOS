@@ -25,19 +25,19 @@ const conflictDamagedNoticed = new Set();   // damaged conflicts already in Noti
 
 // A Script's blocks are its markdown lines; a Take's are text and checklist items.
 const conflictText = t => t.kind === 'script'
-  ? (t.blocks || []).join('\n').trim() || 'Untitled Script'
-  : (t.blocks || []).map(b => (b.k === 'check' ? (b.done ? '☑ ' : '☐ ') : '') + b.text).join('\n').trim() || 'Untitled Take';
+  ? (t.blocks || []).join('\n').trim() || L10N.t('Untitled Script')
+  : (t.blocks || []).map(b => (b.k === 'check' ? (b.done ? '☑ ' : '☐ ') : '') + b.text).join('\n').trim() || L10N.t('Untitled Take');
 // What the waiting pairs are, in words: Takes, Scripts, or Takes and Scripts. A pair counts as a
 // Script when either side is one (a Take made a Script here, edited as a Take elsewhere).
 const isScriptPair = c => c.local?.kind === 'script' || c.remote?.kind === 'script';
-const conflictNoun = (list, one) => {
+// Which of Takes, Scripts or both the pairs are, so each sentence can be whole for each.
+const conflictKinds = list => {
   const scripts = list.filter(isScriptPair).length, takes = list.length - scripts;
-  if (scripts && takes) return 'Takes and Scripts';
-  return scripts ? (one ? 'Script' : 'Scripts') : (one ? 'Take' : 'Takes');
+  return scripts && takes ? 'both' : scripts ? 'scripts' : 'takes';
 };
 const conflictWhen = t => {
   const ms = t.modifiedAt ?? Date.parse(t.at);
-  return Number.isFinite(ms) ? new Date(ms).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '';
+  return Number.isFinite(ms) ? new Date(ms).toLocaleString(L10N.dateLocale(undefined), { dateStyle: 'medium', timeStyle: 'short' }) : '';
 };
 
 async function loadConflicts() {
@@ -50,7 +50,7 @@ async function loadConflicts() {
   conflictList = all.filter(c => !c.damaged);
   for (const c of all) if (c.damaged && !conflictDamagedNoticed.has(c.id)) {
     conflictDamagedNoticed.add(c.id);
-    if (typeof notice === 'function') notice("A waiting conflict couldn't be opened, so its Take stays as it is and isn't synced. Report it so it can be looked at.", 'conflict');
+    if (typeof notice === 'function') notice(t("A waiting conflict couldn't be opened, so its Take stays as it is and isn't synced. Report it so it can be looked at."), 'conflict');
   }
   setHeld(all);   // skipped ones too: they still wait for the choice
   // A pair the next sync found again is waiting again.
@@ -69,7 +69,10 @@ const shownConflicts = () => conflictList.filter(c => !conflictSkipped.has(c.id)
 function paintConflicts() {
   const n = conflictList.length;
   conflictBanner.hidden = n === 0;
-  conflictBanner.innerHTML = n ? `<span>${n} ${conflictNoun(conflictList, n === 1)} changed on another device.</span><button class="slink" type="button" data-cf="review">Review</button>` : '';
+  const kinds = conflictKinds(conflictList);
+  const said = kinds === 'both' ? t('%lld Takes and Scripts changed on another device.', n)
+    : kinds === 'scripts' ? t('%lld Scripts changed on another device.', n) : t('%lld Takes changed on another device.', n);
+  conflictBanner.innerHTML = n ? `<span>${esc(said)}</span><button class="slink" type="button" data-cf="review">${t('Review')}</button>` : '';
   if (conflictSheet.open) paintConflictSheet();
 }
 
@@ -77,29 +80,32 @@ function paintConflictSheet() {
   const list = shownConflicts();
   if (!list.length) {
     // As the iPhone: a moment of "All caught up." rather than the sheet snapping shut.
-    conflictSheet.innerHTML = '<p class="cf-done" role="status">All caught up.</p>';
+    conflictSheet.innerHTML = `<p class="cf-done" role="status">${t('All caught up.')}</p>`;
     setTimeout(() => { if (!shownConflicts().length) conflictSheet.close(); }, 900);
     return;
   }
   const panel = (c, side) => {
     const t = c[side], picked = conflictChoice[c.id] === side;
     return `<button class="cf-version${picked ? ' picked' : ''}" type="button" data-cf="pick" data-id="${esc(c.id)}" data-side="${side}" aria-pressed="${picked}">
-      <span class="cf-label">${side === 'local' ? 'Local' : 'Cloud'}${isScriptPair(c) ? ` · ${t.kind === 'script' ? 'Script' : 'Take'}` : ''}</span>
+      <span class="cf-label">${side === 'local' ? L10N.t('Local') : L10N.t('Cloud')}${isScriptPair(c) ? ` · ${t.kind === 'script' ? L10N.t('Script') : L10N.t('Take')}` : ''}</span>
       <span class="cf-when">${esc(conflictWhen(t))}</span>
       <span class="cf-body">${esc(conflictText(t))}</span>
     </button>`;
   };
-  conflictSheet.innerHTML = `<h2 id="conflicts-heading">Sync conflicts</h2>
-    <p class="cf-guide">These ${conflictNoun(list, false)} were edited on different devices, so we can't tell which to keep. Choose the version you'd like to keep, or keep both. A version you don't keep is removed.</p>
+  const kinds = conflictKinds(list);
+  conflictSheet.innerHTML = `<h2 id="conflicts-heading">${t('Sync conflicts')}</h2>
+    <p class="cf-guide">${kinds === 'both' ? t("These Takes and Scripts were edited on different devices, so we can't tell which to keep. Choose the version you'd like to keep, or keep both. A version you don't keep is removed.")
+      : kinds === 'scripts' ? t("These Scripts were edited on different devices, so we can't tell which to keep. Choose the version you'd like to keep, or keep both. A version you don't keep is removed.")
+      : t("These Takes were edited on different devices, so we can't tell which to keep. Choose the version you'd like to keep, or keep both. A version you don't keep is removed.")}</p>
     ${list.map(c => `<section class="cf-item" data-id="${esc(c.id)}">
       <div class="cf-pair">${panel(c, 'local')}${panel(c, 'remote')}</div>
       <div class="cf-actions">
-        <button class="fr-pill primary" type="button" data-cf="keep" data-id="${esc(c.id)}"${conflictChoice[c.id] ? '' : ' disabled'}>Keep this version</button>
-        <button class="fr-pill" type="button" data-cf="both" data-id="${esc(c.id)}">Keep both</button>
-        <button class="slink" type="button" data-cf="skip" data-id="${esc(c.id)}">Skip for now</button>
+        <button class="fr-pill primary" type="button" data-cf="keep" data-id="${esc(c.id)}"${conflictChoice[c.id] ? '' : ' disabled'}>${t('Keep this version')}</button>
+        <button class="fr-pill" type="button" data-cf="both" data-id="${esc(c.id)}">${t('Keep both')}</button>
+        <button class="slink" type="button" data-cf="skip" data-id="${esc(c.id)}">${t('Skip for now')}</button>
       </div>
     </section>`).join('')}
-    <div class="cf-close"><button class="slink" type="button" data-cf="close">Close</button></div>`;
+    <div class="cf-close"><button class="slink" type="button" data-cf="close">${t('Close')}</button></div>`;
 }
 
 function openConflicts() {
@@ -115,11 +121,12 @@ async function resolveConflict(id, choice) {
   try {
     await catchlightBridge.resolveConflict(id, choice, revision);
   } catch (e) {
-    // Only this means the choice wasn't written: the store is as it was.
+    // Only this means the choice wasn't written: the store is as it was. The shell's message is
+    // English on purpose (ConflictQueue), so this test holds in every language.
     console.error('Saving a conflict choice failed', e);
     if (/changed while you were choosing/.test(String(e?.message ?? e)))
-      ask('The versions changed', 'This changed again on another device while you were choosing. Look at both versions again, then choose.', [['OK', null, 'cancel']]);
-    else ask("Your choice wasn't saved", `Both versions are still there. Try again, and if it keeps happening, report it with this detail: ${e?.message ?? e}`, [['OK', null, 'cancel']]);
+      ask(t('The versions changed'), t('This changed again on another device while you were choosing. Look at both versions again, then choose.'), [[t('OK'), null, 'cancel']]);
+    else ask(t("Your choice wasn't saved"), t('Both versions are still there. Try again, and if it keeps happening, report it with this detail: %@', String(e?.message ?? e)), [[t('OK'), null, 'cancel']]);
     return loadConflicts();
   }
   delete conflictChoice[id];

@@ -215,7 +215,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
     }
 
     private func showErrorPage() {
-        webView.loadHTMLString("<p style='font: 14px system-ui; padding: 2em'>Catchlight could not start its web view safely. Please quit and reopen it.</p>", baseURL: nil)
+        let message = String(localized: "Catchlight could not start its web view safely. Please quit and reopen it.")
+        webView.loadHTMLString("<p style='font: 14px system-ui; padding: 2em'>\(message)</p>", baseURL: nil)
     }
 
     private func follow(_ rule: NavigationRule, for url: URL?) -> WKNavigationActionPolicy {

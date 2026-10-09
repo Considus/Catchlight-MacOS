@@ -102,8 +102,8 @@ function setHeld(list) {
 }
 // The words on a held Take's row and above a held Script.
 const heldNote = id => heldDamaged.has(String(id).toLowerCase())
-  ? "Its conflict couldn't be opened, so it can't be changed."
-  : 'Changed on another device. Choose a version to edit it.';
+  ? t("Its conflict couldn't be opened, so it can't be changed.")
+  : t('Changed on another device. Choose a version to edit it.');
 // Nothing to keep: a Take with no text, no checklist and no reminder, or a Script with no text.
 const heldBlank = (kind, x) => kind === 'scripts' ? !(x.blocks || []).join('').trim() : isBlank(x);
 // The backstop under every save: whatever changed or removed a held item in `list`, it goes back
@@ -136,21 +136,26 @@ function keepHeld(kind, list, fork = false) {
 // told why.
 function heldPutBack(kind, list) {
   const { put, forked } = keepHeld(kind, list, true);
-  const what = kind === 'scripts' ? 'Script' : 'Take';
   if (forked.length) {
     if (typeof alertBox !== 'undefined' && alertBox.open) return;
-    ask(`Saved as a new ${what}`, `This ${what} changed on another device, so your edit was saved as a new ${what}.`, [['OK', null, 'cancel']]);
-  } else if (put) refuseHeld(put, what);
+    savedAsNew(kind === 'scripts');
+  } else if (put) refuseHeld(put, kind === 'scripts' ? 'Script' : 'Take');
 }
+// Typing on an item that turned out to be held was kept as a new item beside it (also bridge.js).
+const savedAsNew = isScript => ask(isScript ? t('Saved as a new Script') : t('Saved as a new Take'),
+  isScript ? t('This Script changed on another device, so your edit was saved as a new Script.') : t('This Take changed on another device, so your edit was saved as a new Take.'),
+  [[t('OK'), null, 'cancel']]);
 // Every way into changing an item asks this first: true (and the notice) when it is held. The
 // notice offers the conflict screen, where the choice is made, or says why there is no choice.
+// `what` names the kind ('Take' or 'Script'); each kind has its own whole sentences.
 function refuseHeld(id, what = 'Take') {
   if (!isHeld(id)) return false;
   if (typeof alertBox !== 'undefined' && alertBox.open) return true;   // one dialog at a time (ask in takes.js)
+  const isScript = what === 'Script';
   if (heldDamaged.has(String(id).toLowerCase()))
-    ask(`This ${what} can't be changed`, `A conflict waiting for it couldn't be opened, so it stays as it is and isn't synced. Report it so it can be looked at.`, [['OK', null, 'cancel']]);
-  else ask('Resolve the conflict first', `This ${what} changed on another device too. It can't be changed until you choose which version to keep.`,
-    [['Review', () => window.openConflicts?.()], ['OK', null, 'cancel']]);
+    ask(isScript ? t("This Script can't be changed") : t("This Take can't be changed"), t("A conflict waiting for it couldn't be opened, so it stays as it is and isn't synced. Report it so it can be looked at."), [[t('OK'), null, 'cancel']]);
+  else ask(t('Resolve the conflict first'), isScript ? t("This Script changed on another device too. It can't be changed until you choose which version to keep.") : t("This Take changed on another device too. It can't be changed until you choose which version to keep."),
+    [[t('Review'), () => window.openConflicts?.()], [t('OK'), null, 'cancel']]);
   return true;
 }
 // The brand mark, as the iPhone's IntroBrandMark draws it: the app icon over the wordmark,
@@ -168,7 +173,7 @@ const newId = () => {
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
 };
 const monthKey = iso => { const d = new Date(iso.length === 10 ? iso + 'T00:00' : iso); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; };
-const monthLabel = iso => new Date(iso.length === 10 ? iso + 'T00:00' : iso).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }).toUpperCase();
+const monthLabel = iso => new Date(iso.length === 10 ? iso + 'T00:00' : iso).toLocaleDateString(L10N.dateLocale('en-GB'), { month: 'long', year: 'numeric' }).toLocaleUpperCase(L10N.dateLocale('en-GB'));
 const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
 const ICON_CLOCK = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
 const ICON_BELL = '<svg viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20.5h4"/></svg>';
@@ -256,7 +261,7 @@ function timeline(container, items, cardHtml, filterable = false) {
 
 const plain = s => s.replace(/^```.*$/gm, '').replace(/^(#{1,3}|>|[-*] \[[ xX]\]|[-*]|\d+\.)\s+/gm, '')
   .replace(/\*\*|~~|`|\*/g, '').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/^-{3,}$/gm, '').replace(/\n{2,}/g, '\n').trim();
-const titleOf = s => (s && plain(s.blocks[0] || '')) || (s ? 'Untitled Script' : '');
+const titleOf = s => (s && plain(s.blocks[0] || '')) || (s ? t('Untitled Script') : '');
 
 function renderScripts() {
   const tl = $('#scripts');
@@ -264,12 +269,13 @@ function renderScripts() {
   let items = scripts.filter(s => !query || s.blocks.join('\n').toLowerCase().includes(query));
   items.sort((a, b) => view.sort === 'oldest' ? a.at.localeCompare(b.at) : b.at.localeCompare(a.at));
   timeline(tl, items, s => {
-    const body = plain(s.blocks.join('\n')) || 'Untitled Script';
-    const pages = s.mode === 'continuous' ? 'Continuous' : `${s.mode === 'a4' ? 'A4' : 'US Letter'}${s.pageCount ? ` · ${s.pageCount} page${s.pageCount > 1 ? 's' : ''}` : ''}`;
+    const body = plain(s.blocks.join('\n')) || t('Untitled Script');
+    const paper = s.mode === 'a4' ? 'A4' : t('US Letter');
+    const pages = s.mode === 'continuous' ? t('Continuous') : s.pageCount ? t('%1$@ · %2$lld pages', paper, s.pageCount) : paper;
     return `<div class="card${s.id === current ? ' selected' : ''}" data-script="${s.id}"><span class="iris-wrap"><span class="iris-shadow"></span>${iris(['note'])}</span><div class="body">${esc(body)}</div><div class="pages">${pages}</div></div>`;
   });
   // No Scripts at all (not a search that matches none): the same quiet line Dailies shows.
-  if (!scripts.length) tl.innerHTML = '<div class="empty first-take"><p>Your first Script is waiting.</p></div>';
+  if (!scripts.length) tl.innerHTML = `<div class="empty first-take"><p>${t('Your first Script is waiting.')}</p></div>`;
 }
 
 // ---------- markdown: one parser, two faces (source while editing, rendered otherwise) ----------
@@ -320,7 +326,7 @@ function paint(el, text, active) {
   el.className = `blk ${k.type}${active ? ' active' : ''}${text === '' ? ' empty' : ''}${k.done ? ' done' : ''}`;
   if (k.n) el.dataset.n = k.n + '.'; else delete el.dataset.n;
   const i = +el.dataset.i;
-  if (i === 0 && text === '') { el.classList.add('placeholder'); el.dataset.ph = 'Title'; } else el.classList.remove('placeholder');
+  if (i === 0 && text === '') { el.classList.add('placeholder'); el.dataset.ph = t('Title'); } else el.classList.remove('placeholder');
   if (active) {
     if (k.type === 'code') el.innerHTML = esc(text).replace(/^```.*$/gm, l => `<span class="mk">${l}</span>`);
     else if (k.type === 'table') { paintGrid(el, text); return; }
@@ -332,7 +338,7 @@ function paint(el, text, active) {
   if (k.type === 'code') el.textContent = text.replace(/^```.*\n?/, '').replace(/\n?```\s*$/, '');
   else if (k.type === 'hr') el.textContent = text;
   else if (k.type === 'table') el.innerHTML = tableHtml(text);
-  else if (k.type === 'check') el.innerHTML = `<input type="checkbox"${k.done ? ' checked' : ''} aria-label="Done"><span class="txt">${inline(rest, false)}</span>`;
+  else if (k.type === 'check') el.innerHTML = `<input type="checkbox"${k.done ? ' checked' : ''} aria-label="${esc(t('Done'))}"><span class="txt">${inline(rest, false)}</span>`;
   else el.innerHTML = inline(rest, false);
 }
 
@@ -371,7 +377,7 @@ const script = () => scripts.find(s => s.id === current);
 function paintScriptHeld() {
   const note = $('#script-held'), id = script()?.id, held = isHeld(id);
   note.hidden = !held;
-  note.innerHTML = held ? `<span>${heldNote(id)}</span>${heldDamaged.has(id.toLowerCase()) ? '' : '<button class="slink" type="button">Review</button>'}` : '';
+  note.innerHTML = held ? `<span>${heldNote(id)}</span>${heldDamaged.has(id.toLowerCase()) ? '' : `<button class="slink" type="button">${t('Review')}</button>`}` : '';
 }
 $('#script-held').addEventListener('click', e => { if (e.target.closest('button')) window.openConflicts?.(); });
 function renderDoc() {
@@ -660,7 +666,7 @@ function paintGrid(el, t) {
   const { sep, rows } = parseTable(t);
   const align = sep.map(c => c.startsWith(':') && c.endsWith(':') ? 'center' : c.endsWith(':') ? 'right' : '');
   const row = (r, ri) => `<tr>${r.map((c, ci) => { const tag = ri ? 'td' : 'th';
-    return `<${tag}${align[ci] ? ` style="text-align:${align[ci]}"` : ''}><span class="cell" data-r="${ri}" data-c="${ci}" contenteditable="plaintext-only" role="textbox" aria-label="${ri ? `Row ${ri}` : 'Header'}, column ${ci + 1}">${inline(c, true)}</span></${tag}>`; }).join('')}</tr>`;
+    return `<${tag}${align[ci] ? ` style="text-align:${align[ci]}"` : ''}><span class="cell" data-r="${ri}" data-c="${ci}" contenteditable="plaintext-only" role="textbox" aria-label="${esc(ri ? L10N.t('Row %1$lld, column %2$lld', ri, ci + 1) : L10N.t('Header, column %lld', ci + 1))}">${inline(c, true)}</span></${tag}>`; }).join('')}</tr>`;
   el.innerHTML = `<table><thead>${row(rows[0], 0)}</thead><tbody>${rows.slice(1).map((r, i) => row(r, i + 1)).join('')}</tbody></table>`;
 }
 const activeCell = () => { const c = document.activeElement?.closest?.('.cell'); return c && doc.children[active]?.contains(c) ? c : null; };
@@ -852,10 +858,10 @@ function openCtx(target, x, y) {
   const take = target.closest('[data-take]'), scr = target.closest('[data-script]'), info = target.closest('[data-copy-info]');
   if (!take && !scr && !info) return false;
   // The copy goes back to the version line, so a keyboard user keeps their place.
-  const items = info ? [['Copy version and device info', () => { shell.copyText(supportInfo()); info.focus(); }]]   // settings.js
+  const items = info ? [[t('Copy version and device info'), () => { shell.copyText(supportInfo()); info.focus(); }]]   // settings.js
     : take ? takeMenu(take.dataset.take)
     : isBlank(takeFromScript(scripts.find(x => x.id === scr.dataset.script))) ? []   // a blank Take is never kept
-    : [['Make this a Take', () => scriptToTake(scr.dataset.script)]];
+    : [[t('Make this a Take'), () => scriptToTake(scr.dataset.script)]];
   if (!items.length) return false;
   ctx.innerHTML = '';
   for (const [label, act, kind] of items) {
@@ -947,7 +953,7 @@ function applyLayout() {
   });
   app.style.gridTemplateColumns = cols.join(' ');
   document.querySelectorAll('#layout-pop .seg').forEach(seg => {
-    seg.innerHTML = [...SLOTS, 'hidden'].map(p => `<button data-p="${p}" class="${layout[seg.dataset.pane] === p ? 'on' : ''}">${p === 'hidden' ? 'Hide' : p[0].toUpperCase() + p.slice(1)}</button>`).join('');
+    seg.innerHTML = [...SLOTS, 'hidden'].map(p => `<button data-p="${p}" class="${layout[seg.dataset.pane] === p ? 'on' : ''}">${{ left: t('Left'), middle: t('Middle'), right: t('Right'), hidden: t('Hide') }[p]}</button>`).join('');
   });
   store.set('layout', layout); store.set('lastPos', lastPos);
   paginate();
@@ -1015,7 +1021,7 @@ let scene = store.get('scene', 'auto');
 const mq = matchMedia('(prefers-color-scheme: light)');
 function applyScene() {
   document.documentElement.dataset.scene = scene === 'auto' ? (mq.matches ? 'daylight' : 'night') : scene;
-  $('#tb-scene').title = `Scene: ${scene === 'auto' ? 'follows the system' : scene === 'night' ? 'Night' : 'Daylight'}`;
+  $('#tb-scene').title = scene === 'auto' ? t('Scene: follows the system') : scene === 'night' ? t('Scene: Night') : t('Scene: Daylight');
 }
 mq.addEventListener('change', applyScene);
 $('#tb-scene').addEventListener('click', () => { scene = scenes[(scenes.indexOf(scene) + 1) % 3]; store.set('scene', scene); applyScene(); });

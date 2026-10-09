@@ -20,52 +20,56 @@ function spokenLine(line) {
   for (const l of found) { words += line.slice(at, l.start); at = l.end; }
   words = (words + line.slice(at)).split(/\s+/).filter(Boolean).join(' ');
   const web = found.filter(l => !l.url.startsWith('mailto:')), mail = found.filter(l => l.url.startsWith('mailto:'));
-  const more = (n, one, many) => n === 2 ? ` and 1 more ${one}` : n > 2 ? ` and ${n - 1} more ${many}` : '';
   const phrases = [];
   if (web.length) {
     let host = ''; try { host = new URL(web[0].url).host.replace(/^www\./, ''); } catch {}
-    if (host) phrases.push(`Link to ${host}${more(web.length, 'link', 'links')}`);
+    if (host) phrases.push(web.length === 1 ? L10N.t('Link to %@', host) : L10N.t('Link to %1$@ and %2$lld more links', host, web.length - 1));
   }
-  if (mail.length) phrases.push(`Email to ${mail[0].url.slice(7).replace('@', ' at ')}${more(mail.length, 'email', 'emails')}`);
-  return [words, ...phrases].filter(Boolean).join('. ') || line;
+  if (mail.length) {
+    // "bob at example.com", the @ spoken in the language's own word.
+    const raw = mail[0].url.slice(7), at = raw.indexOf('@');
+    const address = at < 0 ? raw : L10N.t('%1$@ at %2$@', raw.slice(0, at), raw.slice(at + 1));
+    phrases.push(mail.length === 1 ? L10N.t('Email to %@', address) : L10N.t('Email to %1$@ and %2$lld more emails', address, mail.length - 1));
+  }
+  return L10N.clauses([words, ...phrases]) || line;
 }
 
 // The state part of a card's label (statusDescription).
 function statusDescription(t) {
   const parts = [];
-  if (t.obie) parts.push('Obie, your pinned Take');
+  if (t.obie) parts.push(L10N.t('Obie, your pinned Take'));
   if (isTask(t)) {
     const checks = t.blocks.filter(b => b.k === 'check');
-    parts.push(`Task, ${checks.filter(b => b.done).length} of ${checks.length} complete`);
+    parts.push(L10N.t('Task, %1$lld of %2$lld complete', checks.filter(b => b.done).length, checks.length));
   }
   const r = t.reminder;
-  if (isTimeR(r)) { parts.push('Reminder set'); if (isOverdue(t)) parts.push('Overdue'); }
+  if (isTimeR(r)) { parts.push(L10N.t('Reminder set')); if (isOverdue(t)) parts.push(L10N.t('Overdue')); }
   if (isPlaceR(r)) {
     const arrive = r.mode !== 'leave';
-    parts.push(r.notify !== false ? (arrive ? 'Reminds on arrival' : 'Reminds on leaving') : (arrive ? 'Place set, arrival, silent' : 'Place set, leaving, silent'));
+    parts.push(r.notify !== false ? (arrive ? L10N.t('Reminds on arrival') : L10N.t('Reminds on leaving')) : (arrive ? L10N.t('Place set, arrival, silent') : L10N.t('Place set, leaving, silent')));
   }
-  if (t.isNote && !isTask(t) && !r) parts.push('Note');
-  return parts.join('. ');
+  if (t.isNote && !isTask(t) && !r) parts.push(L10N.t('Note'));
+  return L10N.clauses(parts);
 }
 
 const firstLine = t => (t.blocks[0]?.text ?? '').split('\n')[0];
 // The card: first line, state, and the reminder's "when" (time reminders only, as on iOS).
-const takeLabel = t => [spokenLine(firstLine(t)), statusDescription(t), isTimeR(t.reminder) ? reminderLine(t.reminder) : ''].filter(Boolean).join('. ');
+const takeLabel = t => L10N.clauses([spokenLine(firstLine(t)), statusDescription(t), isTimeR(t.reminder) ? reminderLine(t.reminder) : '']);
 
 // The Iris: named for its Take so one Iris can be told from another (VC2), cut to 40
 // characters at a word.
 function irisLabel(t) {
   let name = spokenLine(firstLine(t));
   if (name.length > 40) { const cut = name.slice(0, 40); name = (cut.lastIndexOf(' ') > 0 ? cut.slice(0, cut.lastIndexOf(' ')) : cut) + '…'; }
-  const activity = [t.isImportant && 'Important', t.isNote && 'Note', isTask(t) && (isComplete(t) ? 'completed Task' : 'Task'), t.reminder && 'Reminder'].filter(Boolean).join(', ');
-  return [name ? `Iris, ${name}` : 'Iris', t.obie && 'Obie: your pinned Take', activity].filter(Boolean).join('. ');
+  const activity = L10N.list([t.isImportant && L10N.t('Important'), t.isNote && L10N.t('Note'), isTask(t) && (isComplete(t) ? L10N.t('completed Task') : L10N.t('Task')), t.reminder && L10N.t('Reminder')].filter(Boolean));
+  return L10N.clauses([name ? L10N.t('Iris, %@', name) : L10N.t('Iris'), t.obie && L10N.t('Obie: your pinned Take'), activity]);
 }
-const irisHint = t => t.obie ? 'Opens the Focus ring. ⌥Return turns this back into a standard Take.' : 'Opens the Focus ring. ⌥Return makes this your Obie.';
+const irisHint = t => t.obie ? L10N.t('Opens the Focus ring. ⌥Return turns this back into a standard Take.') : L10N.t('Opens the Focus ring. ⌥Return makes this your Obie.');
 
 // What takeCard adds to a card and its Iris. The card is a named group, not a button: a button's
 // contents are hidden from a screen reader, and the Iris and the links inside have to stay
 // reachable.
-const cardA11y = t => `tabindex="0" role="group" aria-roledescription="Take" aria-haspopup="menu" aria-label="${esc(takeLabel(t))}"`;
+const cardA11y = t => `tabindex="0" role="group" aria-roledescription="${esc(L10N.t('Take'))}" aria-haspopup="menu" aria-label="${esc(takeLabel(t))}"`;
 const irisA11y = t => `tabindex="0" role="button" aria-label="${esc(irisLabel(t))}" title="${esc(irisHint(t))}"`;
 
 // ---------- keys ----------
@@ -127,5 +131,5 @@ let dockWas = 'resting';
 function announceDock() {
   if (dock === dockWas) return;
   dockWas = dock;
-  dockSays.textContent = { resting: 'Dock returned to navigation.', filtering: 'Dock showing timeline filters.', searching: 'Dock showing search.' }[dock] || '';
+  dockSays.textContent = { resting: t('Dock returned to navigation.'), filtering: t('Dock showing timeline filters.'), searching: t('Dock showing search.') }[dock] || '';
 }

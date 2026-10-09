@@ -146,15 +146,15 @@ final class SyncService {
         if error is CancellationError { return nil }   // stopped on purpose (quitting)
         if let sync = error as? SyncError {
             switch sync {
-            case .manifestSignatureInvalid: return "Sync paused. Your cloud data looks unexpected. No changes were made locally."
+            case .manifestSignatureInvalid: return String(localized: "Sync paused. Your cloud data looks unexpected. No changes were made locally.")
             case .noCloudFolderConfigured: return nil
-            default: return "Sync encountered a problem and will retry."
+            default: return String(localized: "Sync encountered a problem and will retry.")
             }
         }
         if let lock = error as? SyncLockError, case .heldByOtherDevice = lock {
-            return "Another device is syncing. Catchlight will retry automatically."
+            return String(localized: "Another device is syncing. Catchlight will retry automatically.")
         }
-        return "Sync encountered a problem and will retry."
+        return String(localized: "Sync encountered a problem and will retry.")
     }
 }
 

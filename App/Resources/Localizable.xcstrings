@@ -1,0 +1,2134 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Another device is syncing. Catchlight will retry automatically." : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En anden enhed synkroniserer. Catchlight prøver igen automatisk."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein anderes Gerät synchronisiert gerade. Catchlight versucht es automatisch erneut."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otro dispositivo se está sincronizando. Catchlight lo reintentará automáticamente."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toinen laite synkronoi. Catchlight yrittää uudelleen automaattisesti."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un autre appareil est en cours de synchronisation. Catchlight réessayera automatiquement."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un altro dispositivo si sta sincronizzando. Catchlight riproverà automaticamente."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "別のデバイスが同期中です。Catchlightは自動的に再試行します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "다른 기기에서 동기화 중입니다. Catchlight가 자동으로 다시 시도합니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En annen enhet synkroniserer. Catchlight prøver på nytt automatisk."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Een ander apparaat synchroniseert. Catchlight probeert het automatisch opnieuw."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inne urządzenie synchronizuje się. Catchlight spróbuje ponownie automatycznie."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Outro dispositivo está sincronizando. O Catchlight tentará novamente automaticamente."
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Outro dispositivo está a sincronizar. O Catchlight tentará novamente de forma automática."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En annan enhet synkar. Catchlight försöker igen automatiskt."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "อุปกรณ์อื่นกำลังซิงค์อยู่ Catchlight จะลองใหม่อีกครั้งโดยอัตโนมัติ"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Başka bir cihaz eşitleniyor. Catchlight otomatik olarak tekrar deneyecek."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "另一台设备正在同步。Catchlight 将自动重试。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "另一部裝置正在同步。Catchlight 會自動重試。"
+          }
+        }
+      }
+    },
+    "Catchlight could not start its web view safely. Please quit and reopen it." : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Catchlight kunne ikke starte sin webvisning sikkert. Afslut, og åbn appen igen."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Catchlight konnte seine Webansicht nicht sicher starten. Bitte beende Catchlight und öffne es erneut."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Catchlight no pudo iniciar su vista web de forma segura. Sal de Catchlight y vuelve a abrirlo."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Catchlight ei voinut käynnistää verkkonäkymäänsä turvallisesti. Lopeta ja avaa se uudelleen."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Catchlight n’a pas pu démarrer sa vue web en toute sécurité. Veuillez quitter Catchlight et le rouvrir."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Catchlight non è riuscito ad avviare la sua vista web in modo sicuro. Esci e riapri Catchlight."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "CatchlightはWebビューを安全に起動できませんでした。終了してから、もう一度開いてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Catchlight가 웹 보기를 안전하게 시작할 수 없습니다. 종료한 다음 다시 열어 주세요."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Catchlight kunne ikke starte nettvisningen sin på en trygg måte. Avslutt og åpne appen på nytt."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Catchlight kon de webweergave niet veilig starten. Stop Catchlight en open de app opnieuw."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Catchlight nie mógł bezpiecznie uruchomić widoku internetowego. Zakończ i otwórz go ponownie."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "O Catchlight não conseguiu iniciar sua visualização web com segurança. Encerre-o e abra-o novamente."
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "O Catchlight não conseguiu iniciar a vista web em segurança. Saia e volte a abri-lo."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Catchlight kunde inte starta sin webbvy på ett säkert sätt. Avsluta och öppna appen igen."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Catchlight ไม่สามารถเริ่มมุมมองเว็บได้อย่างปลอดภัย โปรดออกแล้วเปิดใหม่อีกครั้ง"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Catchlight web görünümünü güvenli bir şekilde başlatamadı. Lütfen çıkıp yeniden açın."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Catchlight 无法安全地启动其网页视图。请退出并重新打开。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Catchlight 無法安全地啟動其網頁顯示區。請結束並重新開啟。"
+          }
+        }
+      }
+    },
+    "Catchlight couldn't finish adding this Mac and has locked your Takes to keep them safe. Quit Catchlight, open it again, and choose I already use Catchlight with your current Privacy phrase. Your Takes will be there." : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Catchlight kunne ikke gøre tilføjelsen af denne Mac færdig og har låst dine Takes for at beskytte dem. Afslut Catchlight, åbn den igen, og vælg Jeg bruger allerede Catchlight med din nuværende privatfrase. Dine Takes vil være der."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Catchlight konnte das Hinzufügen dieses Macs nicht abschließen und hat deine Takes zu ihrem Schutz gesperrt. Beende Catchlight, öffne es erneut und wähle „Ich nutze Catchlight bereits“ mit deiner aktuellen Datenschutz-Phrase. Deine Takes sind dann wieder da."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Catchlight no pudo terminar de añadir este Mac y ha bloqueado tus Takes para mantenerlos a salvo. Sal de Catchlight, vuelve a abrirlo y elige Ya uso Catchlight con tu frase de privacidad actual. Tus Takes estarán ahí."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Catchlight ei voinut viimeistellä tämän Macin lisäämistä ja on lukinnut Takesi niiden suojaamiseksi. Lopeta Catchlight, avaa se uudelleen ja valitse Käytän jo Catchlightia nykyisellä yksityisyyslauseellasi. Takesi ovat tallessa."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Catchlight n’a pas pu terminer l’ajout de ce Mac et a verrouillé vos Takes pour les protéger. Quittez Catchlight, rouvrez-le et choisissez J’utilise déjà Catchlight avec votre phrase de confidentialité actuelle. Vos Takes seront là."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Catchlight non è riuscito a completare l’aggiunta di questo Mac e ha bloccato i tuoi Take per proteggerli. Esci da Catchlight, riaprilo e scegli Uso già Catchlight con la tua frase di riservatezza attuale. I tuoi Take saranno lì."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "CatchlightはこのMacの追加を完了できなかったため、安全のためにTakeをロックしました。Catchlightを終了してもう一度開き、現在のプライバシーフレーズで「既にCatchlightを使用しています」を選択してください。Takeはそのまま残っています。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Catchlight가 이 Mac 추가를 완료하지 못해, 안전을 위해 Take를 잠갔습니다. Catchlight를 종료한 다음 다시 열고, 현재 개인정보 보호 문구로 '이미 Catchlight을 사용 중입니다'를 선택하세요. Take는 그대로 있습니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Catchlight kunne ikke fullføre å legge til denne Macen og har låst Take-ene dine for å beskytte dem. Avslutt Catchlight, åpne appen igjen og velg Jeg bruker allerede Catchlight med den nåværende personvernfrasen din. Take-ene dine vil være der."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Catchlight kon het toevoegen van deze Mac niet voltooien en heeft je Takes vergrendeld om ze te beschermen. Stop Catchlight, open de app opnieuw en kies Ik gebruik Catchlight al met je huidige privacyfrase. Je Takes zijn er dan gewoon."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Catchlight nie mógł dokończyć dodawania tego Maca i zablokował Twoje Takes, aby je chronić. Zakończ Catchlight, otwórz go ponownie i wybierz Używam już Catchlight, podając swoją obecną frazę prywatności. Twoje Takes będą na miejscu."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "O Catchlight não conseguiu concluir a adição deste Mac e bloqueou seus Takes para mantê-los seguros. Encerre o Catchlight, abra-o novamente e escolha Já uso o Catchlight com sua frase de Privacidade atual. Seus Takes estarão lá."
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "O Catchlight não conseguiu terminar de adicionar este Mac e bloqueou os seus Takes para os manter seguros. Saia do Catchlight, volte a abri-lo e escolha Já utilizo o Catchlight com a sua frase de privacidade atual. Os seus Takes estarão lá."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Catchlight kunde inte slutföra tillägget av den här Macen och har låst dina Takes för att skydda dem. Avsluta Catchlight, öppna appen igen och välj Jag använder redan Catchlight med din nuvarande integritetsfras. Dina Takes finns kvar."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Catchlight ไม่สามารถเพิ่ม Mac เครื่องนี้ให้เสร็จสิ้นได้ และได้ล็อก Take ของคุณไว้เพื่อความปลอดภัย ออกจาก Catchlight เปิดใหม่อีกครั้ง แล้วเลือก ฉันใช้ Catchlight อยู่แล้ว พร้อมวลีความเป็นส่วนตัวปัจจุบันของคุณ Take ของคุณจะยังอยู่ครบ"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Catchlight bu Mac'i eklemeyi tamamlayamadı ve Take'lerinizi güvende tutmak için kilitledi. Catchlight'tan çıkın, yeniden açın ve mevcut Gizlilik ifadenizle Zaten Catchlight kullanıyorum seçeneğini seçin. Take'leriniz orada olacak."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Catchlight 未能完成添加这台 Mac，并已锁定你的 Takes 以确保其安全。请退出 Catchlight 并重新打开，选择“我已经在使用 Catchlight”，然后输入你当前的隐私短语。你的 Takes 都会在。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Catchlight 未能完成加入這部 Mac，並已鎖定你的 Takes 以確保安全。請結束 Catchlight 並重新開啟，選擇「我已經在使用 Catchlight」，然後輸入你目前的隱私密語。你的 Takes 都會在。"
+          }
+        }
+      }
+    },
+    "Catchlight couldn't open your Takes" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Catchlight kunne ikke åbne dine Takes"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Catchlight konnte deine Takes nicht öffnen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Catchlight no pudo abrir tus Takes"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Catchlight ei voinut avata Takejasi"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Catchlight n’a pas pu ouvrir vos Takes"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Catchlight non è riuscito ad aprire i tuoi Take"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "CatchlightはTakeを開けませんでした"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Catchlight가 Take를 열 수 없습니다"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Catchlight kunne ikke åpne Take-ene dine"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Catchlight kon je Takes niet openen"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Catchlight nie mógł otworzyć Twoich Takes"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "O Catchlight não conseguiu abrir seus Takes"
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "O Catchlight não conseguiu abrir os seus Takes"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Catchlight kunde inte öppna dina Takes"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Catchlight ไม่สามารถเปิด Take ของคุณได้"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Catchlight Take'lerinizi açamadı"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Catchlight 无法打开你的 Takes"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Catchlight 無法開啟你的 Takes"
+          }
+        }
+      }
+    },
+    "Catchlight is locked" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Catchlight er låst"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Catchlight ist gesperrt"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Catchlight está bloqueado"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Catchlight on lukittu"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Catchlight est verrouillé"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Catchlight è bloccato"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Catchlightはロックされています"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Catchlight가 잠겨 있습니다"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Catchlight er låst"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Catchlight is vergrendeld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Catchlight jest zablokowany"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Catchlight está bloqueado"
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Catchlight está bloqueado"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Catchlight är låst"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Catchlight ถูกล็อกอยู่"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Catchlight kilitli"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Catchlight 已锁定"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Catchlight 已鎖定"
+          }
+        }
+      }
+    },
+    "Choose a folder in iCloud Drive, Dropbox or any cloud you use. Catchlight keeps only encrypted files there." : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vælg en mappe i iCloud Drive, Dropbox eller en anden cloud, du bruger. Catchlight gemmer kun krypterede filer der."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Wähle einen Ordner in iCloud Drive, Dropbox oder einer anderen Cloud, die du nutzt. Catchlight speichert dort nur verschlüsselte Dateien."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Elige una carpeta en iCloud Drive, Dropbox o cualquier nube que uses. Catchlight solo guarda allí archivos cifrados."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Valitse kansio iCloud Drivesta, Dropboxista tai mistä tahansa käyttämästäsi pilvipalvelusta. Catchlight säilyttää siellä vain salattuja tiedostoja."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Choisissez un dossier dans iCloud Drive, Dropbox ou tout autre cloud que vous utilisez. Catchlight n’y conserve que des fichiers chiffrés."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Scegli una cartella in iCloud Drive, Dropbox o qualsiasi cloud che usi. Catchlight vi conserva solo file crittografati."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "iCloud Drive、Dropbox、またはお使いのクラウドのフォルダを選択してください。Catchlightがそこに保存するのは暗号化されたファイルのみです。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "iCloud Drive, Dropbox 또는 사용 중인 클라우드에서 폴더를 선택하세요. Catchlight는 그곳에 암호화된 파일만 보관합니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Velg en mappe i iCloud Drive, Dropbox eller en annen skytjeneste du bruker. Catchlight lagrer bare krypterte filer der."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kies een map in iCloud Drive, Dropbox of een andere cloud die je gebruikt. Catchlight bewaart daar alleen versleutelde bestanden."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Wybierz folder w iCloud Drive, Dropbox lub dowolnej innej chmurze, z której korzystasz. Catchlight przechowuje tam tylko zaszyfrowane pliki."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Escolha uma pasta no iCloud Drive, no Dropbox ou em qualquer nuvem que você usa. O Catchlight guarda apenas arquivos criptografados nela."
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Escolha uma pasta no iCloud Drive, no Dropbox ou em qualquer nuvem que utilize. O Catchlight guarda lá apenas ficheiros encriptados."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Välj en mapp i iCloud Drive, Dropbox eller någon annan molntjänst du använder. Catchlight sparar bara krypterade filer där."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "เลือกโฟลเดอร์ใน iCloud Drive, Dropbox หรือคลาวด์ใดก็ได้ที่คุณใช้ Catchlight จะเก็บเฉพาะไฟล์ที่เข้ารหัสไว้ที่นั่น"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "iCloud Drive'da, Dropbox'ta veya kullandığınız herhangi bir bulutta bir klasör seçin. Catchlight orada yalnızca şifrelenmiş dosyalar saklar."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "在 iCloud Drive、Dropbox 或你使用的任何云服务中选择一个文件夹。Catchlight 只会在其中存放加密文件。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "在 iCloud Drive、Dropbox 或你使用的任何雲端服務中選擇資料夾。Catchlight 只會在其中存放加密檔案。"
+          }
+        }
+      }
+    },
+    "Import" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importér"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importieren"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importar"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tuo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importer"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importa"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "インポート"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "가져오기"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importer"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importeren"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importuj"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importar"
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importar"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importera"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "นำเข้า"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "İçe aktar"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导入"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "匯入"
+          }
+        }
+      }
+    },
+    "Nothing has been changed or deleted. If trying again doesn't help, report it with this detail: %@" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Intet er blevet ændret eller slettet. Hvis det ikke hjælper at prøve igen, så rapportér det med denne detalje: %@"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nichts wurde geändert oder gelöscht. Wenn ein erneuter Versuch nicht hilft, melde es mit diesem Detail: %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "No se ha modificado ni eliminado nada. Si volver a intentarlo no funciona, infórmalo con este detalle: %@"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mitään ei ole muutettu tai poistettu. Jos uudelleenyrittäminen ei auta, ilmoita siitä näillä tiedoilla: %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Rien n’a été modifié ni supprimé. Si réessayer ne suffit pas, signalez-le avec ce détail : %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Non è stato modificato né eliminato nulla. Se riprovare non basta, segnalalo con questo dettaglio: %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "何も変更・削除されていません。再試行しても解決しない場合は、次の詳細を添えて報告してください：%@"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "아무것도 변경되거나 삭제되지 않았습니다. 다시 시도해도 해결되지 않으면 다음 세부 정보와 함께 신고하세요: %@"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ingenting er endret eller slettet. Hvis det ikke hjelper å prøve igjen, rapporter det med denne informasjonen: %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Er is niets gewijzigd of verwijderd. Helpt opnieuw proberen niet, meld het dan met dit detail: %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nic nie zostało zmienione ani usunięte. Jeśli ponowna próba nie pomoże, zgłoś to z tymi szczegółami: %@"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nada foi alterado ou excluído. Se tentar novamente não ajudar, relate o problema com este detalhe: %@"
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nada foi alterado nem eliminado. Se tentar novamente não resolver, reporte o problema com este detalhe: %@"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Inget har ändrats eller raderats. Om det inte hjälper att försöka igen, rapportera det med den här informationen: %@"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ไม่มีสิ่งใดถูกเปลี่ยนแปลงหรือลบ หากลองอีกครั้งแล้วไม่ได้ผล โปรดรายงานพร้อมรายละเอียดนี้: %@"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hiçbir şey değiştirilmedi veya silinmedi. Tekrar denemek işe yaramazsa şu ayrıntıyla bildirin: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "没有任何内容被更改或删除。如果重试无效，请报告并附上以下详细信息：%@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "沒有任何內容被變更或刪除。如果再試一次仍無效，請回報並附上以下詳細資訊：%@"
+          }
+        }
+      }
+    },
+    "Quit" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Afslut"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Beenden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Salir"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Lopeta"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Quitter"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Esci"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "終了"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "종료"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Avslutt"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Stop"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zakończ"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Encerrar"
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sair"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Avsluta"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ออก"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Çık"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "退出"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "結束"
+          }
+        }
+      }
+    },
+    "Quit Catchlight" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Afslut Catchlight"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Catchlight beenden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Salir de Catchlight"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Lopeta Catchlight"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Quitter Catchlight"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Esci da Catchlight"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Catchlightを終了"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Catchlight 종료"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Avslutt Catchlight"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Stop Catchlight"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zakończ Catchlight"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Encerrar Catchlight"
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sair do Catchlight"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Avsluta Catchlight"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ออกจาก Catchlight"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Catchlight'tan Çık"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "退出 Catchlight"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "結束 Catchlight"
+          }
+        }
+      }
+    },
+    "Sync encountered a problem and will retry." : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Synkroniseringen stødte på et problem og vil prøve igen."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bei der Synchronisierung ist ein Problem aufgetreten. Es wird erneut versucht."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La sincronización encontró un problema y se reintentará."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Synkronoinnissa ilmeni ongelma, ja sitä yritetään uudelleen."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La synchronisation a rencontré un problème et réessaiera."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si è verificato un problema durante la sincronizzazione. Riproveremo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同期中に問題が発生しました。再試行します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "동기화 중 문제가 발생해 다시 시도합니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Det oppsto et problem under synkroniseringen. Vi prøver igjen."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Er is een probleem opgetreden bij het synchroniseren. Er wordt opnieuw geprobeerd."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Synchronizacja napotkała problem i powtórzy próbę."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A sincronização encontrou um problema e tentará novamente."
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A sincronização encontrou um problema e tentará novamente."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ett problem uppstod vid synkroniseringen. Vi försöker igen."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "การซิงค์พบปัญหาและจะลองใหม่อีกครั้ง"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eşitleme bir sorunla karşılaştı ve tekrar denenecek."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同步遇到问题，将重试。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同步時發生問題，稍後會再試一次。"
+          }
+        }
+      }
+    },
+    "Sync paused. Your cloud data looks unexpected. No changes were made locally." : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Synkronisering sat på pause. Dine skydedata ser uventede ud. Der er ikke foretaget ændringer lokalt."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Synchronisierung pausiert. Deine Cloud-Daten sehen unerwartet aus. Auf diesem Gerät wurden keine Änderungen vorgenommen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sincronización pausada. Los datos de la nube no son los esperados. No se realizaron cambios localmente."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Synkronointi keskeytetty. Pilvidatassasi on jotain odottamatonta. Paikallisia muutoksia ei tehty."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Synchronisation en pause. Vos données cloud semblent inattendues. Aucune modification n'a été effectuée localement."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sincronizzazione in pausa. I dati nel cloud sembrano imprevisti. Non è stata apportata alcuna modifica in locale."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同期を一時停止しました。クラウド上のデータが想定と異なります。このデバイス上のデータは変更されていません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "동기화가 일시 중지되었습니다. 클라우드 데이터가 예상과 다릅니다. 이 기기에서는 아무것도 변경하지 않았습니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Synkroniseringen er satt på pause. Dataene i skyen ser uventede ut. Ingen endringer er gjort lokalt."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Synchronisatie gepauzeerd. Je cloudgegevens zien er onverwacht uit. Er zijn lokaal geen wijzigingen aangebracht."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Synchronizacja wstrzymana. Dane w chmurze wyglądają nietypowo. Nie wprowadzono żadnych zmian lokalnie."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sincronização pausada. Seus dados na nuvem parecem incomuns. Nenhuma alteração foi feita localmente."
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sincronização em pausa. Os seus dados na nuvem parecem inesperados. Nenhuma alteração foi feita localmente."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Synkroniseringen har pausats. Dina molndata verkar oväntade. Inga ändringar gjordes lokalt."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "การซิงค์ถูกหยุดชั่วคราว ข้อมูลบนคลาวด์ดูผิดปกติ ไม่มีการเปลี่ยนแปลงในเครื่องนี้"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eşitleme duraklatıldı. Bulut verileriniz beklenmedik görünüyor. Yerel olarak hiçbir değişiklik yapılmadı."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同步已暂停。云端数据似乎异常。本地未做任何更改。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同步已暫停。雲端資料看起來不太對勁。尚未在本機進行任何變更。"
+          }
+        }
+      }
+    },
+    "That isn't a valid Privacy phrase." : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Det er ikke en gyldig privatfrase."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Das ist keine gültige Datenschutz-Phrase."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Esa no es una frase de privacidad válida."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tämä ei ole kelvollinen yksityisyyslause."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ce n’est pas une phrase de confidentialité valide."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Questa non è una frase di riservatezza valida."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "有効なプライバシーフレーズではありません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "유효한 개인정보 보호 문구가 아닙니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Det er ikke en gyldig personvernfrase."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dat is geen geldige privacyfrase."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "To nie jest prawidłowa fraza prywatności."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Essa não é uma frase de Privacidade válida."
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Essa não é uma frase de privacidade válida."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Det är inte en giltig integritetsfras."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "นั่นไม่ใช่วลีความเป็นส่วนตัวที่ถูกต้อง"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bu geçerli bir Gizlilik ifadesi değil."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "这不是有效的隐私短语。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "這不是有效的隱私密語。"
+          }
+        }
+      }
+    },
+    "There is no account on this Mac." : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Der er ingen konto på denne Mac."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Auf diesem Mac gibt es keinen Account."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "No hay ninguna cuenta en este Mac."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tällä Macilla ei ole tiliä."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Il n’y a aucun compte sur ce Mac."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Non c’è nessun account su questo Mac."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "このMacにはアカウントがありません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "이 Mac에 계정이 없습니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Det finnes ingen konto på denne Macen."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Er is geen account op deze Mac."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Na tym Macu nie ma konta."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Não há nenhuma conta neste Mac."
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Não existe nenhuma conta neste Mac."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Det finns inget konto på den här Macen."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ไม่มีบัญชีบน Mac เครื่องนี้"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bu Mac'te hesap yok."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "此 Mac 上没有账户。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "此 Mac 上沒有帳號。"
+          }
+        }
+      }
+    },
+    "Try Again" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prøv igen"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erneut versuchen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reintentar"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yritä uudelleen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réessayer"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riprova"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再試行"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "다시 시도"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prøv igjen"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opnieuw proberen"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spróbuj ponownie"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tentar novamente"
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tentar novamente"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Försök igen"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ลองอีกครั้ง"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tekrar Dene"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重试"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再試一次"
+          }
+        }
+      }
+    },
+    "Use This Folder" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Brug denne mappe"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Diesen Ordner verwenden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Usar esta carpeta"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Käytä tätä kansiota"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Utiliser ce dossier"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Usa questa cartella"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "このフォルダを使用"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "이 폴더 사용"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bruk denne mappen"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gebruik deze map"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Użyj tego folderu"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Usar Esta Pasta"
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Usar esta pasta"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Använd den här mappen"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ใช้โฟลเดอร์นี้"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bu Klasörü Kullan"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "使用此文件夹"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "使用此資料夾"
+          }
+        }
+      }
+    },
+    "Your Takes stay encrypted until you unlock them with Touch ID or your Mac's password." : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dine Takes forbliver krypterede, indtil du låser dem op med Touch ID eller din Macs adgangskode."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Deine Takes bleiben verschlüsselt, bis du sie mit Touch ID oder dem Passwort deines Macs entsperrst."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tus Takes permanecen cifrados hasta que los desbloqueas con Touch ID o con la contraseña de tu Mac."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Takesi pysyvät salattuina, kunnes avaat niiden lukituksen Touch ID:llä tai Macin salasanalla."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vos Takes restent chiffrés jusqu’à ce que vous les déverrouilliez avec Touch ID ou le mot de passe de votre Mac."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "I tuoi Take restano crittografati finché non li sblocchi con Touch ID o con la password del Mac."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Touch IDまたはMacのパスワードでロックを解除するまで、Takeは暗号化されたままです。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Touch ID 또는 Mac 암호로 잠금 해제할 때까지 Take는 암호화된 상태로 유지됩니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Take-ene dine forblir kryptert til du låser dem opp med Touch ID eller passordet til Macen."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Je Takes blijven versleuteld totdat je ze ontgrendelt met Touch ID of het wachtwoord van je Mac."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Twoje Takes pozostają zaszyfrowane, dopóki nie odblokujesz ich za pomocą Touch ID lub hasła Maca."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Seus Takes permanecem criptografados até que você os desbloqueie com o Touch ID ou a senha do seu Mac."
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Os seus Takes permanecem encriptados até os desbloquear com o Touch ID ou com a palavra-passe do Mac."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dina Takes förblir krypterade tills du låser upp dem med Touch ID eller Macens lösenord."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Take ของคุณจะยังคงเข้ารหัสอยู่จนกว่าคุณจะปลดล็อกด้วย Touch ID หรือรหัสผ่าน Mac ของคุณ"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Take'leriniz, Touch ID veya Mac'inizin parolasıyla kilidini açana kadar şifreli kalır."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "在你使用 Touch ID 或 Mac 的密码解锁之前，你的 Takes 会一直保持加密。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "在你使用 Touch ID 或 Mac 密碼解鎖前，你的 Takes 會一直保持加密。"
+          }
+        }
+      }
+    },
+    "show your Privacy phrase" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "vise din privatfrase"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "deine Datenschutz-Phrase anzuzeigen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "mostrar tu frase de privacidad"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "näyttää yksityisyyslauseesi"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "afficher votre phrase de confidentialité"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "mostrare la tua frase di riservatezza"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "プライバシーフレーズを表示"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "개인정보 보호 문구를 표시"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "vise personvernfrasen din"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "je privacyfrase te tonen"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "wyświetlić Twoją frazę prywatności"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "mostrar sua frase de Privacidade"
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "mostrar a sua frase de privacidade"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "visa din integritetsfras"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "แสดงวลีความเป็นส่วนตัวของคุณ"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gizlilik ifadenizi göstermek"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "显示你的隐私短语"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "顯示你的隱私密語"
+          }
+        }
+      }
+    },
+    "unlock your Takes" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "låse dine Takes op"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "deine Takes zu entsperren"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "desbloquear tus Takes"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "avata Takejesi lukituksen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "déverrouiller vos Takes"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "sbloccare i tuoi Take"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Takeのロックを解除"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Take 잠금을 해제"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "låse opp Take-ene dine"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "je Takes te ontgrendelen"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "odblokować Twoje Takes"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "desbloquear seus Takes"
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "desbloquear os seus Takes"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "låsa upp dina Takes"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ปลดล็อก Take ของคุณ"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Take'lerinizin kilidini açmak"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "解锁你的 Takes"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "解鎖你的 Takes"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

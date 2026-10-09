@@ -8,12 +8,53 @@
 // What the copy names, per desktop (D-318). The shell says which it is; ?platform=windows or
 // ?platform=linux previews the others. The backup lines are only true because each shell keeps
 // the Takes out of that platform's backup (ui/README.md, "What each shell must do").
+//
+// Each sentence that names the platform is whole, per platform, so a translation never has to
+// fit a device name or a backup tool into a sentence built around another. `text` holds them as
+// functions so the catalog check finds each key in its t() call. Only the Mac's are in the
+// catalog: Windows and Linux have no shell yet, and their sentences join it when they do.
 const PLATFORMS = {
-  mac: { osName: 'macOS', sampleOs: '26.0', sampleModel: 'Mac16,1', device: 'Mac', settingsKey: '⌘,', settingsWhere: 'Settings from the Catchlight menu', search: 'Spotlight & Siri', writingTools: true, noBackup: "Time Machine won't contain them", keptOut: 'because we deliberately keep them out of it' },
-  windows: { osName: 'Windows', sampleOs: '11 24H2', sampleModel: 'Surface Laptop 7', device: 'PC', settingsKey: 'Ctrl+,', settingsWhere: 'Settings from the File menu', search: 'Windows Search', noBackup: "Windows Backup and File History won't contain them", keptOut: 'because we deliberately keep them out of both' },
+  mac: { osName: 'macOS', sampleOs: '26.0', sampleModel: 'Mac16,1', writingTools: true, text: {
+    search: () => t('Spotlight & Siri'),
+    localTitle: () => t('Local: on this Mac only'),
+    localBody: () => t("Your Takes stay on this Mac and nowhere else. Time Machine won't contain them, so if the Mac goes, they go with it."),
+    localWarning: () => t("Your Takes will live on this Mac and nowhere else. Time Machine won't contain them, because we deliberately keep them out of it. Lose this Mac or wipe it, and there's nothing to restore from."),
+    completeLocal: () => t('Encrypted on this Mac, readable only by you.'),
+    completeCloud: () => t('Encrypted on this Mac, readable only by you, and kept in the folder you chose.'),
+    restored: () => t("Your account is restored on this Mac. Connect the cloud folder where your Takes are saved and they'll appear here."),
+    secondDevice: () => t("This replaces the account on this Mac. Takes stored only here will be removed and can't be recovered. If you haven't already, close this and use Export Takes (Markdown) to keep a copy first."),
+    neverSyncs: () => t('Never syncs. Your Takes stay on this Mac.'),
+    seedLast: () => t("Delete these introductory Takes whenever you're ready, easy as swiping left on a Take, or right-clicking it. This is your Catchlight, use it in the way that fits you perfectly. Oh and, if you need to check out customisation and settings, press ⌘, or choose Settings from the Catchlight menu."),
+    tightRadius: () => t('A tighter radius is more precise, but the Mac may trigger it late or miss it. 100 m is the reliable minimum.'),
+  } },
+  windows: { osName: 'Windows', sampleOs: '11 24H2', sampleModel: 'Surface Laptop 7', text: {
+    search: () => 'Windows Search',
+    localTitle: () => 'Local: on this PC only',
+    localBody: () => "Your Takes stay on this PC and nowhere else. Windows Backup and File History won't contain them, so if the PC goes, they go with it.",
+    localWarning: () => "Your Takes will live on this PC and nowhere else. Windows Backup and File History won't contain them, because we deliberately keep them out of both. Lose this PC or wipe it, and there's nothing to restore from.",
+    completeLocal: () => 'Encrypted on this PC, readable only by you.',
+    completeCloud: () => 'Encrypted on this PC, readable only by you, and kept in the folder you chose.',
+    restored: () => "Your account is restored on this PC. Connect the cloud folder where your Takes are saved and they'll appear here.",
+    secondDevice: () => "This replaces the account on this PC. Takes stored only here will be removed and can't be recovered. If you haven't already, close this and use Export Takes (Markdown) to keep a copy first.",
+    neverSyncs: () => 'Never syncs. Your Takes stay on this PC.',
+    seedLast: () => "Delete these introductory Takes whenever you're ready, easy as swiping left on a Take, or right-clicking it. This is your Catchlight, use it in the way that fits you perfectly. Oh and, if you need to check out customisation and settings, press Ctrl+, or choose Settings from the File menu.",
+    tightRadius: () => 'A tighter radius is more precise, but the PC may trigger it late or miss it. 100 m is the reliable minimum.',
+  } },
   // Named, as Time Machine is: only Déjà Dup honours the marker the shell writes, and a general
   // "your backups" would be untrue for rsync or Borg.
-  linux: { osName: 'Linux', sampleOs: 'Ubuntu 24.04', sampleModel: 'ThinkPad X1 Carbon', device: 'computer', settingsKey: 'Ctrl+,', settingsWhere: 'Preferences from the File menu', search: 'Desktop search', noBackup: "Déjà Dup won't contain them", keptOut: 'because we deliberately keep them out of it' },
+  linux: { osName: 'Linux', sampleOs: 'Ubuntu 24.04', sampleModel: 'ThinkPad X1 Carbon', text: {
+    search: () => 'Desktop search',
+    localTitle: () => 'Local: on this computer only',
+    localBody: () => "Your Takes stay on this computer and nowhere else. Déjà Dup won't contain them, so if the computer goes, they go with it.",
+    localWarning: () => "Your Takes will live on this computer and nowhere else. Déjà Dup won't contain them, because we deliberately keep them out of it. Lose this computer or wipe it, and there's nothing to restore from.",
+    completeLocal: () => 'Encrypted on this computer, readable only by you.',
+    completeCloud: () => 'Encrypted on this computer, readable only by you, and kept in the folder you chose.',
+    restored: () => "Your account is restored on this computer. Connect the cloud folder where your Takes are saved and they'll appear here.",
+    secondDevice: () => "This replaces the account on this computer. Takes stored only here will be removed and can't be recovered. If you haven't already, close this and use Export Takes (Markdown) to keep a copy first.",
+    neverSyncs: () => 'Never syncs. Your Takes stay on this computer.',
+    seedLast: () => "Delete these introductory Takes whenever you're ready, easy as swiping left on a Take, or right-clicking it. This is your Catchlight, use it in the way that fits you perfectly. Oh and, if you need to check out customisation and settings, press Ctrl+, or choose Preferences from the File menu.",
+    tightRadius: () => 'A tighter radius is more precise, but the computer may trigger it late or miss it. 100 m is the reliable minimum.',
+  } },
 };
 const PLATFORM = PLATFORMS[new URLSearchParams(location.search).get('platform')] || PLATFORMS.mac;
 
@@ -46,80 +87,82 @@ const fr = { step: null, storage: null, words: [], positions: [], picked: [], ba
 const layer = $('#first-run');
 
 const BRAND = brandMark;
+// A translation marks its emphasis with **asterisks**, as the iPhone's does, so the words stressed
+// can move with the grammar.
+const emphasise = text => esc(text).replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
 const pill = (act, label, cls = '') => `<button class="fr-pill${cls}" type="button" data-fr="${act}">${label}</button>`;
 
 const SCREENS = {
-  splash: () => `<p class="fr-tagline">Every thought deserves a moment of clarity.</p>
+  splash: () => `<p class="fr-tagline">${t('Every thought deserves a moment of clarity.')}</p>
     <p class="fr-foot">© 2026 Considus</p>`,
 
-  welcome: () => `<h2>You don't need to choose privacy, it's yours and you never have to ask for it.</h2>
-    <p>First, we'll create your Privacy phrase: 12 words that are the <b>ONLY</b> key to your data.</p>
-    <p>We never see them, store them, or ask for them. So don't lose them.</p>
-    <div class="fr-actions">${pill('restore', 'I already use Catchlight', ' link')}${pill('create', 'Create my Privacy phrase', ' primary')}</div>`,
+  welcome: () => `<h2>${t("You don't need to choose privacy, it's yours and you never have to ask for it.")}</h2>
+    <p>${emphasise(t('First, we\'ll create your Privacy phrase: 12 words that are the **ONLY** key to your data.'))}</p>
+    <p>${t("We never see them, store them, or ask for them. So don't lose them.")}</p>
+    <div class="fr-actions">${pill('restore', t('I already use Catchlight'), ' link')}${pill('create', t('Create my Privacy phrase'), ' primary')}</div>`,
 
-  storage: () => `<h2>Now, where should your Takes live?</h2>
-    <button class="fr-card" type="button" data-fr="local"><b>Local: on this ${PLATFORM.device} only</b>
-      <span>Your Takes stay on this ${PLATFORM.device} and nowhere else. ${PLATFORM.noBackup}, so if the ${PLATFORM.device} goes, they go with it.</span></button>
-    <button class="fr-card" type="button" data-fr="cloud"><b>Cloud: backed up and restorable</b>
-      <span>Connect a cloud folder you control. Your Takes stay encrypted, we never see them, and your 12 words are what open them again on any other device.</span></button>`,
+  storage: () => `<h2>${t('Now, where should your Takes live?')}</h2>
+    <button class="fr-card" type="button" data-fr="local"><b>${PLATFORM.text.localTitle()}</b>
+      <span>${PLATFORM.text.localBody()}</span></button>
+    <button class="fr-card" type="button" data-fr="cloud"><b>${t('Cloud: backed up and restorable')}</b>
+      <span>${t('Connect a cloud folder you control. Your Takes stay encrypted, we never see them, and your 12 words are what open them again on any other device.')}</span></button>`,
 
-  localWarning: () => `<h2>One thing before we continue.</h2>
-    <p>Your Takes will live on this ${PLATFORM.device} and nowhere else. ${PLATFORM.noBackup}, ${PLATFORM.keptOut}. Lose this ${PLATFORM.device} or wipe it, and there's nothing to restore from.</p>
-    <div class="fr-actions">${pill('back-storage', 'Go back')}${pill('risk', 'I know the risk', ' primary')}</div>`,
+  localWarning: () => `<h2>${t('One thing before we continue.')}</h2>
+    <p>${PLATFORM.text.localWarning()}</p>
+    <div class="fr-actions">${pill('back-storage', t('Go back'))}${pill('risk', t('I know the risk'), ' primary')}</div>`,
 
   // The desktop picks the folder here (D-327); the phone leaves it to Settings.
-  folder: () => `<h2>Choose a cloud folder you own</h2>
-    <p>Select an empty folder, or create a new one, and we'll take care of the rest.</p>
-    <p>Catchlight never sees your files. Only you can read them.</p>
+  folder: () => `<h2>${t('Choose a cloud folder you own')}</h2>
+    <p>${t("Select an empty folder, or create a new one, and we'll take care of the rest.")}</p>
+    <p>${t('Catchlight never sees your files. Only you can read them.')}</p>
     ${fr.folder ? `<p class="fr-folder">${esc(fr.folder)}</p>` : ''}
     <div class="fr-actions">${fr.folder
-      ? pill('pick-folder', 'Choose another') + pill('folder-done', 'Continue', ' primary')
-      : pill('back-storage', 'Go back') + pill('pick-folder', 'Choose folder', ' primary')}</div>`,
+      ? pill('pick-folder', t('Choose another')) + pill('folder-done', t('Continue'), ' primary')
+      : pill('back-storage', t('Go back')) + pill('pick-folder', t('Choose folder'), ' primary')}</div>`,
 
-  reveal: () => `<h2>Your Privacy phrase</h2>
+  // The 12 words are BIP-39 English and part of the key: never translated.
+  reveal: () => `<h2>${t('Your Privacy phrase')}</h2>
     <ol class="fr-words">${fr.words.map((w, i) => `<li><span>${i + 1}</span>${w}</li>`).join('')}</ol>
     <p>${fr.storage === 'local'
-      ? 'Write these 12 words down and keep them somewhere safe. They encrypt your Takes and enable a second device.'
-      : "Write these 12 words down and keep them somewhere safe. You'll need them to open your Takes on any other device, so the copy you write down is the copy that counts."}</p>
-    <div class="fr-actions">${pill('written', "I've written them down", ' primary')}</div>`,
+      ? t('Write these 12 words down and keep them somewhere safe. They encrypt your Takes and enable a second device.')
+      : t("Write these 12 words down and keep them somewhere safe. You'll need them to open your Takes on any other device, so the copy you write down is the copy that counts.")}</p>
+    <div class="fr-actions">${pill('written', t("I've written them down"), ' primary')}</div>`,
 
   confirm: () => {
     const [a, b, c] = fr.positions.map(p => p + 1);
-    return `<div class="fr-error" id="fr-error" role="alert" tabindex="-1" hidden>Those aren't quite right. Try again.</div>
-    <h2>Confirm three words</h2>
-    <p>Click words ${a}, ${b} and ${c} from your phrase, in order.</p>
+    return `<div class="fr-error" id="fr-error" role="alert" tabindex="-1" hidden>${t("Those aren't quite right. Try again.")}</div>
+    <h2>${t('Confirm three words')}</h2>
+    <p>${t('Click words %1$lld, %2$lld and %3$lld from your phrase, in order.', a, b, c)}</p>
     <div class="fr-slots">${fr.positions.map((p, i) => `<button class="fr-slot" type="button" data-slot="${i}"><span>${p + 1}</span>${fr.picked[i] != null ? fr.bank[fr.picked[i]] : '—'}</button>`).join('')}</div>
     <div class="fr-bank">${fr.bank.map((w, i) => `<button class="fr-tile" type="button" data-tile="${i}"${fr.picked.includes(i) ? ' disabled' : ''}>${w}</button>`).join('')}</div>
-    <div class="fr-actions">${pill('show-again', 'Show my words once more')}</div>`;
+    <div class="fr-actions">${pill('show-again', t('Show my words once more'))}</div>`;
   },
 
   basics: () => {
     const page = fr.basics === 0
-      ? [['Add a Take', "Click the + button. Click anywhere outside the Take to save. That's the whole capture flow."],
-         ['Shape your Take with the Iris', 'Click the circle beside any Take to make it a task, set a reminder, or make it important.']]
-      : [['Your Obie', "Press and hold an Iris to pin one above the rest. Only one is ever your Obie, because there can only be one that's most important."],
-         ['Scripts', 'Longer writing lives in Scripts, on the right. They never reach your phone.']];
-    return `<h2>A few things worth knowing</h2>
+      ? [[t('Add a Take'), t("Click the + button. Click anywhere outside the Take to save. That's the whole capture flow.")],
+         [t('Shape your Take with the Iris'), t('Click the circle beside any Take to make it a task, set a reminder, or make it important.')]]
+      : [[t('Your Obie'), t("Press and hold an Iris to pin one above the rest. Only one is ever your Obie, because there can only be one that's most important.")],
+         [t('Scripts'), t('Longer writing lives in Scripts, on the right. They never reach your phone.')]];
+    return `<h2>${t('A few things worth knowing')}</h2>
       ${page.map(([h, p]) => `<div class="fr-basic"><b>${h}</b><p>${p}</p></div>`).join('')}
-      <div class="fr-actions">${pill('basics-next', fr.basics === 0 ? 'Next' : 'Got it', ' primary')}</div>`;
+      <div class="fr-actions">${pill('basics-next', fr.basics === 0 ? t('Next') : t('Got it'), ' primary')}</div>`;
   },
 
-  complete: () => `<h2>You're ready.</h2>
-    <p class="fr-strong">Your thoughts, in your order, telling your story. Nobody else's.</p>
-    <p>${fr.storage === 'local'
-      ? `Encrypted on this ${PLATFORM.device}, readable only by you.`
-      : `Encrypted on this ${PLATFORM.device}, readable only by you, and kept in the folder you chose.`}</p>
-    <div class="fr-actions">${pill('finish', 'Start using Catchlight', ' primary')}</div>`,
+  complete: () => `<h2>${t("You're ready.")}</h2>
+    <p class="fr-strong">${t("Your thoughts, in your order, telling your story. Nobody else's.")}</p>
+    <p>${fr.storage === 'local' ? PLATFORM.text.completeLocal() : PLATFORM.text.completeCloud()}</p>
+    <div class="fr-actions">${pill('finish', t('Start using Catchlight'), ' primary')}</div>`,
 
-  restore: () => `<h2>Enter your Privacy phrase</h2>
+  restore: () => `<h2>${t('Enter your Privacy phrase')}</h2>
     ${phraseGrid()}
-    <p>The 12 words from your other device, in order.</p>
-    <p class="fr-status" id="fr-status" aria-live="polite">0 of 12 words</p>
-    <div class="fr-actions">${pill('back-welcome', 'Back')}${pill('do-restore', 'Restore', ' primary')}</div>`,
+    <p>${t('The 12 words from your other device, in order.')}</p>
+    <p class="fr-status" id="fr-status" aria-live="polite">${t('%lld of 12 words', 0)}</p>
+    <div class="fr-actions">${pill('back-welcome', t('Back'))}${pill('do-restore', t('Restore'), ' primary')}</div>`,
 
-  restored: () => `<h2>Welcome back</h2>
-    <p>Your account is restored on this ${PLATFORM.device}. Connect the cloud folder where your Takes are saved and they'll appear here.</p>
-    <div class="fr-actions">${pill('finish', 'Not now', ' link')}${pill('connect-folder', 'Connect cloud folder', ' primary')}</div>`,
+  restored: () => `<h2>${t('Welcome back')}</h2>
+    <p>${PLATFORM.text.restored()}</p>
+    <div class="fr-actions">${pill('finish', t('Not now'), ' link')}${pill('connect-folder', t('Connect cloud folder'), ' primary')}</div>`,
 };
 
 function show(step) {
@@ -151,14 +194,14 @@ const restoreWords = () => phraseWords(layer);
 function paintRestoreStatus(error) {
   const n = restoreWords().filter(Boolean).length, status = $('#fr-status');
   status.classList.toggle('error', !!error);
-  status.textContent = error || (n === 12 ? 'Ready to restore.' : `${n} of 12 words`);
+  status.textContent = error || (n === 12 ? t('Ready to restore.') : t('%lld of 12 words', n));
   layer.querySelector('[data-fr="do-restore"]').disabled = n < 12;
 }
 // The shell's check is a promise; the prototype's stand-in answers at once.
 async function doRestore() {
   const words = restoreWords().map(w => w.toLowerCase());
   if (await shell.phraseLooksValid(words)) { fr.restore = true; fr.restoreWords = words; show('restored'); }
-  else paintRestoreStatus("That doesn't look right. Check the words and try again.");
+  else paintRestoreStatus(t("That doesn't look right. Check the words and try again."));
 }
 
 // iOS's Take.init leaves isNote on, so every seed lights the Note blade too.
@@ -169,11 +212,12 @@ async function doRestore() {
 function seedTakes() {
   const now = Date.now(), at = s => new Date(now + s * 1000).toISOString();
   return [
-    { id: newId(), at: at(-50), isNote: true, blocks: [{ k: 'text', text: "A Take is like memory, the place to keep your ideas and it's simply easy. Try clicking the Iris on a Take, you'll see how effortless shaping a Take really is. Make it an Obie, task or add a reminder - do all of them or none of them, you're in control." }] },
-    { id: newId(), at: at(-40), isNote: true, blocks: [{ k: 'text', text: 'Sometimes you need more structure, so when you need a list or plan to work from, add a task to your Take, yes, any Take, and give yourself time.' }, { k: 'check', text: 'Give yourself time to act', done: false }] },
-    { id: newId(), at: at(-30), isNote: true, reminder: { when: at(86400), done: false }, blocks: [{ k: 'text', text: "When timing is everything, use a reminder. These can be added to any Take; doesn't matter if it's a note, a task or both. When you need to be nudged, poked or pushed, reminders are invaluable." }] },
-    { id: newId(), at: at(-20), isNote: true, obie: true, isImportant: true, blocks: [{ k: 'text', text: "Only one Take is ever an Obie, that special memory or activity that's above all others. That's because you can only ever have one thought that's your most important and this is where it lives, always." }] },
-    { id: newId(), at: at(-10), isNote: true, blocks: [{ k: 'text', text: `Delete these introductory Takes whenever you're ready, easy as swiping left on a Take, or right-clicking it. This is your Catchlight, use it in the way that fits you perfectly. Oh and, if you need to check out customisation and settings, press ${PLATFORM.settingsKey} or choose ${PLATFORM.settingsWhere}.` }] },
+    // Real content the user reads and keeps, so in their language, written when the account is made.
+    { id: newId(), at: at(-50), isNote: true, blocks: [{ k: 'text', text: t("A Take is like memory, the place to keep your ideas and it's simply easy. Try clicking the Iris on a Take, you'll see how effortless shaping a Take really is. Make it an Obie, task or add a reminder - do all of them or none of them, you're in control.") }] },
+    { id: newId(), at: at(-40), isNote: true, blocks: [{ k: 'text', text: t('Sometimes you need more structure, so when you need a list or plan to work from, add a task to your Take, yes, any Take, and give yourself time.') }, { k: 'check', text: t('Give yourself time to act'), done: false }] },
+    { id: newId(), at: at(-30), isNote: true, reminder: { when: at(86400), done: false }, blocks: [{ k: 'text', text: t("When timing is everything, use a reminder. These can be added to any Take; doesn't matter if it's a note, a task or both. When you need to be nudged, poked or pushed, reminders are invaluable.") }] },
+    { id: newId(), at: at(-20), isNote: true, obie: true, isImportant: true, blocks: [{ k: 'text', text: t("Only one Take is ever an Obie, that special memory or activity that's above all others. That's because you can only ever have one thought that's your most important and this is where it lives, always.") }] },
+    { id: newId(), at: at(-10), isNote: true, blocks: [{ k: 'text', text: PLATFORM.text.seedLast() }] },
   ];
 }
 
@@ -204,7 +248,7 @@ async function finish() {
       if (opened?.generation) lib.generation = opened.generation;
       if (fr.restore) fr.opened = opened;
     } catch (e) {
-      ask("Couldn't secure your account on this Mac", `Nothing was saved. Try again, and if it happens again, report it with this detail: ${e}`, [['OK', null, 'cancel']]);
+      ask(t("Couldn't secure your account on this Mac"), t('Nothing was saved. Try again, and if it happens again, report it with this detail: %@', String(e)), [[t('OK'), null, 'cancel']]);
       return;
     }
   }
@@ -259,7 +303,7 @@ layer.addEventListener('click', e => {
 // As PhraseEntryGrid: a space moves to the next word; a paste spreads its words across the
 // fields from the one pasted into, counting only runs of letters, so "1. anchor" works;
 // Return moves on, and on the last word submits.
-const phraseGrid = () => `<ol class="fr-words fr-entry">${Array.from({ length: 12 }, (_, i) => `<li><span>${i + 1}</span><input type="text" data-word="${i}" aria-label="Word ${i + 1} of 12" autocomplete="off" autocapitalize="off" spellcheck="false"></li>`).join('')}</ol>`;
+const phraseGrid = () => `<ol class="fr-words fr-entry">${Array.from({ length: 12 }, (_, i) => `<li><span>${i + 1}</span><input type="text" data-word="${i}" aria-label="${esc(t('Word %lld of 12', i + 1))}" autocomplete="off" autocapitalize="off" spellcheck="false"></li>`).join('')}</ol>`;
 const phraseWords = root => [...root.querySelectorAll('[data-word]')].map(i => i.value.trim());
 function wirePhraseEntry(root, changed, submit) {
   root.addEventListener('input', e => {

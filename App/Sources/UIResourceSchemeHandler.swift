@@ -52,6 +52,7 @@ final class UIResourceSchemeHandler: NSObject, WKURLSchemeHandler {
         case "css": return "text/css; charset=utf-8"
         case "js", "mjs": return "text/javascript; charset=utf-8"
         case "json": return "application/json; charset=utf-8"
+        case "xcstrings": return "application/json; charset=utf-8"   // ui/l10n, read by i18n.js
         case "svg": return "image/svg+xml"
         case "png": return "image/png"
         case "woff2": return "font/woff2"

@@ -83,7 +83,7 @@ enum NoteImport {
         var types: [UTType] = [.plainText, .text, .rtf]
         for ext in ["md", "markdown"] { if let t = UTType(filenameExtension: ext) { types.append(t) } }
         panel.allowedContentTypes = types
-        panel.prompt = "Import"
+        panel.prompt = String(localized: "Import")
         let finish: (NSApplication.ModalResponse) -> Void = { done($0 == .OK ? panel.urls : nil) }
         if let window { panel.beginSheetModal(for: window, completionHandler: finish) } else { finish(panel.runModal()) }
     }

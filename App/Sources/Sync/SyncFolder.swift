@@ -76,8 +76,8 @@ final class SyncFolder {
         panel.canChooseFiles = false
         panel.canCreateDirectories = true
         panel.allowsMultipleSelection = false
-        panel.prompt = "Use This Folder"
-        panel.message = "Choose a folder in iCloud Drive, Dropbox or any cloud you use. Catchlight keeps only encrypted files there."
+        panel.prompt = String(localized: "Use This Folder")
+        panel.message = String(localized: "Choose a folder in iCloud Drive, Dropbox or any cloud you use. Catchlight keeps only encrypted files there.")
         let finish: (NSApplication.ModalResponse) -> Void = { done($0 == .OK ? panel.url : nil) }
         if let window { panel.beginSheetModal(for: window, completionHandler: finish) } else { finish(panel.runModal()) }
     }
