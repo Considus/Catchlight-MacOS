@@ -176,6 +176,9 @@ enum TakeTranslation {
             p["isDone"] = r["done"] as? Bool ?? false
             p["alarmEnabled"] = r["notify"] as? Bool ?? true
             if let name = r["name"] as? String {
+                // A name changed here is the user's, so it is no longer one the iPhone filled in:
+                // keeping the marker would let the next place picked there replace it (2026-10-11).
+                if name != (p["locationName"] as? String ?? "") { p.removeValue(forKey: "locationNameIsAuto") }
                 if name.isEmpty { p.removeValue(forKey: "locationName") } else { p["locationName"] = name }
             }
             if let mode = r["mode"] as? String { p["triggerOnArrival"] = mode != "leave" }

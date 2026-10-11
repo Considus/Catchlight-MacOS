@@ -491,6 +491,26 @@ final class SyncServiceTests: XCTestCase {
         XCTAssertEqual(try store.take(id: copy.id)?.plainText, "iPhone")
     }
 
+    /// The kept version is stamped after BOTH copies (2026-10-11): stamped only "now", it lost
+    /// to another version stamped later than this Mac's clock (a device running ahead), the
+    /// other version still looked newer at the cloud and the conflict came straight back.
+    func testKeepLocalIsStampedAfterAnOtherVersionStampedAhead() throws {
+        let store = InMemoryTakeStore()
+        let local = Take(blocks: [.text(TextBlock(text: "Mac"))])
+        try store.upsert(local)
+        var remote = local
+        remote.blocks = [.text(TextBlock(text: "iPhone"))]
+        remote.modifiedAt = Date(timeIntervalSinceNow: 3600)
+        let queue = ConflictQueue()
+        queue.enqueue([(local: local, remote: remote)])
+
+        try queue.resolve(id: local.id, choice: .local, store: store, now: Date())
+
+        let kept = try XCTUnwrap(try store.take(id: local.id))
+        XCTAssertEqual(kept.plainText, "Mac")
+        XCTAssertGreaterThan(kept.modifiedAt, remote.modifiedAt)
+    }
+
     func testNoFolderMeansNoSync() throws {
         let vault = Vault(secrets: MemorySecrets(), directory: root.appendingPathComponent("L"))
         try vault.createAccount(words: try Vault.newPhrase(), restored: true)

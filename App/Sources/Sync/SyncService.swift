@@ -366,7 +366,12 @@ final class ConflictQueue {
         // anything that wrote it outside a save. Only if it has gone does the copy stand in.
         let current = try store.take(id: id) ?? pair.local
         var kept = choice == .remote ? pair.remote : current
-        kept.modifiedAt = now
+        // Stamped after every copy in play, not just "now": another version stamped later than
+        // this Mac's clock (a device running ahead) would otherwise still look newer at the
+        // cloud, and the conflict would come straight back (2026-10-11, Core's markModified).
+        kept.modifiedAt = [pair.local.modifiedAt, pair.remote.modifiedAt, current.modifiedAt]
+            .reduce(kept.modifiedAt, max)
+        kept.markModified(at: now)
         try store.upsert(kept)
         var copy: Take?
         if choice == .both {

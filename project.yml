@@ -44,13 +44,17 @@ packages:
     # overwritten (Catchlight-Core#27). 1.5.0: a held Take another device turned into a Script
     # is reported in `SyncReport.heldConverted` instead of being let go or forked, and another
     # device's Obie lands without the flag while this Mac's Obie is held (Catchlight-Core#29).
-    exactVersion: 1.5.0
+    # 1.6.0: LocationTrigger.locationNameIsAuto, kept when this Mac re-saves a place reminder
+    # (Catchlight-Core#32). 1.7.0: Take.markModified, which AppleStorage 1.5.0 needs (#33).
+    exactVersion: 1.7.0
   # The encrypted SQLite store, the Keychain items and the BIP-39 wordlist, shared with the
   # iPhone app so the two can't drift. From 1.4.0 it takes any Core 1.x
   # (Catchlight-AppleStorage#13), so a Core bump no longer needs a matching one here.
+  # 1.5.0: Obie changes stamped strictly forward with Core's markModified, so they always
+  # sync; it needs Core 1.7.0 (Catchlight-AppleStorage#16).
   CatchlightAppleStorage:
     url: https://github.com/Considus/Catchlight-AppleStorage
-    exactVersion: 1.4.0
+    exactVersion: 1.5.0
 
 targets:
   Catchlight:

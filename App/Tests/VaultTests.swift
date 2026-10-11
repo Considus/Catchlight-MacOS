@@ -43,6 +43,26 @@ final class TakeTranslationTests: XCTestCase {
         return [plain, checklist, obie, weekly, monthly, place]
     }
 
+    /// A place renamed on the Mac is the user's name (2026-10-11): it must lose
+    /// LocationTrigger.locationNameIsAuto, or the iPhone replaces it with the next place
+    /// picked. A name left as it was keeps the marker.
+    func testAPlaceRenamedOnTheMac_isNoLongerAutoNamed_andAnUntouchedOneStaysSo() throws {
+        let take = Take(blocks: [.text(TextBlock(text: "Post the parcel"))],
+                        locationReminder: LocationTrigger(latitude: 51.5, longitude: -0.1, radiusMetres: 150,
+                                                          triggerOnArrival: true, locationName: "12 Acacia Avenue",
+                                                          locationNameIsAuto: true))
+        var page = try TakeTranslation.page(from: take)
+        var reminder = try XCTUnwrap(page["reminder"] as? [String: Any])
+        reminder["name"] = "Gym"
+        page["reminder"] = reminder
+        let renamed = try TakeTranslation.core(from: page, existing: take)
+        XCTAssertEqual(renamed.locationReminder?.locationName, "Gym")
+        XCTAssertEqual(renamed.locationReminder?.locationNameIsAuto, false)
+
+        let untouched = try TakeTranslation.core(from: TakeTranslation.page(from: take), existing: take)
+        XCTAssertEqual(untouched.locationReminder?.locationNameIsAuto, true)
+    }
+
     func testUnchangedRoundTripIsIdentical() throws {
         for take in try corpus() {
             let back = try TakeTranslation.core(from: TakeTranslation.page(from: take), existing: take)
