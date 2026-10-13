@@ -1,5 +1,5 @@
 /* Catchlight desktop UI. Tokens mirror Catchlight-iOS Theme/CatchlightTheme.swift
-   (As-Built wins, D-274); sizes are iOS points taken 1:1 as CSS px. */
+   (where they differ, the iOS code wins); sizes are iOS points taken 1:1 as CSS px. */
 
 @font-face { font-family: "Cormorant Garamond"; font-style: normal; font-weight: 300; src: url(fonts/cormorant-garamond-normal-300.woff2) format("woff2"); }
 @font-face { font-family: "Cormorant Garamond"; font-style: italic; font-weight: 300; src: url(fonts/cormorant-garamond-italic-300.woff2) format("woff2"); }
@@ -339,7 +339,7 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 .month.on .month-label { color: var(--obie-text); display: inline-flex; gap: 6px; align-items: center; }
 .month .xmark { width: 14px; height: 14px; stroke-width: 1.6; }
 .sheet-close { position: absolute; z-index: 4; top: 6px; right: 12px; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; color: var(--accent); }
-.sheet-close::after { content: ""; position: absolute; inset: -6px; }   /* a 44 × 44 hit area (D-320) */
+.sheet-close::after { content: ""; position: absolute; inset: -6px; }   /* a 44 × 44 hit area */
 .sheet-close svg { width: 20px; height: 20px; stroke-width: 1.6; }
 .sheet-close[hidden] { display: none; }
 .card.expanded .body { display: block; -webkit-line-clamp: unset; }
@@ -437,7 +437,7 @@ body.first-running .app { visibility: hidden; }
 .ssub-col { display: flex; flex-direction: column; align-items: center; gap: 14px; padding-top: 12px; text-align: center; }
 .ssub-col p { margin: 0; font-size: 17px; line-height: 1.45; }
 .ssub-col .quiet { font-size: 14px; color: var(--text-2); }
-/* CloudStorageView.finePrint: "tested with", a dated observation rather than a promise (D-064). */
+/* CloudStorageView.finePrint: "tested with", a dated observation rather than a promise. */
 .ssub-col .sfine { font-size: 12px; color: var(--text-2); }
 .ssub-col .sfine::before { content: "ⓘ"; content: "ⓘ" / ""; margin-right: 6px; }   /* decorative, as the iOS icon is hidden from VoiceOver */
 .ssub-col .small { font-size: 13px; }

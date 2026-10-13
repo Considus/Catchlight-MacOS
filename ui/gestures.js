@@ -1,7 +1,7 @@
 'use strict';
-// Three gestures from the iPhone (As-Built, D-274), loaded after takes.js:
+// Three gestures from the iPhone, loaded after takes.js:
 //   • Swipe a Take in Dailies (SwipeActionRow): right for Done or Not done, left for Delete.
-//   • Drag a Take by its ≡ handle when Dailies is arranged by hand (UIKitTimeline, D-195).
+//   • Drag a Take by its ≡ handle when Dailies is arranged by hand (UIKitTimeline).
 //   • Drag a checklist item by its ≡ handle in the editor (BlockEditorViewController).
 // Both work with a finger, a pen or a mouse; on a trackpad a two-finger horizontal scroll
 // swipes a row too, since that is the gesture a Mac has for it.
@@ -167,7 +167,7 @@ sidebar.addEventListener('click', e => {
 new MutationObserver(() => { if (swipeOpen && !swipeOpen.card.isConnected) swipeOpen = null; })
   .observe($('#takes'), { childList: true });
 
-// ---------- arrange Takes by hand (Manual, D-195) ----------
+// ---------- arrange Takes by hand (Manual) ----------
 // Hold the ≡ handle for 0.25s, still, and the card lifts (TimelineDragHandle.liftDelay): moving
 // more than 10px first lets the stroke go, as a scroll does on iOS. The lifted card follows the
 // pointer, a gap of its size moves between the others, and the drop writes one Take's
@@ -261,7 +261,7 @@ takeList.addEventListener('keydown', e => {
 // no shadow (owner, on device), follows the pointer, and a gap of its height moves to the slot
 // where the number of other rows above its centre says it belongs. Text blocks have no
 // handle but count as slots. The new order is saved with the edit, so a drag that ends where
-// it began writes nothing (D-250).
+// it began writes nothing.
 let reorder = null;
 rows.addEventListener('pointerdown', e => {
   const handle = e.target.closest('.ehandle');

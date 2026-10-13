@@ -1,6 +1,6 @@
 'use strict';
 // The menu bar, as data. Every command the app offers from a menu, its shortcut on each desktop,
-// when it can run and what it does, in one table. The native shells (D-318) build their menus
+// when it can run and what it does, in one table. The native shells build their menus
 // from `catchlightMenu.model()`, ask again before a menu opens so labels, ticks and greyed items
 // are current, and call `catchlightMenu.run(id)` when one is chosen. In a browser there is no
 // menu bar, so this file binds the same shortcuts itself, and `?menu` draws a stand-in bar to

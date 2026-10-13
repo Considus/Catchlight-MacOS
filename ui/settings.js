@@ -1,6 +1,6 @@
 'use strict';
 let shownPhrase = null;   // the phrase the Keychain gave for the page showing it, and no longer
-// Settings, as the iPhone's SettingsView (As-Built, D-274): one sheet of grouped sections,
+// Settings, as the iPhone's SettingsView: one sheet of grouped sections,
 // every choice a dropdown showing its value on the right, sub-screens as sheets over it.
 // The desktop gives each pane its own section (owner, 2026-10-02): Dailies, the Script
 // timeline and the Script area. Loaded after app.js and before takes.js, which reads
@@ -10,7 +10,7 @@ let shownPhrase = null;   // the phrase the Keychain gave for the page showing i
 const settings = Object.assign({
   takeSpacing: 'standard', takePreview: 'some', takeSort: 'oldest', takeArrangement: 'date', creationStamp: 'off',
   scriptTextSize: 'standard', newScriptPage: 'region', spellcheck: 'on',
-  spotlight: 'none', writingTools: 'off',   // both private until the user opts in (D-110, D-246)
+  spotlight: 'none', writingTools: 'off',   // both private until the user opts in
   reminderHours: '24', snooze: '60', followUp: true,
   lockAfter: '60', autoDelete: 'never', confirmDelete: true,
   notifications: 'ask', syncMode: 'automatic', notices: [],
@@ -121,12 +121,12 @@ function settingsPage() {
     toggle('confirmDelete', 'warn', t('Confirm before deleting'), t('A deleted Take cannot be recovered'), settings.confirmDelete),
     link('phrase', 'key', t('Privacy phrase')),
     link('second-device', 'device', t('Second device')),
-    // How much of each Take the OS search may index (SpotlightExposure, D-110). Past the type
+    // How much of each Take the OS search may index (SpotlightExposure). Past the type
     // label it puts decrypted text in the OS index; the two text levels stay locked, as on
     // iOS, until the platform's search can find them.
     pick('spotlight', 'search', PLATFORM.text.search(), [['none', t('None')], ['type', t('Type only')], ['firstLine', t('Type + first line'), true], ['all', t('Type + full text'), true]],
       () => settings.spotlight, t('On-device search only. Considus can never read your Takes. Text levels are greyed out until search can find them.')),
-    // Writing Tools (D-246) is Apple's, so only the Mac has the row. Off by default: the
+    // Writing Tools is Apple's, so only the Mac has the row. Off by default: the
     // editor would otherwise inherit it, and either mode sends that Take to Apple.
     PLATFORM.writingTools ? pick('writingTools', 'wand', t('Writing Tools'), [['off', t('Off')], ['panel', t('Panel')], ['inline', t('Inline')]],
       () => settings.writingTools, t('Panel suggests, you accept. Inline rewrites in place. Both send that Take to Apple. Your Privacy phrase never goes.')) : '',
@@ -395,7 +395,7 @@ sheet.addEventListener('keydown', e => {
 
 // Start over, as on iOS: Export Takes exports and stops there; "Erase. Takes exported" goes on
 // to the erase question; Cancel stops everything. After erasing there is nothing left to show,
-// so a last screen says so and offers no way back (ResetCompleteView, D-253). Touch ID belongs
+// so a last screen says so and offers no way back (ResetCompleteView). Touch ID belongs
 // to the shell.
 function startOver() {
   ask(t('Export your Takes?'), t('Export Takes now. This is the only way to preserve them. This will make cloud copies unreadable.'), [

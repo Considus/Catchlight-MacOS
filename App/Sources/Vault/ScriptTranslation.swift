@@ -2,7 +2,7 @@ import Foundation
 import CatchlightCore
 
 /// The one place a Script crosses between the page's shape (`ui/app.js`) and Core's. A Script is
-/// a Take of kind Script (D-265, D-326), so it lives in the same store and syncs through the same
+/// a Take of kind Script, so it lives in the same store and syncs through the same
 /// engine; this file only says how the page's lines map onto Core's blocks.
 ///
 /// Page Script: `{id, at, mode: 'continuous'|'a4'|'letter', blocks: [String]}`. Each page block is

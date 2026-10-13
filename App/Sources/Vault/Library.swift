@@ -2,8 +2,8 @@ import Foundation
 import CatchlightCore
 import os
 
-/// The open library: Takes and Scripts in Core's `TakeStore`, a Script being a Take of kind Script
-/// (D-265, D-326, M3b). Scripts saved before M3b sit in the `ScriptVault` until `moveScriptsIn`
+/// The open library: Takes and Scripts in Core's `TakeStore`, a Script being a Take of kind Script.
+/// Scripts saved before M3b sit in the `ScriptVault` until `moveScriptsIn`
 /// moves them over. The page saves its whole Take list at once (`saveTakes()` in `ui/takes.js`),
 /// and its whole Script list the same way, so a save is a diff, and it is a diff
 /// against the SNAPSHOT the page's list came from, never against the store. Sync (M3) writes to
@@ -272,7 +272,7 @@ final class Library {
         return (takes, scripts, failed)
     }
 
-    /// Take ⇄ Script as a change of kind on the same id (D-313): no copy and no deletion record,
+    /// Take ⇄ Script as a change of kind on the same id: no copy and no deletion record,
     /// so sync sends one item whose kind changed. `page` is the item in its new list's shape. It is
     /// laid over the stored item, so what the page doesn't model (block ids, a reminder) is kept;
     /// a Script is never the Obie. Every kept snapshot takes the new version, so the old list's

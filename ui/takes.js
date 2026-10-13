@@ -1,6 +1,6 @@
 'use strict';
-// Dailies: Takes, in-place editing and the Focus-ring, as the iOS app does them (As-Built,
-// D-274). Loaded after app.js and uses its helpers. The model mirrors the Take in
+// Dailies: Takes, in-place editing and the Focus-ring, as the iOS app does them. Loaded
+// after app.js and uses its helpers. The model mirrors the Take in
 // Catchlight-Core: ordered blocks of text and checklist items; a Take is a Task when it has a
 // checklist item and complete when every item is ticked. Placeholder data, no sync.
 
@@ -68,7 +68,7 @@ const noteFloor = t => { if (!t.isNote && !isTask(t) && !t.reminder) t.isNote = 
 const irisHtml = (types, obie) => `<span class="iris-shadow"></span>${iris(types, obie)}`;
 
 
-// ---------- manual arrangement (ManualOrder.swift, D-195) ----------
+// ---------- manual arrangement (ManualOrder.swift) ----------
 // `manualOrder` is a sparse fractional index. A Take never dragged has none and sits at its
 // creation time in epoch seconds, so turning Manual on changes nothing until a card moves, and
 // a new Take lands at the now end. The canonical order is oldest first; Order (oldest or
@@ -263,7 +263,7 @@ function commitEdit() {
   if (isBlank(draft)) {
     if (original) takes = takes.filter(t => t.id !== original.id);
   } else {
-    // D-250: an edit that changes nothing writes nothing, so modifiedAt only moves on a change.
+    // An edit that changes nothing writes nothing, so modifiedAt only moves on a change.
     // Keys sorted: the shell's objects come in whatever order its dictionaries have that launch.
     const same = original && JSON.stringify(sortedKeys({ ...original, modifiedAt: 0 })) === JSON.stringify(sortedKeys({ ...draft, modifiedAt: 0 }));
     // Held while it was open, unchanged: nothing to write, and the user hears why it waits. A
@@ -548,7 +548,7 @@ function closeFocusRing(apply) {
   if (apply) {
     const target = fromEditor ? draft : takes.find(x => x.id === t.id);
     const before = JSON.stringify(target);
-    // Only what changed is written, so an unchanged ring is a no-op (D-250).
+    // Only what changed is written, so an unchanged ring is a no-op.
     if (!!target.isNote !== sel.has('note')) target.isNote = sel.has('note');
     // An Obie is always Important, so the ring can't take it off one (DailiesViewModel).
     const important = sel.has('important') || !!target.obie;
@@ -814,7 +814,7 @@ function exportTakes(list) {
 }
 
 // ---------- the Take menu (right-click, or long press on touch) ----------
-// The iOS long-press menu, plus Expand into a Script (D-313). The Storyboard's is shorter:
+// The iOS long-press menu, plus Expand into a Script. The Storyboard's is shorter:
 // Mark Done, Important and Delete, as on iOS.
 function takeMenu(id) {
   const t = takes.find(x => x.id === id);
@@ -913,7 +913,7 @@ alertBox.addEventListener('click', e => {
 // open and its actions must survive.
 alertBox.addEventListener('close', () => { if (alertBox.open) return; alertActions = []; refocus(); });
 
-// Take ⇄ Script is a change of kind on the same id (D-313): the shell changes the stored item
+// Take ⇄ Script is a change of kind on the same id: the shell changes the stored item
 // first, then both lists move it, so neither list's save reads it as deleted or as new and sync
 // sends one item whose kind changed. In a plain browser there is no shell, and only the lists move.
 // Answers the item as the shell stored it (with what the page's copy didn't carry), or null.

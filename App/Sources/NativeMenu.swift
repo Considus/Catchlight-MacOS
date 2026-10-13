@@ -1,6 +1,6 @@
 import AppKit
 
-/// One entry of `catchlightMenu.model()` (ui/menu.js, D-342): a separator, a submenu, or an item.
+/// One entry of `catchlightMenu.model()` (ui/menu.js): a separator, a submenu, or an item.
 enum MenuEntry: Decodable, Equatable {
     case separator
     case submenu(title: String, items: [MenuEntry])

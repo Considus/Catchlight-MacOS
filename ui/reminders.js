@@ -1,5 +1,5 @@
 'use strict';
-// Reminders, as the iPhone's ReminderPickerSheet and TimeReminder (As-Built, D-274): a time,
+// Reminders, as the iPhone's ReminderPickerSheet and TimeReminder: a time,
 // or a place, never both (owner 2026-06-24). A time can be all-day, silent, and repeat; a
 // repeating reminder is never done, marking it done moves it to its next occurrence. Loaded
 // after settings.js and before takes.js, whose cards read the labels here on first render.
@@ -9,7 +9,7 @@
 // A reminder on a Take is one of:
 //   { kind: 'time', when, done, allDay, notify, repeat, weekdays, anchorDay? }   weekdays: 1 = Sunday … 7
 //     anchorDay is set only while a monthly or annual repeat sits on a clamped day, so a series
-//     on the 31st returns to the 31st after February (D-329).
+//     on the 31st returns to the 31st after February.
 //   { kind: 'place', name, mode: 'arrive' | 'leave', radius, notify, done }
 // A reminder written before kinds existed ({ when, done }) is a time.
 
@@ -91,7 +91,7 @@ const ICON_PIN = '<svg viewBox="0 0 24 24"><path d="M12 21s-6-5.6-6-11a6 6 0 0 1
 const reminderMeta = r => `<div class="meta">${isPlaceR(r) ? ICON_PIN : ICON_CLOCK}${r.notify === false ? ICON_BELL_SLASH : ICON_BELL}${esc(reminderLine(r))}</div>`;
 
 // Marking a repeating reminder done moves it to the following occurrence; the series goes on.
-// A monthly or annual series that lands on a clamped day remembers its own day (D-329).
+// A monthly or annual series that lands on a clamped day remembers its own day.
 function advanceRepeat(r) {
   const next = nextOccurrence(r, nextDue(r)), seriesDay = r.anchorDay ?? new Date(r.when).getDate();
   r.when = next.toISOString(); r.done = false;
