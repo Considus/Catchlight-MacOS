@@ -2,12 +2,12 @@ import Foundation
 import CatchlightCore
 
 /// The one place a Script crosses between the page's shape (`ui/app.js`) and Core's. A Script is
-/// a Take of kind Script (D-265, D-326), so it lives in the same store and syncs through the same
+/// a Take of kind Script, so it lives in the same store and syncs through the same
 /// engine; this file only says how the page's lines map onto Core's blocks.
 ///
 /// Page Script: `{id, at, mode: 'continuous'|'a4'|'letter', blocks: [String]}`. Each page block is
 /// one line of markdown, or a fenced code block or table kept whole. In Core, a `- [ ] text` or
-/// `- [x] text` line is a checklist item (Desktop_App_Scope §6b); every other page block is one
+/// `- [x] text` line is a checklist item; every other page block is one
 /// text block, its markdown kept as typed. `at` is an ISO string, as a Take's; a Script saved
 /// before M3b carries a date only, read as that day's local midnight. The page's `pageCount` is
 /// worked out on screen and never stored.

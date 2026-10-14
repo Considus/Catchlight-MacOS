@@ -304,7 +304,7 @@ final class LibraryTests: XCTestCase {
         XCTAssertEqual(try library.pageScripts().count, 1, "deleting the last Take left the Script")
     }
 
-    /// M3b step 2 (D-313): Take ⇄ Script is a change of kind on the same id. No copy, no
+    /// M3b step 2: Take ⇄ Script is a change of kind on the same id. No copy, no
     /// deletion record, and neither list's next save reads it as deleted or as new.
     func testTakeToScriptAndBackIsAChangeOfKindOnTheSameId() throws {
         let id = UUID()

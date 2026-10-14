@@ -1,9 +1,9 @@
 'use strict';
 // Catchlight desktop UI prototype. Plain web platform only (no framework, no build
 // step, no platform-only APIs) so the same files run in WKWebView, WebView2 and
-// WebKitGTK (D-318). Data is placeholder and in-page; nothing syncs.
+// WebKitGTK. Data is placeholder and in-page; nothing syncs.
 
-// ---------- Iris: the six-blade shutter, paths from Catchlight-Ops/blade_paths.json ----------
+// ---------- Iris: the six-blade shutter ----------
 const BLADES = ["M28.39 15.16C27.15 14.22 25.79 13.32 24.34 12.48C22.89 11.65 21.43 10.92 20.0 10.31C17.62 9.29 15.31 8.59 13.19 8.21C8.6 7.39 4.93 8.12 3.55 10.5C3.55 10.5 3.55 10.5 3.55 10.5C6.83 4.82 12.97 1.01 20.0 1.01C22.76 1.01 25.22 3.82 26.81 8.21C27.54 10.23 28.09 12.58 28.39 15.16Z", "M33.61 20.0C32.23 21.64 30.47 23.3 28.39 24.85C28.58 23.3 28.68 21.68 28.68 20.0C28.68 18.32 28.58 16.7 28.39 15.15C28.09 12.58 27.54 10.22 26.81 8.21C25.22 3.82 22.76 1.01 20.0 1.01C27.03 1.01 33.17 4.82 36.45 10.5C36.45 10.5 36.45 10.5 36.45 10.5C37.83 12.89 36.62 16.43 33.61 20.0Z", "M38.99 20.0C38.99 23.46 38.07 26.7 36.45 29.5C36.45 29.5 36.45 29.5 36.45 29.5C35.07 31.89 31.41 32.61 26.81 31.79C24.7 31.42 22.38 30.71 20.01 29.69C21.44 29.08 22.89 28.35 24.35 27.52C25.8 26.68 27.16 25.78 28.4 24.84C30.47 23.29 32.23 21.64 33.62 19.99C36.62 16.42 37.84 12.88 36.45 10.5C36.45 10.5 36.45 10.5 36.45 10.5C38.07 13.3 38.99 16.54 38.99 20.0Z", "M36.45 29.5C33.17 35.18 27.03 38.99 20.0 38.99C17.24 38.99 14.78 36.18 13.19 31.79C12.46 29.77 11.91 27.42 11.61 24.85C12.85 25.79 14.21 26.69 15.66 27.52C17.11 28.36 18.57 29.09 20.0 29.7C22.38 30.72 24.69 31.42 26.81 31.8C31.4 32.61 35.07 31.88 36.45 29.5C36.45 29.5 36.45 29.5 36.45 29.5Z", "M20.0 38.99C12.97 38.99 6.83 35.18 3.55 29.5C3.55 29.5 3.55 29.5 3.55 29.5C2.17 27.11 3.38 23.58 6.39 20.01C7.77 18.37 9.53 16.71 11.61 15.16C11.42 16.7 11.32 18.32 11.32 20.01C11.32 21.69 11.42 23.31 11.61 24.86C11.91 27.42 12.46 29.78 13.19 31.8C14.79 36.18 17.24 38.99 20.0 38.99Z", "M20.0 10.31C18.57 10.92 17.11 11.65 15.66 12.48C14.21 13.32 12.85 14.22 11.61 15.16C9.53 16.71 7.77 18.36 6.39 20.01C3.38 23.58 2.17 27.12 3.55 29.5C3.55 29.5 3.55 29.5 3.55 29.5C1.94 26.71 1.01 23.46 1.01 20.0C1.01 16.54 1.94 13.3 3.55 10.5C3.55 10.5 3.55 10.5 3.55 10.5C4.93 8.11 8.6 7.39 13.19 8.21C15.31 8.59 17.62 9.29 20.0 10.31Z"];
 const SEG = ['important', 'task', 'image', 'note', 'voice', 'remind'];
 
@@ -774,7 +774,7 @@ function tableKey(e, s, el, text) {
   }
 }
 
-// ---------- page mode: continuous, A4 or US Letter (D-314) ----------
+// ---------- page mode: continuous, A4 or US Letter ----------
 const PAGE = { a4: { w: 794, h: 1123 }, letter: { w: 816, h: 1056 } }; // CSS px at 96 dpi
 const MARGIN = 76, GAP = 28, PAPER_TOP = 40;
 
@@ -821,7 +821,7 @@ document.querySelectorAll('#page-mode button').forEach(b => b.addEventListener('
   s.mode = b.dataset.mode; save(); applyMode(); renderScripts();
 }));
 
-// ---------- selecting, creating and changing kind (D-313) ----------
+// ---------- selecting, creating and changing kind ----------
 function open(id) {
   current = id; save(); renderScripts(); renderDoc();
   Object.assign(edits, { undo: [], redo: [], typing: 0, id });
@@ -900,7 +900,7 @@ async function scriptToTake(id) {
   if (refuseHeld(id, 'Script')) return;
   const s = scripts.find(x => x.id === id);
   // The text moves as it is: "- [ ]" lines become checklist items, the rest stays text. Same id:
-  // a change of kind, not a copy (D-313, changeKind in takes.js).
+  // a change of kind, not a copy (changeKind in takes.js).
   kindChanging++;   // changeKind answers null on failure rather than throw; the shell stamps the change
   const shaped = await changeKind({ ...takeFromScript(s), id: s.id }, 'takes');
   if (!shaped) return endKindChange();

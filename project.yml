@@ -6,7 +6,7 @@
 #   brew install xcodegen   # one-time
 #   xcodegen generate       # produces Catchlight.xcodeproj
 #
-# Scope and decisions: Mac_Shell_Plan and D-343 — App Sandbox on, XcodeGen, and from M2
+# App Sandbox on, XcodeGen, and from M2
 # Core and the shared Apple storage as packages pinned to exact tags.
 
 name: Catchlight
@@ -27,7 +27,7 @@ settings:
     CURRENT_PROJECT_VERSION: "1"
     ENABLE_USER_SCRIPT_SANDBOXING: YES
   configs:
-    # D-317: development builds are universal so they run on the Intel Mac;
+    # Development builds are universal so they run on an Intel Mac;
     # release builds are Apple Silicon only.
     Debug:
       ARCHS: "$(ARCHS_STANDARD)"
@@ -37,7 +37,7 @@ settings:
 
 packages:
   # The platform-agnostic core (model, file format, crypto, sync), pinned to an exact tag so
-  # a Core change reaches the Mac only through a deliberate bump (D-344, D-350).
+  # a Core change reaches the Mac only through a deliberate bump.
   CatchlightCore:
     url: https://github.com/Considus/Catchlight-Core
     # 1.4.0: sync(holding:), so a Take waiting for a conflict choice is never uploaded or

@@ -6,7 +6,7 @@ import os
 
 /// The account on this Mac: the Privacy phrase, the master key, and the encrypted library they
 /// open. First run follows the iPhone's (`OnboardingViewModel.finishOnboarding`): the phrase is
-/// stored before the key (D-253), so the app can't believe it has an account until the phrase is
+/// stored before the key, so the app can't believe it has an account until the phrase is
 /// already safe.
 final class Vault {
     enum State {
@@ -35,7 +35,7 @@ final class Vault {
 
     let secrets: Secrets
     /// `~/Library/Containers/com.considus.catchlight.mac/Data/Library/Application Support/Catchlight`
-    /// under the sandbox. Kept out of Time Machine (D-340): the Takes in it are encrypted, but
+    /// under the sandbox. Kept out of Time Machine: the Takes in it are encrypted, but
     /// restoring a backup onto another Mac would carry them there without the key's consent.
     let directory: URL
     private(set) var state: State = .noAccount
@@ -132,7 +132,7 @@ final class Vault {
                     throw error
                 }
             } else {
-                // A new account: the phrase first (D-253), so a key never exists without one.
+                // A new account: the phrase first, so a key never exists without one.
                 try secrets.storePhrase(words)
                 try secrets.storeMasterKey(raw)
             }

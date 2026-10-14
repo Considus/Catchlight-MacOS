@@ -36,7 +36,7 @@ enum SystemInfo {
 ///   `revealPhrase`, `eraseEverything`: the account, through the `Vault`;
 /// - `chooseFolder`, `forgetFolder`: the sync folder, through `SyncFolder` (the open panel);
 /// - `sync {trigger}`: one sync pass through `SyncService`, answered with what it did;
-/// - `changeKind {item, to: 'takes'|'scripts'}`: Take ⇄ Script on the same id (D-313);
+/// - `changeKind {item, to: 'takes'|'scripts'}`: Take ⇄ Script on the same id;
 /// - `conflicts`, `resolveConflict {id, choice}`: the waiting conflicts and the user's choice. A
 ///   waiting item is held: `save` and `changeKind` refuse to change it (a save answers its id in
 ///   `held`) and sync never uploads it, until `resolveConflict {id, choice, revision}`, which

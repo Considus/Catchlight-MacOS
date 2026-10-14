@@ -1,11 +1,11 @@
 'use strict';
-// First run (D-327): the desktop needs no phone. It creates a Privacy phrase itself, as the
+// First run: the desktop needs no phone. It creates a Privacy phrase itself, as the
 // iPhone's OnboardingView does, or takes an existing one typed in. Screens, order and copy
-// follow iOS (As-Built, D-274); where the desktop differs it says so. Loaded after app.js and
+// follow iOS; where the desktop differs it says so. Loaded after app.js and
 // takes.js. Placeholder only: generating and checking a phrase, the Keychain and the folder
 // picker are Core's and the shell's, reached through `shell` below.
 
-// What the copy names, per desktop (D-318). The shell says which it is; ?platform=windows or
+// What the copy names, per desktop. The shell says which it is; ?platform=windows or
 // ?platform=linux previews the others. The backup lines are only true because each shell keeps
 // the Takes out of that platform's backup (ui/README.md, "What each shell must do").
 //
@@ -111,7 +111,7 @@ const SCREENS = {
     <p>${PLATFORM.text.localWarning()}</p>
     <div class="fr-actions">${pill('back-storage', t('Go back'))}${pill('risk', t('I know the risk'), ' primary')}</div>`,
 
-  // The desktop picks the folder here (D-327); the phone leaves it to Settings.
+  // The desktop picks the folder here; the phone leaves it to Settings.
   folder: () => `<h2>${t('Choose a cloud folder you own')}</h2>
     <p>${t("Select an empty folder, or create a new one, and we'll take care of the rest.")}</p>
     <p>${t('Catchlight never sees your files. Only you can read them.')}</p>
@@ -259,7 +259,7 @@ async function finish() {
   if (!fr.folder) shell.forgetFolder?.();
   store.set('account', { storage: fr.storage || 'cloud', folder: fr.folder, restored: fr.restore, phrase: fr.restore || lib ? undefined : fr.words });
   // A new account: seeds after setup, none after a restore (AppModel), and no Scripts either way
-  // (a restored account gets its own from the folder, D-313). A ?first-run replay over an
+  // (a restored account gets its own from the folder). A ?first-run replay over an
   // account that already exists is a look at the screens, so it leaves the Takes alone.
   // In the Mac app a restore shows what the phrase opened (Vault keeps a library it can read)
   // and saves nothing, or the page's empty list would delete it.

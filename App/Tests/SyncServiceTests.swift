@@ -56,7 +56,7 @@ final class SyncServiceTests: XCTestCase {
         return id
     }
 
-    /// M3b, with the switch off (Script_Sync_Proposal, decision A): a Script in the library never
+    /// M3b, with the switch off: a Script in the library never
     /// reaches the folder, so a phone from before 2026-10-01 can never see one. Takes still sync.
     func testScriptsStayOnThisMacUntilTheSwitchIsOn() throws {
         let words = try Vault.newPhrase()
@@ -123,7 +123,7 @@ final class SyncServiceTests: XCTestCase {
         XCTAssertTrue(bridge.injectedLibrary().source.contains(#""syncScripts":true"#))
     }
 
-    /// M3b step 2 (D-313): with Scripts syncing, a Take made a Script on one Mac is the same item,
+    /// M3b step 2: with Scripts syncing, a Take made a Script on one Mac is the same item,
     /// now a Script, on the other. No deletion record goes to the folder.
     func testATakeMadeAScriptArrivesAsAScriptWithTheSameId() throws {
         let words = try Vault.newPhrase()

@@ -14,7 +14,7 @@ import os
 final class SyncService {
     private static let log = Logger(subsystem: "com.considus.catchlight.mac", category: "sync")
     static let deviceIdKey = "syncDeviceId"
-    /// Whether Scripts go to the sync folder (Script_Sync_Proposal, decision A). Off until the
+    /// Whether Scripts go to the sync folder. Off until the
     /// owner turns it on, once every phone reading the folder runs a build from 2026-10-01 or later:
     /// an older phone shows a Script as a Take and turns it back into one when it saves it.
     /// Off, the Mac keeps its Scripts in its library and Core's engine never uploads one.

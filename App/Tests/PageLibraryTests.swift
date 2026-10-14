@@ -161,7 +161,7 @@ final class PageLibraryTests: XCTestCase {
         XCTAssertEqual(left, 0)
     }
 
-    /// M3b step 2 (D-313): the page's Expand into a Script and Make this a Take keep the id; the
+    /// M3b step 2: the page's Expand into a Script and Make this a Take keep the id; the
     /// store changes the item's kind and keeps no deletion record.
     func testExpandIntoAScriptAndBackKeepsTheId() throws {
         let vault = Vault(secrets: MemorySecrets(), directory: dir)
