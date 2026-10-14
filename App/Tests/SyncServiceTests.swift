@@ -56,7 +56,7 @@ final class SyncServiceTests: XCTestCase {
         return id
     }
 
-    /// M3b, with the switch off (Script_Sync_Proposal, decision A): a Script in the library never
+    /// M3b, with the switch off: a Script in the library never
     /// reaches the folder, so a phone from before 2026-10-01 can never see one. Takes still sync.
     func testScriptsStayOnThisMacUntilTheSwitchIsOn() throws {
         let words = try Vault.newPhrase()
