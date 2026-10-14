@@ -6,7 +6,7 @@ For a coding agent working in this repo. People start with [`README.md`](README.
 
 - **Leave the crypto contract and the file format to Catchlight-Core.** A Take written on the Mac must open on the iPhone.
 - **Keep `ui/` free of any framework, build step or platform-only web feature:** Windows, Linux and the iPad share it.
-- **Edit `project.yml`, never `Catchlight.entitlements` or `Info.plist`:** XcodeGen rewrites both from it. Run `xcodegen generate` after a branch change; the `.xcodeproj` is not checked in.
+- **Edit `project.yml`, never `Catchlight.entitlements` or `Info.plist`:** XcodeGen rewrites both from it. XcodeGen generates the project from `project.yml`; the `.xcodeproj` is not checked in.
 - **Keep the network client entitlement.** WebKit's helpers crash under the sandbox without it and the window stays blank; the content rule list and navigation policy still block every web address.
 - **Pass `ONLY_ACTIVE_ARCH=NO` on the command line for a universal build.** The project setting misses the package targets, and the app's other slice fails with "Unable to find module dependency: 'CatchlightCore'". Debug is universal; Release is arm64 only.
 - **Sign for the team (automatic signing).** `keychain-access-groups` is restricted on macOS: without the provisioning profile the data-protection keychain answers -34018. Xcode needs an Apple ID signed in (Settings ▸ Accounts) and the Mac registered; `-allowProvisioningUpdates` fetches the profile. CI builds unsigned, and its tests use `MemorySecrets`.
