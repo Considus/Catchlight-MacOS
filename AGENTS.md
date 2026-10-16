@@ -55,7 +55,7 @@ A fresh clone needs the committed hooks wired up once:
 git config core.hooksPath hooks
 ```
 
-`hooks/pre-commit` refuses commits on `main`; `hooks/commit-msg` refuses Claude attribution footers.
+`hooks/pre-commit` refuses commits on `main`; `hooks/commit-msg` refuses Claude attribution footers and em or en dashes.
 
 ## Build
 
