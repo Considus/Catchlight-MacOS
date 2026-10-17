@@ -4,11 +4,11 @@ The unit tests and the build checks are in [`AGENTS.md`](../AGENTS.md), under Te
 
 ## Unit tests under load
 
-On a heavily loaded machine WebKit's GPU process can be killed as unresponsive in the test runner; the harness (`Tests/WebViewHarness.swift`) retries a stalled page load once. The tests that load the real page still fail intermittently under heavy CPU load, on `main` too. Rerun on an idle machine before reading a failure there as real.
+On a heavily loaded machine WebKit's GPU process can be killed as unresponsive in the test runner, and the harness (`Tests/WebViewHarness.swift`) retries a stalled page load once. The tests that load the real page still fail intermittently under heavy CPU load, on `main` too. Rerun on an idle machine before reading a failure there as real.
 
 ## Launch arguments
 
-Debug builds take launch arguments for proving the shell, listed in the header of `Sources/DebugLaunch.swift`; none exist in Release.
+Debug builds take launch arguments for proving the shell, listed in the header of `Sources/DebugLaunch.swift`. None exist in Release.
 
 ```bash
 open "$APP" --args -CLDebugAccount YES -CLDebugNoExternalOpen YES -CLDebugEval 'return shell.systemInfo()'
@@ -35,8 +35,8 @@ A menu item's tick is its `AXMenuItemMarkChar` attribute, which reflects the pag
 
 - Look for WebKit process crashes in the log: `/usr/bin/log show --last 2m --predicate 'process == "Catchlight"' | grep processDidTerminate`.
 - Debug builds set `isInspectable`, so Safari's Develop menu can inspect the page.
-- "Catchlight could not start its web view safely" means the content rule list did not compile; the log says why.
-- The page's `localStorage` and the library live in the app's container (`~/Library/Containers/com.considus.catchlight.mac/`), separate from the browser's. `localStorage` holds only view settings; Takes, Scripts and the phrase never go there.
+- "Catchlight could not start its web view safely" means the content rule list did not compile, and the log says why.
+- The page's `localStorage` and the library live in the app's container (`~/Library/Containers/com.considus.catchlight.mac/`), separate from the browser's. `localStorage` holds only view settings. Takes, Scripts and the phrase never go there.
 
 ## The page in a browser
 
