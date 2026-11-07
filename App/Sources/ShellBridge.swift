@@ -61,24 +61,35 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
     /// Set when the library could not be read at launch. The page then holds empty lists, and
     /// a save from it would be applied as the whole library, so every save is refused.
     private(set) var libraryUnreadable = false
-    /// Called, once per run-loop turn however many changes there were, after the library has
-    /// changed: a save, a conflict choice, an import, a sync that brought changes, or an account
-    /// change. The window controller points it at the `LibraryMirror`.
+    /// Called after the library has changed: a save, a conflict choice, an import, a sync that
+    /// brought changes, or an account change. The window controller points it at the
+    /// `LibraryMirror`. Trailing debounce: it runs `libraryChangeDelay` after the last change.
     var libraryChanged: () -> Void = {}
+    /// How long after the last change `libraryChanged` runs. The page saves on every edit.
+    var libraryChangeDelay: TimeInterval = 0.5
     /// `setSpotlight {level}`: the page's Spotlight setting, handed to the `LibraryMirror`.
     var setSpotlight: (String) -> Void = { _ in }
-    private var libraryChangePending = false
+    private var libraryChangeTimer: DispatchWorkItem?
 
-    /// Call after any successful write to the library. Coalesced: changes in the same run-loop
-    /// turn run `libraryChanged` once.
+    /// Call after any successful write to the library. A later change restarts the wait, and the
+    /// last change always runs.
     func notifyLibraryChanged() {
-        guard !libraryChangePending else { return }
-        libraryChangePending = true
-        DispatchQueue.main.async { [weak self] in
-            guard let self else { return }
-            libraryChangePending = false
-            libraryChanged()
+        libraryChangeTimer?.cancel()
+        let run = DispatchWorkItem { [weak self] in
+            self?.libraryChangeTimer = nil
+            self?.libraryChanged()
         }
+        libraryChangeTimer = run
+        DispatchQueue.main.asyncAfter(deadline: .now() + libraryChangeDelay, execute: run)
+    }
+
+    /// Drops a change still waiting and says whether there was one, so a quitting app can run it
+    /// now instead of losing it.
+    func takePendingLibraryChange() -> Bool {
+        guard let run = libraryChangeTimer else { return false }
+        run.cancel()
+        libraryChangeTimer = nil
+        return true
     }
 
     /// The open panel for Import from a File. Replaced in tests, which can't drive a panel.

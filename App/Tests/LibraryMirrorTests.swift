@@ -118,6 +118,33 @@ final class LibraryMirrorTests: XCTestCase {
         XCTAssertEqual(count, 1)
     }
 
+    func testTwoChangesTenthsApartRefreshOnceAfterTheSecond() {
+        let bridge = ShellBridge()
+        XCTAssertEqual(bridge.libraryChangeDelay, 0.5)
+        var ranAt: Date?
+        let ran = expectation(description: "the hook ran")
+        bridge.libraryChanged = { XCTAssertNil(ranAt); ranAt = Date(); ran.fulfill() }
+        bridge.notifyLibraryChanged()
+        RunLoop.main.run(until: Date().addingTimeInterval(0.1))
+        let second = Date()
+        bridge.notifyLibraryChanged()
+        // 0.4 s after the second change, which is past 0.5 s after the first: still waiting.
+        RunLoop.main.run(until: second.addingTimeInterval(0.4))
+        XCTAssertNil(ranAt, "the second change restarts the wait")
+        wait(for: [ran], timeout: 5)
+        XCTAssertGreaterThanOrEqual(try! XCTUnwrap(ranAt).timeIntervalSince(second), 0.49)
+        RunLoop.main.run(until: Date().addingTimeInterval(0.7))
+    }
+
+    func testAPendingChangeCanBeTakenForQuitting() {
+        let bridge = ShellBridge()
+        bridge.libraryChanged = { XCTFail("a change taken for quitting must not run later") }
+        XCTAssertFalse(bridge.takePendingLibraryChange())
+        bridge.notifyLibraryChanged()
+        XCTAssertTrue(bridge.takePendingLibraryChange())
+        RunLoop.main.run(until: Date().addingTimeInterval(0.7))
+    }
+
     func testAnEraseGivesAnEmptyList() throws {
         let vault = Vault(secrets: MemorySecrets(), directory: dir)
         XCTAssertNil(LibraryMirror.takes(from: nil), "no vault: nothing to mirror")
@@ -156,6 +183,42 @@ final class LibraryMirrorTests: XCTestCase {
         wait(for: [ran], timeout: 5)
         RunLoop.main.run(until: Date().addingTimeInterval(0.2))
         XCTAssertEqual(count, 1)
+    }
+
+    func testEraseEverythingFromThePageRefreshesWithAnEmptyList() throws {
+        let vault = Vault(secrets: MemorySecrets(), directory: dir)
+        try vault.createAccount(words: try Vault.newPhrase(), restored: true)
+        let (harness, bridge) = page(with: vault)
+        bridge.libraryChangeDelay = 0.05
+        var seen: [Take]?
+        let ran = expectation(description: "the hook ran")
+        bridge.libraryChanged = { seen = LibraryMirror.takes(from: vault); ran.fulfill() }
+        _ = try harness.run("""
+            await window.webkit.messageHandlers.catchlight.postMessage({cmd: 'eraseEverything'});
+            return true;
+            """, in: self)
+        wait(for: [ran], timeout: 5)
+        XCTAssertEqual(seen?.count, 0)
+    }
+
+    func testChangeKindFromThePageCallsLibraryChanged() throws {
+        let vault = Vault(secrets: MemorySecrets(), directory: dir)
+        try vault.createAccount(words: try Vault.newPhrase(), restored: true)
+        let id = UUID()
+        _ = try vault.library!.saveTakes([["id": id.uuidString, "at": "2026-07-01T09:00:00Z", "isNote": true,
+                                           "blocks": [["k": "text", "text": "Becomes a Script"]]]])
+        let (harness, bridge) = page(with: vault)
+        bridge.libraryChangeDelay = 0.05
+        var count = 0
+        let ran = expectation(description: "the hook ran")
+        bridge.libraryChanged = { count += 1; ran.fulfill() }
+        _ = try harness.run("""
+            await catchlightBridge.changeKind(JSON.parse(JSON.stringify(takes[0])), 'scripts');
+            return true;
+            """, in: self)
+        wait(for: [ran], timeout: 5)
+        XCTAssertEqual(count, 1)
+        XCTAssertTrue(try XCTUnwrap(vault.library!.store.take(id: id)).isScript, "the change was written")
     }
 
     func testSetSpotlightFromThePageReachesTheMirror() throws {

@@ -16,6 +16,9 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
     let bridge = ShellBridge()
     let menuController = MenuController()
     private var libraryMirror: LibraryMirror?
+    /// Reading every Take takes tens of milliseconds on a big library, so it is off the main
+    /// thread. Serial, so the answers arrive in the order they were asked.
+    private let mirrorQueue = DispatchQueue(label: "com.considus.catchlight.mirror", qos: .utility)
 
     /// `vault` is nil only in tests that load the page without a library; the page then keeps
     /// the browser prototype's localStorage behaviour.
@@ -31,10 +34,6 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
         // Reminders and Spotlight follow the library; one pass now, with the library open.
         let mirror = LibraryMirror(reminders: MacReminders(centre: UNUserNotificationCenter.current()), spotlight: CoreSpotlightIndexer())
         libraryMirror = mirror
-        bridge.libraryChanged = { [weak mirror, weak vault] in
-            guard let mirror, let takes = LibraryMirror.takes(from: vault) else { return }
-            mirror.refresh(takes: takes)
-        }
         bridge.setSpotlight = { [weak mirror] in mirror?.setExposure($0) }
         if vault != nil { bridge.notifyLibraryChanged() }
         webView = WKWebView(frame: .zero, configuration: configuration)
@@ -70,6 +69,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
         webView.navigationDelegate = self
         webView.uiDelegate = self
         bridge.window = window
+        bridge.libraryChanged = { [weak self] in self?.mirrorLibrary(inBackground: true) }
         wireMenu()
         #if DEBUG
         DebugLaunch.attach(to: self)
@@ -131,7 +131,13 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
         // SyncService.whenIdle) isn't kept waiting behind it, for a closing window as for quitting.
         bridge.sync?.cancel()
         var done = false
-        let finish = { if !done { done = true; completion() } }
+        let finish = { [weak self] in
+            guard !done else { return }
+            done = true
+            // A change still waiting out its delay is mirrored now, or quitting would lose it.
+            if self?.bridge.takePendingLibraryChange() == true { self?.mirrorLibrary(inBackground: false) }
+            completion()
+        }
         webView.callAsyncJavaScript("return await (window.catchlightBridge?.flush?.() ?? false);", arguments: [:], in: nil, in: .page) { result in
             if case .failure(let error) = result { Self.log.error("flush failed: \(String(describing: error), privacy: .public)") }
             finish()
@@ -139,6 +145,21 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
         DispatchQueue.main.asyncAfter(deadline: .now() + timeout) {
             if !done { Self.log.error("flush timed out; closing anyway") }
             finish()
+        }
+    }
+
+    /// Brings reminders and Spotlight in step with the library. The read runs off the main thread
+    /// (the store serialises its own reads); the refresh runs on it, as the mirror is not
+    /// thread-safe.
+    private func mirrorLibrary(inBackground: Bool) {
+        guard let mirror = libraryMirror, let read = LibraryMirror.reader(for: bridge.vault) else { return }
+        if inBackground {
+            mirrorQueue.async {
+                guard let takes = read() else { return }
+                DispatchQueue.main.async { mirror.refresh(takes: takes) }
+            }
+        } else if let takes = read() {
+            mirror.refresh(takes: takes)
         }
     }
 

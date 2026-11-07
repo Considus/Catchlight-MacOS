@@ -60,15 +60,24 @@ final class LibraryMirror {
         }
     }
 
-    /// The Takes to mirror, or nil when there is nothing to do: locked, or a library that can't be
-    /// read. With no account (first run, or just erased) the library is empty, so every
-    /// notification and Spotlight item of ours goes.
-    static func takes(from vault: Vault?) -> [Take]? {
+    /// How to read the Takes to mirror, or nil when there is nothing to do (locked). Called on the
+    /// main thread, because it looks at the vault's state; the closure it returns only touches the
+    /// store, which serialises its own reads on an internal queue, so it can run on any queue.
+    /// It answers nil for a library that can't be read. With no account (first run, or just
+    /// erased) the library is empty, so every notification and Spotlight item of ours goes.
+    static func reader(for vault: Vault?) -> (() -> [Take]?)? {
         guard let vault else { return nil }
         switch vault.state {
-        case .open(let library): return try? library.store.allTakes()
-        case .noAccount: return []
+        case .open(let library):
+            let store = library.store
+            return { try? store.allTakes() }
+        case .noAccount: return { [] }
         case .locked: return nil
         }
+    }
+
+    /// The Takes to mirror now, read on this thread.
+    static func takes(from vault: Vault?) -> [Take]? {
+        reader(for: vault)?() ?? nil
     }
 }

@@ -17,7 +17,7 @@ const settings = Object.assign({
 }, store.get('settings', {}));
 const saveSettings = () => store.set('settings', settings);
 // The shell mirrors Takes into the OS search by this setting; it learns it at load and on each change.
-window.catchlightBridge?.shell.setSpotlight(settings.spotlight);
+window.catchlightBridge?.shell.setSpotlight(settings.spotlight)?.catch(e => console.error('Telling the shell the Spotlight setting failed', e));
 
 const createdLabel = iso => {
   const d = new Date(iso);
@@ -281,7 +281,7 @@ sheet.addEventListener('change', e => {
     view[{ scriptSpacing: 'spacing', scriptPreview: 'preview', scriptSort: 'sort' }[k]] = v; store.set('view', view); renderScripts();
   } else {
     settings[k] = v; saveSettings();
-    if (k === 'spotlight') window.catchlightBridge?.shell.setSpotlight(v);
+    if (k === 'spotlight') window.catchlightBridge?.shell.setSpotlight(v)?.catch(e => console.error('Telling the shell the Spotlight setting failed', e));
     if (k.startsWith('take') || k === 'creationStamp') renderTakes();
     if (k === 'scriptTextSize' || k === 'spellcheck') { applyScriptArea(); paginate(); }
   }
