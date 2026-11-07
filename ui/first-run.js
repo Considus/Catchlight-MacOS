@@ -78,6 +78,7 @@ const shell = {
   // The OS version and model, for About and Report an issue; a sample of what each shell reports.
   systemInfo: () => `${PLATFORM.osName} ${shell.osVersion()} · ${PLATFORM.sampleModel}`,
   osVersion: () => PLATFORM.sampleOs,
+  version: () => '1.0',   // the app's version; the shell reads its own
   copyText: text => navigator.clipboard?.writeText(text),
 };
 // In a shell, the real thing (bridge.js).

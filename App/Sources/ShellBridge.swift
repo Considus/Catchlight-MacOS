@@ -13,6 +13,11 @@ enum SystemInfo {
         return v.patchVersion == 0 ? "\(v.majorVersion).\(v.minorVersion)" : "\(v.majorVersion).\(v.minorVersion).\(v.patchVersion)"
     }
 
+    /// The app's version as people see it (`CFBundleShortVersionString`, from `MARKETING_VERSION`).
+    static var appVersion: String {
+        Bundle(for: ShellBridge.self).object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
+    }
+
     /// The hardware model identifier, such as `Mac16,1` (`sysctl hw.model`).
     static var model: String {
         var size = 0
@@ -158,7 +163,7 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
     /// the page shows it, or absent when none is chosen or its bookmark no longer opens; `language`
     /// is the one the page reads in (`ui/i18n.js`).
     static func injectedValues(folder: String? = nil, language: String = preferredLanguage) -> WKUserScript {
-        var values: [String: String] = ["platform": "mac", "osName": "macOS", "osVersion": SystemInfo.osVersion, "model": SystemInfo.model, "language": language]
+        var values: [String: String] = ["platform": "mac", "osName": "macOS", "osVersion": SystemInfo.osVersion, "model": SystemInfo.model, "version": SystemInfo.appVersion, "language": language]
         if let folder { values["folder"] = folder }
         let json = (try? JSONSerialization.data(withJSONObject: values, options: [.sortedKeys])).flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
         let source = "window.catchlightShell = Object.freeze(\(json));"
