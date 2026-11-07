@@ -1,5 +1,7 @@
 import AppKit
 import WebKit
+import CatchlightCore
+import UserNotifications
 import os
 
 /// The one window: a WKWebView showing the bundled ui/ through the `catchlight://` scheme
@@ -13,6 +15,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
     let webView: WKWebView
     let bridge = ShellBridge()
     let menuController = MenuController()
+    private var libraryMirror: LibraryMirror?
+    private(set) lazy var takeOpener = TakeOpener { [weak self] id, reply in self?.callPage("catchlightOpenTake", id, completion: reply) }
 
     /// `vault` is nil only in tests that load the page without a library; the page then keeps
     /// the browser prototype's localStorage behaviour.
@@ -25,6 +29,13 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
         bridge.syncFolder = SyncFolder()
         if let vault, let folder = bridge.syncFolder { bridge.sync = SyncService(vault: vault, folder: folder) }
         bridge.install(in: configuration.userContentController)
+        // Reminders and Spotlight follow the library; one pass now, with the library open.
+        bridge.notifications = UNUserNotificationCenter.current()
+        let mirror = LibraryMirror(reminders: MacReminders(centre: UNUserNotificationCenter.current()), spotlight: CoreSpotlightIndexer())
+        libraryMirror = mirror
+        bridge.setSpotlight = { [weak mirror] in mirror?.setExposure($0) }
+        bridge.accountWiped = { [weak mirror] in mirror?.accountWiped() }
+        if vault != nil { bridge.notifyLibraryChanged() }
         webView = WKWebView(frame: .zero, configuration: configuration)
         #if DEBUG
         if #available(macOS 13.3, *) {
@@ -58,6 +69,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
         webView.navigationDelegate = self
         webView.uiDelegate = self
         bridge.window = window
+        bridge.libraryChanged = { [weak self] in self?.mirrorLibrary(inBackground: true) }
         wireMenu()
         #if DEBUG
         DebugLaunch.attach(to: self)
@@ -85,6 +97,15 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
         if UserDefaults.standard.bool(forKey: Self.fullScreenKey), let window, !window.styleMask.contains(.fullScreen) {
             window.toggleFullScreen(nil)
         }
+    }
+
+    /// A click on a Take's notification or Spotlight result: the window comes forward and the page
+    /// opens the Take (`catchlightOpenTake`, ui/takes.js), once it has loaded.
+    func openTake(_ id: UUID) {
+        showWindow(nil)
+        window?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        takeOpener.open(id)
     }
 
     // MARK: Menu
@@ -119,7 +140,22 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
         // SyncService.whenIdle) isn't kept waiting behind it, for a closing window as for quitting.
         bridge.sync?.cancel()
         var done = false
-        let finish = { if !done { done = true; completion() } }
+        var completed = false
+        let complete = {
+            guard !completed else { return }
+            completed = true
+            completion()
+        }
+        let finish = { [weak self] in
+            guard !done else { return }
+            done = true
+            // Mirror once more on the way out, always: a change may still be waiting out its delay,
+            // or its background read may be in flight (this read supersedes it). Quitting waits for
+            // the reminders to be reconciled, so a removal isn't cut short.
+            guard let self else { return complete() }
+            _ = self.bridge.takePendingLibraryChange()
+            self.mirrorLibrary(inBackground: false, completion: complete)
+        }
         webView.callAsyncJavaScript("return await (window.catchlightBridge?.flush?.() ?? false);", arguments: [:], in: nil, in: .page) { result in
             if case .failure(let error) = result { Self.log.error("flush failed: \(String(describing: error), privacy: .public)") }
             finish()
@@ -127,7 +163,19 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
         DispatchQueue.main.asyncAfter(deadline: .now() + timeout) {
             if !done { Self.log.error("flush timed out; closing anyway") }
             finish()
+            if !completed { Self.log.error("mirroring on the way out timed out; closing anyway") }
+            complete()
         }
+    }
+
+    /// Brings reminders and Spotlight in step with the library (`LibraryMirror.mirror`).
+    /// `completion` runs once the reminders are reconciled, or at once when there is nothing to do.
+    private func mirrorLibrary(inBackground: Bool, completion: (() -> Void)? = nil) {
+        guard let mirror = libraryMirror, let read = LibraryMirror.reader(for: bridge.vault) else {
+            completion?()
+            return
+        }
+        mirror.mirror(using: read, inBackground: inBackground, completion: completion)
     }
 
     /// Closing the window ends the app (AppDelegate), so the page saves first.
@@ -192,6 +240,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         // A page loaded in full screen (the launch restored it, or a reload) needs telling.
         if window?.styleMask.contains(.fullScreen) == true { markFullScreen(true) }
+        // Only the app's own page: the error page and a failed load have no catchlightOpenTake.
+        if webView.url?.absoluteString == Self.startURL.absoluteString { takeOpener.pageDidLoad() }
         #if DEBUG
         DebugLaunch.pageDidLoad(webView)
         #endif
@@ -202,6 +252,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
     private var lastTermination: Date?
 
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+        takeOpener.pageDidUnload()
         let now = Date()
         defer { lastTermination = now }
         if let last = lastTermination, now.timeIntervalSince(last) < 60 {

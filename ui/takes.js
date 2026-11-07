@@ -699,6 +699,29 @@ function exitToResting() {
   renderTakes();
 }
 
+// A click on a Take's notification or Spotlight result (the shell calls this): leave search, the
+// Sequence, a month filter and the Storyboard for the resting timeline, then scroll the Take's
+// card into view and focus it, as Tab does. The id is matched without regard to case. Answers
+// 'opened'; 'missing' for a Take that isn't there (nothing changes); 'busy' while the Focus-ring,
+// the reminder picker, Settings, the Shot List, an alert, the conflict sheet or first run owns
+// the keyboard (menu.js `free`, plus the conflict sheet), when nothing changes either and the
+// shell asks again. An open editor is saved first.
+window.catchlightOpenTake = id => {
+  const want = String(id).toLowerCase();
+  const take = takes.find(x => String(x.id).toLowerCase() === want);
+  if (!take) return 'missing';
+  if (!free() || conflictSheet.open) return 'busy';
+  if (draft) commitEdit();
+  if (layout.dailies === 'hidden') toggleHide('dailies');
+  storyboard = false;
+  exitToResting();
+  const card = document.querySelector(`#takes [data-take="${take.id}"], #pinned [data-take="${take.id}"]`);
+  if (!card) return 'missing';
+  card.scrollIntoView({ block: 'center' });
+  card.focus();
+  return 'opened';
+};
+
 // Toggle rules from UIState: Important stands alone; Notes clears Tasks and Reminders; Tasks
 // or Reminders clears Notes; a long press (or right-click) gives Done-only or Expired-only,
 // and a second one returns to plain on.
@@ -803,11 +826,22 @@ function exportMarkdown(list, now = new Date()) {
   }
   return out;
 }
-// The shells hand this to a save panel or share sheet; the prototype downloads it.
+// A shell hands this to its save panel or share sheet (`shell.exportFile`); a plain browser downloads it.
 const exportName = (now = new Date()) => `catchlight-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}.md`;
 const exportTake = t => exportTakes([t]);
 function exportTakes(list) {
-  const now = new Date(), a = document.createElement('a');
+  const now = new Date(), shell = window.catchlightBridge?.shell;
+  // `exportFile` exists only in a shell (bridge.js defines `shell` only with a native handler).
+  if (shell?.exportFile) {
+    // A cancelled panel resolves, so only a failure says anything; Start over must not look exported.
+    // The iPhone's alert and wording (Notice.exportFailed), with no detail.
+    shell.exportFile(exportName(now), exportMarkdown(list, now)).catch(e => {
+      console.error('Exporting the Takes failed', e);
+      ask(L10N.t('Export'), L10N.t("Your Takes couldn't be read, so nothing was exported. Don't start over until an export works."), [[L10N.t('OK'), null, 'cancel']]);
+    });
+    return;
+  }
+  const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([exportMarkdown(list, now)], { type: 'text/markdown' }));
   a.download = exportName(now); a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 0);

@@ -146,7 +146,7 @@ final class UnverifiedCopyTests: XCTestCase {
     }
 
     /// A library with one unverified item of each shape, and the page on it.
-    private func pageWithThreeShapes(_ harnessOut: inout WebViewHarness?) throws -> (Vault, SyncService, [UUID]) {
+    private func pageWithThreeShapes(_ harnessOut: inout WebViewHarness?, configure: (ShellBridge) -> Void = { _ in }) throws -> (Vault, SyncService, [UUID]) {
         let (vault, store) = try memoryStore()
         let now = Date()
         var both = take("Both: this Mac", modified: now.addingTimeInterval(-300))
@@ -169,6 +169,7 @@ final class UnverifiedCopyTests: XCTestCase {
         let bridge = ShellBridge()
         bridge.vault = vault
         bridge.sync = sync
+        configure(bridge)
         bridge.install(in: harness.webView.configuration.userContentController)
         harness.load("index.html", in: self)
         objc_setAssociatedObject(harness, "bridge", bridge, .OBJC_ASSOCIATION_RETAIN)
@@ -194,6 +195,22 @@ final class UnverifiedCopyTests: XCTestCase {
         let stamped = try XCTUnwrap(try vault.library!.store.take(id: ids[0])).modifiedAt
         XCTAssertGreaterThan(stamped, Date().addingTimeInterval(-60), "stamped as a fresh edit")
         XCTAssertEqual(sync.conflicts.unverified.count, 2)
+    }
+
+    func testAKeepRefreshesRemindersAndSpotlightAndASkipDoesNot() throws {
+        var h: WebViewHarness?
+        var changes = 0
+        let (_, _, ids) = try pageWithThreeShapes(&h) { bridge in
+            bridge.libraryChangeDelay = 0.05
+            bridge.libraryChanged = { changes += 1 }
+        }
+        let harness = h!
+        _ = try harness.run("return await catchlightBridge.resolveUnverified(\(Self.js(ids[1])), 'skip');", in: self)
+        RunLoop.current.run(until: Date().addingTimeInterval(0.3))
+        XCTAssertEqual(changes, 0, "a skip writes nothing")
+        _ = try harness.run("return await catchlightBridge.resolveUnverified(\(Self.js(ids[0])), 'local');", in: self)
+        RunLoop.current.run(until: Date().addingTimeInterval(0.3))
+        XCTAssertEqual(changes, 1, "a keep writes a Take, so the mirror refreshes")
     }
 
     func testThePageShowsThreeCardsEachWithSkipForNow() throws {

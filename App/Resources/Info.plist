@@ -26,5 +26,9 @@
 	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>NSUserActivityTypes</key>
+	<array>
+		<string>CSSearchableItemActionType</string>
+	</array>
 </dict>
 </plist>

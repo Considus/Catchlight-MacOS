@@ -2,6 +2,8 @@ import AppKit
 import WebKit
 import CatchlightCore
 import os
+import UniformTypeIdentifiers
+import UserNotifications
 
 /// What the Mac reports about itself, for About and Report an Issue (`shell.systemInfo`).
 enum SystemInfo {
@@ -35,6 +37,7 @@ enum SystemInfo {
 /// - `validatePhrase {words}`, `createAccount {words, restored}`, `replaceAccount {words}`,
 ///   `revealPhrase`, `eraseEverything`: the account, through the `Vault`;
 /// - `chooseFolder`, `forgetFolder`: the sync folder, through `SyncFolder` (the open panel);
+/// - `setSpotlight {level}`: the Spotlight setting (`none` or `type`; the text levels clamp to `type`);
 /// - `sync {trigger}`: one sync pass through `SyncService`, answered with what it did;
 /// - `changeKind {item, to: 'takes'|'scripts'}`: Take ⇄ Script on the same id;
 /// - `conflicts`, `resolveConflict {id, choice}`: the waiting conflicts and the user's choice. A
@@ -46,8 +49,13 @@ enum SystemInfo {
 ///   `unverified` is a cloud copy that failed its check (`local` and `cloud`, either may be
 ///   missing). It is not held; `resolveUnverified {id, choice: 'local'|'cloud'|'skip'}` keeps
 ///   a side, as a fresh edit, or skips it until the next sync finds it again;
+/// - `notificationStatus`: the Mac's notification permission, `enabled`, `denied` or `ask`;
+/// - `enableNotifications`: asks for the permission when it was never asked, opens System
+///   Settings' Notifications pane for the app when it was denied, and answers the status after;
 /// - `importNotes`, `importFile`: notes from the sync folder's Import folder, or from files the
-///   user picks, imported as Takes (`NoteImport`).
+///   user picks, imported as Takes (`NoteImport`);
+/// - `exportFile {name, text}`: the save panel as a sheet on the window, suggesting `name` (Markdown);
+///   writes `text` as UTF-8, atomically, and answers `{saved: true}` or `{cancelled: true}`.
 final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
     static let name = "catchlight"
     private static let log = Logger(subsystem: "com.considus.catchlight.mac", category: "bridge")
@@ -55,6 +63,8 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
     weak var window: NSWindow?
     var onMenuModel: (([MenuEntry]) -> Void)?
     var openExternally: (URL) -> Void = { NSWorkspace.shared.open($0) }
+    /// The notification centre `notificationStatus` and `enableNotifications` ask. Nil in tests that don't need one.
+    var notifications: NotificationCentre?
     var vault: Vault?
     /// The sync folder. Nil in tests that don't need one, and then the page offers none.
     var syncFolder: SyncFolder?
@@ -63,8 +73,65 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
     /// Set when the library could not be read at launch. The page then holds empty lists, and
     /// a save from it would be applied as the whole library, so every save is refused.
     private(set) var libraryUnreadable = false
+    /// Called after the library has changed: a save, a conflict choice, an import, a sync that
+    /// brought changes, or an account change. The window controller points it at the
+    /// `LibraryMirror`. Trailing debounce: it runs `libraryChangeDelay` after the last change.
+    var libraryChanged: () -> Void = {}
+    /// Called after an erase or a replaced account, so the notifications and the Spotlight index
+    /// of the old account go at once rather than after the debounce.
+    var accountWiped: () -> Void = {}
+    /// How long after the last change `libraryChanged` runs. The page saves on every edit.
+    var libraryChangeDelay: TimeInterval = 0.5
+    /// The longest a change waits, so continuous saving still refreshes this often.
+    var libraryChangeMaxWait: TimeInterval = 2
+    private var libraryChangeSince: Date?
+    /// `setSpotlight {level}`: the page's Spotlight setting, handed to the `LibraryMirror`.
+    var setSpotlight: (String) -> Void = { _ in }
+    private var libraryChangeTimer: DispatchWorkItem?
+
+    /// Call after any successful write to the library. A later change restarts the wait, and the
+    /// last change always runs, and never later than `libraryChangeMaxWait` after the first
+    /// change that is still waiting.
+    func notifyLibraryChanged() {
+        libraryChangeTimer?.cancel()
+        let now = Date()
+        let since = libraryChangeSince ?? now
+        libraryChangeSince = since
+        let wait = min(libraryChangeDelay, max(0, libraryChangeMaxWait - now.timeIntervalSince(since)))
+        let run = DispatchWorkItem { [weak self] in
+            self?.libraryChangeTimer = nil
+            self?.libraryChangeSince = nil
+            self?.libraryChanged()
+        }
+        libraryChangeTimer = run
+        DispatchQueue.main.asyncAfter(deadline: .now() + wait, execute: run)
+    }
+
+    /// Drops a change still waiting and says whether there was one, so a quitting app can run it
+    /// now instead of losing it.
+    func takePendingLibraryChange() -> Bool {
+        guard let run = libraryChangeTimer else { return false }
+        run.cancel()
+        libraryChangeTimer = nil
+        libraryChangeSince = nil
+        return true
+    }
+
     /// The open panel for Import from a File. Replaced in tests, which can't drive a panel.
     var pickImportFiles: (NSWindow?, @escaping ([URL]?) -> Void) -> Void = NoteImport.pickFiles
+
+    /// The save panel for Export Take and Export Takes: the suggested file name, then the chosen
+    /// file or nil when cancelled. Replaced in tests, which can't drive a panel.
+    var pickSaveURL: (NSWindow?, String, @escaping (URL?) -> Void) -> Void = ShellBridge.runSavePanel
+
+    static func runSavePanel(in window: NSWindow?, suggestedName: String, _ done: @escaping (URL?) -> Void) {
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [UTType(filenameExtension: "md") ?? .plainText]
+        panel.nameFieldStringValue = suggestedName
+        panel.canCreateDirectories = true
+        let finish: (NSApplication.ModalResponse) -> Void = { done($0 == .OK ? panel.url : nil) }
+        if let window { panel.beginSheetModal(for: window, completionHandler: finish) } else { finish(panel.runModal()) }
+    }
 
     /// The language the page speaks: the bundle's own choice for `String(localized:)` (the first of
     /// the user's preferred languages among the `.lproj` folders the String Catalogs built), so the
@@ -260,6 +327,7 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                 case "cloud": try sync.conflicts.keepCloudUnverified(id: id, store: library.store)
                 default: sync.conflicts.skipUnverified(id: id)
                 }
+                if choice != "skip" { notifyLibraryChanged() }
                 replyHandler(true, nil)
             } catch {
                 Self.log.error("an unverified choice was not saved: \(String(describing: error), privacy: .public)")
@@ -276,6 +344,7 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                 // Refused if a pass replaced the pair after the page read it (the choice may have
                 // waited behind that pass): the user chooses again between the versions now waiting.
                 try sync.conflicts.resolve(id: id, choice: choice, store: library.store, revision: revision)
+                notifyLibraryChanged()
                 replyHandler(true, nil)
             } catch {
                 Self.log.error("a conflict choice was not saved: \(String(describing: error), privacy: .public)")
@@ -284,7 +353,7 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
         case "sync":
             guard let sync, !libraryUnreadable else { return replyHandler(["skipped": true], nil) }
             let before = (pending: sync.conflicts.pending.count, unverified: sync.conflicts.unverified.count)
-            sync.run { outcome in
+            sync.run { [weak self] outcome in
                 switch outcome {
                 case .skipped:
                     replyHandler(["skipped": true], nil)
@@ -292,6 +361,7 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                     replyHandler(["error": SyncService.notice(for: error) as Any? ?? NSNull()], nil)
                 case .finished(let r):
                     let fresh = sync.conflicts.pending.count - before.pending
+                    if !r.applied.isEmpty || !r.deletedLocally.isEmpty || fresh > 0 { self?.notifyLibraryChanged() }
                     let freshScripts = fresh > 0 ? sync.conflicts.pending.suffix(fresh).filter { $0.local.isScript || $0.remote.isScript }.count : 0
                     replyHandler(["newConflictScripts": freshScripts, "applied": r.applied.count, "deleted": r.deletedLocally.count, "uploaded": r.uploaded.count,
                                   "conflicts": sync.conflicts.count,
@@ -336,6 +406,42 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                     parse { .done(NoteImport.parse(urls)) }
                 }
             }
+        case "exportFile":
+            guard let name = body["name"] as? String, let text = body["text"] as? String else { return replyHandler(nil, "exportFile needs a name and text") }
+            pickSaveURL(window, name) { url in
+                guard let url else { return replyHandler(["cancelled": true], nil) }
+                // The chosen place can be a cloud folder, so the write stays off the main thread.
+                DispatchQueue.global(qos: .userInitiated).async {
+                    do {
+                        try Data(text.utf8).write(to: url, options: .atomic)
+                        DispatchQueue.main.async { replyHandler(["saved": true], nil) }
+                    } catch {
+                        DispatchQueue.main.async { replyHandler(nil, error.localizedDescription) }
+                    }
+                }
+            }
+        case "notificationStatus", "enableNotifications":
+            guard let notifications else { return replyHandler(nil, "no notifications in this build") }
+            // The system answers off the main thread; the reply goes back on it.
+            let answer = { (status: UNAuthorizationStatus) in
+                DispatchQueue.main.async { replyHandler(Self.notificationAnswer(status), nil) }
+            }
+            notifications.authorizationStatus { [weak self] status in
+                guard cmd == "enableNotifications" else { return answer(status) }
+                switch status {
+                case .notDetermined:
+                    notifications.requestAuthorization { _ in notifications.authorizationStatus(answer) }
+                case .denied:
+                    DispatchQueue.main.async { self?.openNotificationSettings() }
+                    answer(status)
+                default:
+                    answer(status)
+                }
+            }
+        case "setSpotlight":
+            guard let level = body["level"] as? String else { return replyHandler(nil, "setSpotlight needs a level") }
+            setSpotlight(level)
+            replyHandler(true, nil)
         case "ping":
             // A round trip: messages are handled in order, so everything sent before it is done.
             replyHandler(true, nil)
@@ -344,6 +450,25 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
         default:
             replyHandler(nil, "unknown command \(cmd)")
         }
+    }
+
+    // MARK: Notifications
+
+    /// What the page is told: `enabled` for authorized, provisional and ephemeral (as the iPhone's
+    /// Settings row), `denied`, and `ask` for a permission never asked for.
+    static func notificationAnswer(_ status: UNAuthorizationStatus) -> String {
+        switch status {
+        case .authorized, .provisional, .ephemeral: return "enabled"
+        case .denied: return "denied"
+        case .notDetermined: return "ask"
+        @unknown default: return "ask"
+        }
+    }
+
+    /// System Settings' Notifications pane for this app.
+    func openNotificationSettings() {
+        let id = Bundle.main.bundleIdentifier ?? ""
+        if let url = URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension?id=\(id)") { openExternally(url) }
     }
 
     // MARK: Import
@@ -358,6 +483,7 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
             let summary = Self.importSummary(done.takes, done.scripts)
             _ = library.importItems([Take(createdAt: Date(), modifiedAt: Date(), blocks: [.text(TextBlock(text: summary))], isNote: true)])
         }
+        notifyLibraryChanged()
         Self.log.info("import: \(done.takes) Takes, \(done.scripts) Scripts, \(done.failed) failed, \(outcome.skipped) files skipped")
         reply(["takes": done.takes, "scripts": done.scripts, "failed": done.failed,
                "scanned": outcome.scanned, "skipped": outcome.skipped], nil)
@@ -411,6 +537,7 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                                               keepConflict: { [sync] pair in try sync?.conflicts.keep(pair) })
                 Self.log.info("\(kind ?? "", privacy: .public) saved: \(report.upserted) written, \(report.deleted) deleted, \(report.rejected.count) rejected, \(report.held.count) held for a conflict choice, \(report.conflicts.count) to the conflict screen, \(report.keptOverDelete.count) kept over a delete")
                 if !report.rejected.isEmpty { Self.log.error("save kept \(report.rejected.count) items it could not read") }
+                notifyLibraryChanged()
                 reply(["upserted": report.upserted, "deleted": report.deleted, "rejected": report.rejected, "held": report.held,
                        "forked": report.forked.count,
                        "conflicts": report.conflicts.count, "keptOverDelete": report.keptOverDelete.count], nil)
@@ -429,6 +556,7 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                 // The item as stored, in its new list's shape: the page keeps this one, so its next
                 // save carries what the page's own copy didn't (a reminder, Important).
                 let shaped = pageList == .scripts ? ScriptTranslation.page(from: changed) : try TakeTranslation.page(from: changed)
+                notifyLibraryChanged()
                 reply(["conflicts": conflicts, "item": shaped], nil)
             case "reload":
                 // The page asks for the library as it is now (after a sync, say). Everything it
@@ -444,6 +572,7 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
             case "createAccount":
                 try vault.createAccount(words: words, restored: body["restored"] as? Bool ?? false)
                 libraryUnreadable = false
+                notifyLibraryChanged()
                 reply(try libraryContents(vault), nil)
             case "replaceAccount":
                 // Settings ▸ Second device, as the iPhone, but nothing is erased first
@@ -453,12 +582,16 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                 // The old cloud folder belongs to the account being replaced (AppModel, as iOS).
                 syncFolder?.forget()
                 libraryUnreadable = false
+                accountWiped()
+                notifyLibraryChanged()
                 reply(try libraryContents(vault), nil)
             case "revealPhrase":
                 reply(vault.phrase() as Any? ?? NSNull(), nil)
             case "eraseEverything":
                 try vault.eraseEverything()
                 syncFolder?.forget()   // nothing of the erased account stays connected
+                accountWiped()
+                notifyLibraryChanged()
                 reply(true, nil)
             default:
                 reply(nil, "unknown command \(cmd)")
