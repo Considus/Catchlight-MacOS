@@ -82,6 +82,9 @@ targets:
         LSMinimumSystemVersion: "$(MACOSX_DEPLOYMENT_TARGET)"
         LSApplicationCategoryType: public.app-category.productivity
         NSPrincipalClass: NSApplication
+        # A click on a Spotlight result arrives as this activity (AppDelegate, open the Take).
+        NSUserActivityTypes:
+          - CSSearchableItemActionType
     entitlements:
       # Rewritten by XcodeGen from these properties too.
       path: App/Resources/Catchlight.entitlements

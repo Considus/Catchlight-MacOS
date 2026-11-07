@@ -16,6 +16,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
     let bridge = ShellBridge()
     let menuController = MenuController()
     private var libraryMirror: LibraryMirror?
+    private(set) lazy var takeOpener = TakeOpener { [weak self] id in self?.callPage("catchlightOpenTake", id) }
 
     /// `vault` is nil only in tests that load the page without a library; the page then keeps
     /// the browser prototype's localStorage behaviour.
@@ -95,6 +96,15 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
         if UserDefaults.standard.bool(forKey: Self.fullScreenKey), let window, !window.styleMask.contains(.fullScreen) {
             window.toggleFullScreen(nil)
         }
+    }
+
+    /// A click on a Take's notification or Spotlight result: the window comes forward and the page
+    /// opens the Take (`catchlightOpenTake`, ui/takes.js), once it has loaded.
+    func openTake(_ id: UUID) {
+        showWindow(nil)
+        window?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        takeOpener.open(id)
     }
 
     // MARK: Menu
@@ -214,6 +224,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         // A page loaded in full screen (the launch restored it, or a reload) needs telling.
         if window?.styleMask.contains(.fullScreen) == true { markFullScreen(true) }
+        takeOpener.pageDidLoad()
         #if DEBUG
         DebugLaunch.pageDidLoad(webView)
         #endif

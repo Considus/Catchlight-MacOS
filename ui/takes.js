@@ -699,6 +699,25 @@ function exitToResting() {
   renderTakes();
 }
 
+// A click on a Take's notification or Spotlight result (the shell calls this): leave search, the
+// Sequence, a month filter and the Storyboard for the resting timeline, then scroll the Take's
+// card into view and focus it, as Tab does. The id is matched without regard to case. A Take
+// that isn't there does nothing and returns false.
+window.catchlightOpenTake = id => {
+  const want = String(id).toLowerCase();
+  const take = takes.find(x => String(x.id).toLowerCase() === want);
+  if (!take) return false;
+  if (draft) commitEdit();
+  if (layout.dailies === 'hidden') toggleHide('dailies');
+  storyboard = false;
+  exitToResting();
+  const card = document.querySelector(`#takes [data-take="${take.id}"], #pinned [data-take="${take.id}"]`);
+  if (!card) return false;
+  card.scrollIntoView({ block: 'center' });
+  card.focus();
+  return true;
+};
+
 // Toggle rules from UIState: Important stands alone; Notes clears Tasks and Reminders; Tasks
 // or Reminders clears Notes; a long press (or right-click) gives Done-only or Expired-only,
 // and a second one returns to plain on.
