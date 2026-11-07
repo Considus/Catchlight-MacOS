@@ -13,9 +13,11 @@ final class AppVersionTests: XCTestCase {
         controller.addUserScript(ShellBridge.injectedValues())
         ShellBridge().install(in: controller)
         harness.load("index.html", in: self)
-        let shown = try harness.run("return [shell.version(), '', supportInfo().split('\\n')[0]];", in: self) as? [Any]
+        let shown = try harness.run("return [shell.version(), reportUrl() + ' ' + supportUrl, supportInfo().split('\\n')[0]];", in: self) as? [Any]
         XCTAssertEqual(shown?[0] as? String, SystemInfo.appVersion)
         XCTAssertFalse(SystemInfo.appVersion.isEmpty)
+        let links = try XCTUnwrap(shown?[1] as? String)
+        XCTAssertEqual(links.components(separatedBy: "app=\(SystemInfo.appVersion)").count, 3, "Report an issue and Help both carry the version: \(links)")
         XCTAssertEqual(shown?[2] as? String, "Catchlight \(SystemInfo.appVersion)")
     }
 }

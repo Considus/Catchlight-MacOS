@@ -409,7 +409,7 @@ sheet.addEventListener('pointerdown', e => {
 // keyboard, as VoiceOver's named action on iOS.
 // The support page, told the platform, the app version and the OS version, and nothing else
 // (SettingsView.reportAnIssue).
-const reportUrl = () => 'https://catchlight.app/support/?' + new URLSearchParams({ platform: PLATFORM.osName, app: '0.1', os: shell.osVersion() });
+const reportUrl = () => 'https://catchlight.app/support/?' + new URLSearchParams({ platform: PLATFORM.osName, app: shell.version(), os: shell.osVersion() });
 const supportInfo = () => `Catchlight ${shell.version()}\n${shell.systemInfo()}`;
 sheet.addEventListener('keydown', e => {
   const v = e.target.closest('[data-copy-info]');
