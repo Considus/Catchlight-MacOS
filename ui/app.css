@@ -431,6 +431,7 @@ body.first-running .app { visibility: hidden; }
 .srow.danger, .srow.danger .srow-icon { color: var(--ruby); }
 .sdot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
 .sdot.ok { background: #4CAF6A; }
+.sdot.warn { background: #E8913A; }
 .srow-switch { appearance: none; flex: none; width: 46px; height: 28px; border-radius: 14px; background: color-mix(in srgb, var(--text-2) 35%, transparent); position: relative; cursor: pointer; transition: background .2s; }
 .srow-switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3); transition: transform .2s; }
 .srow-switch:checked { background: var(--accent); }

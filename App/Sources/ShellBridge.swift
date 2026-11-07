@@ -2,6 +2,7 @@ import AppKit
 import WebKit
 import CatchlightCore
 import os
+import UserNotifications
 
 /// What the Mac reports about itself, for About and Report an Issue (`shell.systemInfo`).
 enum SystemInfo {
@@ -44,6 +45,9 @@ enum SystemInfo {
 ///   alone writes it, and only for the pair the page read (`revision`, from `conflicts`). A pair
 ///   marked `converted` has no `remote`: its other side is now a Script on another device, and
 ///   its choices are `new` (keep this Mac's version as a new Take) and `letGo`;
+/// - `notificationStatus`: the Mac's notification permission, `enabled`, `denied` or `ask`;
+/// - `enableNotifications`: asks for the permission when it was never asked, opens System
+///   Settings' Notifications pane for the app when it was denied, and answers the status after;
 /// - `importNotes`, `importFile`: notes from the sync folder's Import folder, or from files the
 ///   user picks, imported as Takes (`NoteImport`).
 final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
@@ -53,6 +57,8 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
     weak var window: NSWindow?
     var onMenuModel: (([MenuEntry]) -> Void)?
     var openExternally: (URL) -> Void = { NSWorkspace.shared.open($0) }
+    /// The notification centre `notificationStatus` and `enableNotifications` ask. Nil in tests that don't need one.
+    var notifications: NotificationCentre?
     var vault: Vault?
     /// The sync folder. Nil in tests that don't need one, and then the page offers none.
     var syncFolder: SyncFolder?
@@ -362,6 +368,24 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                     parse { .done(NoteImport.parse(urls)) }
                 }
             }
+        case "notificationStatus", "enableNotifications":
+            guard let notifications else { return replyHandler(nil, "no notifications in this build") }
+            // The system answers off the main thread; the reply goes back on it.
+            let answer = { (status: UNAuthorizationStatus) in
+                DispatchQueue.main.async { replyHandler(Self.notificationAnswer(status), nil) }
+            }
+            notifications.authorizationStatus { [weak self] status in
+                guard cmd == "enableNotifications" else { return answer(status) }
+                switch status {
+                case .notDetermined:
+                    notifications.requestAuthorization { _ in notifications.authorizationStatus(answer) }
+                case .denied:
+                    DispatchQueue.main.async { self?.openNotificationSettings() }
+                    answer(status)
+                default:
+                    answer(status)
+                }
+            }
         case "setSpotlight":
             guard let level = body["level"] as? String else { return replyHandler(nil, "setSpotlight needs a level") }
             setSpotlight(level)
@@ -374,6 +398,25 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
         default:
             replyHandler(nil, "unknown command \(cmd)")
         }
+    }
+
+    // MARK: Notifications
+
+    /// What the page is told: `enabled` for authorized, provisional and ephemeral (as the iPhone's
+    /// Settings row), `denied`, and `ask` for a permission never asked for.
+    static func notificationAnswer(_ status: UNAuthorizationStatus) -> String {
+        switch status {
+        case .authorized, .provisional, .ephemeral: return "enabled"
+        case .denied: return "denied"
+        case .notDetermined: return "ask"
+        @unknown default: return "ask"
+        }
+    }
+
+    /// System Settings' Notifications pane for this app.
+    func openNotificationSettings() {
+        let id = Bundle.main.bundleIdentifier ?? ""
+        if let url = URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension?id=\(id)") { openExternally(url) }
     }
 
     // MARK: Import

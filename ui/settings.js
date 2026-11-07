@@ -80,7 +80,7 @@ function pick(id, ic, label, options, get, note = '') {
 }
 const toggle = (id, ic, label, sub, on) => `<label class="srow tall">${icon(ic)}<span class="srow-label">${label}<small>${sub}</small></span>
   <input type="checkbox" role="switch" class="srow-switch" data-set="${id}"${on ? ' checked' : ''}></label>`;
-const link = (id, ic, label, value = '', chev = true, cls = '') => `<button class="srow${cls}" type="button" data-open="${id}">${icon(ic)}<span class="srow-label">${label}</span><span class="srow-value">${value}</span>${chev ? CHEV : ''}</button>`;
+const link = (id, ic, label, value = '', chev = true, cls = '', aria = '') => `<button class="srow${cls}" type="button" data-open="${id}"${aria ? ` aria-label="${esc(aria)}"` : ''}>${icon(ic)}<span class="srow-label">${label}</span><span class="srow-value">${value}</span>${chev ? CHEV : ''}</button>`;
 const group = (head, rows, foot = '') => `<h3 class="sgroup-head">${head}</h3><div class="sgroup">${rows.join('')}</div>${foot ? `<p class="sgroup-foot">${foot}</p>` : ''}`;
 
 const SPACING = [['compact', t('Compact')], ['standard', t('Standard')], ['comfort', t('Comfort')]];
@@ -89,7 +89,7 @@ const ORDER = [['oldest', t('Oldest first')], ['newest', t('Newest first')]];
 
 function settingsPage() {
   const folder = store.get('account', {})?.folder;
-  const notif = settings.notifications === 'enabled' ? `<i class="sdot ok"></i>${t('Enabled')}` : t('Enable');
+  const notif = { enabled: `<i class="sdot ok"></i>${t('Enabled')}`, denied: `<i class="sdot warn"></i>${t('Disabled')}` }[settings.notifications] || t('Enable');
   return `<h2 class="page-heading">${t('Settings')}</h2>
   ${group(t('Appearance'), [
     pick('mode', 'mode', t('Mode'), [['auto', t('System')], ['daylight', t('Light')], ['night', t('Dark')]], () => scene),
@@ -134,7 +134,9 @@ function settingsPage() {
       () => settings.writingTools, t('Panel suggests, you accept. Inline rewrites in place. Both send that Take to Apple. Your Privacy phrase never goes.')) : '',
   ])}
   ${group(t('System'), [
-    link('notifications', 'bell', t('Notifications'), notif, settings.notifications !== 'enabled'),
+    settings.notifications === 'denied'
+      ? link('notifications', 'bellOff', t('Notifications'), notif, true, '', t('Notifications disabled. Opens System Settings.'))
+      : link('notifications', 'bell', t('Notifications'), notif, settings.notifications !== 'enabled'),
     link('cloud', 'cloud', t('Cloud Storage'), folder ? esc(folder.split('/').pop()) : t('Not configured')),
     link('export', 'export', t('Export Takes'), '', false),
     folder ? link('import-notes', 'import', t('Import notes'), '', false) : '',
@@ -225,10 +227,24 @@ function paintSettings(keepScroll = true) {
     <div class="sheet-scroll">${body}</div></div>`;
   if (keepScroll) sheet.querySelector('.sheet-scroll').scrollTop = top ? 0 : scroll;
 }
+// In a shell the row shows the system's permission, read when Settings opens and when the window
+// comes forward again (the user may have changed it in System Settings). A browser keeps the
+// stand-in: the row's own value, set by clicking it.
+function readNotifications() {
+  const shell = window.catchlightBridge?.shell;
+  if (!shell?.notificationStatus) return;
+  shell.notificationStatus().then(status => {
+    if (status === settings.notifications) return;
+    settings.notifications = status;
+    if (!sheet.hidden && !subStack.length) paintSettings();
+  }).catch(e => console.error('Reading the notification permission failed', e));
+}
+addEventListener('focus', () => { if (!sheet.hidden) readNotifications(); });
 function openSettings(section) {
   subStack = [];
   sheet.hidden = false;
   paintSettings(false);
+  readNotifications();
   requestAnimationFrame(() => sheet.classList.add('open'));
   if (section) [...sheet.querySelectorAll('.sgroup-head')].find(h => h.textContent === section)?.scrollIntoView({ block: 'start' });
   sheet.querySelector('.sheet-x').focus();
@@ -315,7 +331,11 @@ sheet.addEventListener('click', async e => {
     else ask(t('Add this device to your account?'), t("Enter your Privacy phrase to bring your Takes onto this device. Any Takes stored only on this device will be removed. To keep a copy first, cancel and use Export Takes (Markdown), or make sure they're already in your cloud folder."),
       [[t('Cancel'), null, 'cancel'], [t('Continue'), go, 'danger']]);
   }
-  else if (open === 'notifications' && settings.notifications !== 'enabled') { settings.notifications = 'enabled'; saveSettings(); paintSettings(); }
+  else if (open === 'notifications' && settings.notifications !== 'enabled') {
+    const shell = window.catchlightBridge?.shell;
+    if (shell?.enableNotifications) shell.enableNotifications().then(status => { settings.notifications = status; paintSettings(); }).catch(e => console.error('Asking for notification permission failed', e));
+    else { settings.notifications = 'enabled'; saveSettings(); paintSettings(); }
+  }
   else if (open === 'export') exportTakes(takes);
   else if (open === 'import-notes') importNotes();
   else if (open === 'import-file') importFromFile();

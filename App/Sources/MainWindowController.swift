@@ -29,6 +29,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
         if let vault, let folder = bridge.syncFolder { bridge.sync = SyncService(vault: vault, folder: folder) }
         bridge.install(in: configuration.userContentController)
         // Reminders and Spotlight follow the library; one pass now, with the library open.
+        bridge.notifications = UNUserNotificationCenter.current()
         let mirror = LibraryMirror(reminders: MacReminders(centre: UNUserNotificationCenter.current()), spotlight: CoreSpotlightIndexer())
         libraryMirror = mirror
         bridge.setSpotlight = { [weak mirror] in mirror?.setExposure($0) }
