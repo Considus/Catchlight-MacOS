@@ -808,8 +808,14 @@ const exportName = (now = new Date()) => `catchlight-${now.getFullYear()}-${Stri
 const exportTake = t => exportTakes([t]);
 function exportTakes(list) {
   const now = new Date(), shell = window.catchlightBridge?.shell;
+  // `exportFile` exists only in a shell (bridge.js defines `shell` only with a native handler).
   if (shell?.exportFile) {
-    shell.exportFile(exportName(now), exportMarkdown(list, now)).catch(e => console.error('Exporting the Takes failed', e));
+    // A cancelled panel resolves, so only a failure says anything; Start over must not look exported.
+    // The iPhone's alert and wording (Notice.exportFailed), with no detail.
+    shell.exportFile(exportName(now), exportMarkdown(list, now)).catch(e => {
+      console.error('Exporting the Takes failed', e);
+      ask(L10N.t('Export'), L10N.t("Your Takes couldn't be read, so nothing was exported. Don't start over until an export works."), [[L10N.t('OK'), null, 'cancel']]);
+    });
     return;
   }
   const a = document.createElement('a');

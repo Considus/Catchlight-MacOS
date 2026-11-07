@@ -71,4 +71,44 @@ final class ExportPanelTests: XCTestCase {
         XCTAssertTrue(written.contains("takes: 1\n"), written)
         XCTAssertTrue(written.contains("Hello export"), written)
     }
+
+    func testExportFileIntoAMissingFolderAnswersAnError() throws {
+        let harness = page(chooses: folder.appendingPathComponent("missing/out.md"))
+        let reply = try harness.run("""
+            try { await window.catchlightBridge.shell.exportFile('a.md', 'text'); return 'resolved'; } catch (e) { return String(e); }
+            """, in: self) as? String
+        XCTAssertNotEqual(reply, "resolved")
+        XCTAssertFalse(try XCTUnwrap(reply).isEmpty)
+    }
+
+    func testExportFileWithoutANameOrTextAnswersAnError() throws {
+        let harness = page(chooses: folder.appendingPathComponent("out.md"))
+        let reply = try harness.run("""
+            try { await window.webkit.messageHandlers.catchlight.postMessage({ cmd: 'exportFile', name: 'a.md' }); return 'resolved'; } catch (e) { return String(e); }
+            """, in: self) as? String
+        XCTAssertTrue(try XCTUnwrap(reply).contains("exportFile needs a name and text"), reply ?? "nil")
+        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: folder.path), [])
+    }
+
+    func testAFailedExportSaysNothingWasExported() throws {
+        let harness = page(chooses: folder.appendingPathComponent("missing/out.md"))
+        let shown = try harness.run("""
+            exportTakes([]);
+            // Timers in a page nobody sees can be held to one a second, so wait on few ticks.
+            for (let i = 0; i < 8 && !alertBox.open; i++) await new Promise(r => setTimeout(r, 20));
+            return alertBox.open ? [alertBox.querySelector('h2').textContent, alertBox.querySelector('p').textContent] : null;
+            """, in: self) as? [String]
+        XCTAssertEqual(shown, ["Export", "Your Takes couldn't be read, so nothing was exported. Don't start over until an export works."])
+    }
+
+    func testACancelledExportShowsNoAlert() throws {
+        let harness = page(chooses: nil)
+        let open = try harness.run("""
+            exportTakes([]);
+            await window.catchlightBridge.flush();
+            await new Promise(r => setTimeout(r, 300));
+            return alertBox.open;
+            """, in: self) as? Bool
+        XCTAssertEqual(open, false)
+    }
 }
