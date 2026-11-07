@@ -6,42 +6,48 @@ import os
 
 /// The one window: a WKWebView showing the bundled ui/ through the `catchlight://` scheme
 /// (UIResourceSchemeHandler), never `file://`, under the real title bar and traffic lights.
+/// The web view is made again when the Writing Tools setting changes (`rebuildWebView`).
 final class MainWindowController: NSWindowController, NSWindowDelegate, WKNavigationDelegate, WKUIDelegate {
     static let startURL = URL(string: "\(UIResourceSchemeHandler.scheme)://\(UIResourceSchemeHandler.host)/index.html")!
     private static let frameAutosaveName = "CatchlightMainWindow"
     private static let fullScreenKey = "CatchlightMainWindowFullScreen"
     private static let log = Logger(subsystem: "com.considus.catchlight.mac", category: "window")
 
-    let webView: WKWebView
+    /// Replaced by `rebuildWebView` when the Writing Tools setting changes: a configuration is
+    /// copied when the web view is made, so its Writing Tools behavior cannot be changed live.
+    private(set) var webView: WKWebView
     let bridge = ShellBridge()
     let menuController = MenuController()
     private var libraryMirror: LibraryMirror?
+    /// Set once the web-address block has compiled; every web view made afterwards carries it.
+    private var addressBlock: WKContentRuleList?
+    private let defaults: UserDefaults
+    private let uiRoot: URL?
     private(set) lazy var takeOpener = TakeOpener { [weak self] id, reply in self?.callPage("catchlightOpenTake", id, completion: reply) }
 
     /// `vault` is nil only in tests that load the page without a library; the page then keeps
     /// the browser prototype's localStorage behaviour.
-    init(vault: Vault?) {
-        let configuration = WKWebViewConfiguration()
-        configuration.setURLSchemeHandler(UIResourceSchemeHandler(), forURLScheme: UIResourceSchemeHandler.scheme)
-        // Offline: no Safe Browsing lookups either.
-        configuration.preferences.isFraudulentWebsiteWarningEnabled = false
+    /// `notifications`, `mirror`, `defaults` and `uiRoot` are the app's own except in tests, which
+    /// have no notification centre to ask, and serve the repo's `ui/` rather than a bundle's.
+    init(vault: Vault?,
+         notifications: NotificationCentre = UNUserNotificationCenter.current(),
+         mirror: LibraryMirror? = nil,
+         defaults: UserDefaults = .standard,
+         uiRoot: URL? = nil) {
+        self.defaults = defaults
+        self.uiRoot = uiRoot
+        bridge.defaults = defaults
         bridge.vault = vault
         bridge.syncFolder = SyncFolder()
         if let vault, let folder = bridge.syncFolder { bridge.sync = SyncService(vault: vault, folder: folder) }
-        bridge.install(in: configuration.userContentController)
         // Reminders and Spotlight follow the library; one pass now, with the library open.
-        bridge.notifications = UNUserNotificationCenter.current()
-        let mirror = LibraryMirror(reminders: MacReminders(centre: UNUserNotificationCenter.current()), spotlight: CoreSpotlightIndexer())
+        bridge.notifications = notifications
+        let mirror = mirror ?? LibraryMirror(reminders: MacReminders(centre: notifications), spotlight: CoreSpotlightIndexer())
         libraryMirror = mirror
         bridge.setSpotlight = { [weak mirror] in mirror?.setExposure($0) }
         bridge.accountWiped = { [weak mirror] in mirror?.accountWiped() }
         if vault != nil { bridge.notifyLibraryChanged() }
-        webView = WKWebView(frame: .zero, configuration: configuration)
-        #if DEBUG
-        if #available(macOS 13.3, *) {
-            webView.isInspectable = true   // Safari ▸ Develop, debug builds only
-        }
-        #endif
+        webView = Self.makeWebView(bridge: bridge, addressBlock: nil, defaults: defaults, uiRoot: uiRoot)
 
         // The page's toolbar is the title bar: the content runs under it, and the page leaves
         // room for the real traffic lights (`.in-shell` in app.css).
@@ -66,9 +72,9 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
 
         super.init(window: window)
         window.delegate = self
-        webView.navigationDelegate = self
-        webView.uiDelegate = self
+        adopt(webView)
         bridge.window = window
+        bridge.writingToolsChanged = { [weak self] in self?.rebuildWebView() }
         bridge.libraryChanged = { [weak self] in self?.mirrorLibrary(inBackground: true) }
         wireMenu()
         #if DEBUG
@@ -80,6 +86,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
             guard let self else { return }
             switch result {
             case .success(let list):
+                self.addressBlock = list
                 self.webView.configuration.userContentController.add(list)
                 self.webView.load(URLRequest(url: Self.startURL))
             case .failure(let error):
@@ -87,6 +94,57 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
                 self.showErrorPage()
             }
         }
+    }
+
+    /// A web view as the app sets one up: the bundled `ui/` through its scheme, the bridge
+    /// installed, and Writing Tools as the setting says (off when it was never set).
+    private static func makeWebView(bridge: ShellBridge, addressBlock: WKContentRuleList?, defaults: UserDefaults, uiRoot: URL?) -> WKWebView {
+        let configuration = WKWebViewConfiguration()
+        configuration.setURLSchemeHandler(uiRoot.map { UIResourceSchemeHandler(root: $0) } ?? UIResourceSchemeHandler(), forURLScheme: UIResourceSchemeHandler.scheme)
+        // Offline: no Safe Browsing lookups either.
+        configuration.preferences.isFraudulentWebsiteWarningEnabled = false
+        if #available(macOS 15.0, *) {
+            configuration.writingToolsBehavior = WritingToolsSetting(defaults.string(forKey: WritingToolsSetting.key)).behavior
+        }
+        bridge.install(in: configuration.userContentController)
+        if let addressBlock { configuration.userContentController.add(addressBlock) }
+        let webView = WKWebView(frame: .zero, configuration: configuration)
+        #if DEBUG
+        if #available(macOS 13.3, *) {
+            webView.isInspectable = true   // Safari ▸ Develop, debug builds only
+        }
+        #endif
+        return webView
+    }
+
+    /// Makes a new web view, now that the Writing Tools setting has changed, and loads the page in it.
+    /// Reading `webView.configuration` gives a copy, and the web view takes its Writing Tools
+    /// behavior from its configuration when it is made (WKWebViewConfiguration.h documents no
+    /// way to change it afterwards), so a new web view is the only way. It goes through the
+    /// path the app already uses to reload the page (`catchlightBridge.flush`, then the
+    /// bridge's scripts rebuilt from the library as it is now), after the page has saved what
+    /// is on screen, so nothing typed is lost.
+    private func rebuildWebView() {
+        flushPage { [weak self] in
+            guard let self, let window = self.window else { return }
+            let old = self.webView
+            old.navigationDelegate = nil
+            old.uiDelegate = nil
+            old.stopLoading()
+            old.configuration.userContentController.removeScriptMessageHandler(forName: ShellBridge.name, contentWorld: .page)
+            self.takeOpener.pageDidUnload()
+            let made = Self.makeWebView(bridge: self.bridge, addressBlock: self.addressBlock, defaults: self.defaults, uiRoot: self.uiRoot)
+            self.webView = made
+            self.adopt(made)
+            window.contentView = made
+            window.makeFirstResponder(made)
+            made.load(URLRequest(url: Self.startURL))
+        }
+    }
+
+    private func adopt(_ view: WKWebView) {
+        view.navigationDelegate = self
+        view.uiDelegate = self
     }
 
     @available(*, unavailable)

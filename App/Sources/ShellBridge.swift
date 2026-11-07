@@ -38,6 +38,9 @@ enum SystemInfo {
 ///   `revealPhrase`, `eraseEverything`: the account, through the `Vault`;
 /// - `chooseFolder`, `forgetFolder`: the sync folder, through `SyncFolder` (the open panel);
 /// - `setSpotlight {level}`: the Spotlight setting (`none` or `type`; the text levels clamp to `type`);
+/// - `setWritingTools {level}`: the Writing Tools setting (`off`, `panel` or `inline`; anything else
+///   is `off`), kept in UserDefaults. A change that differs from the stored value calls
+///   `writingToolsChanged`, after the reply, so the window can rebuild its web view;
 /// - `sync {trigger}`: one sync pass through `SyncService`, answered with what it did;
 /// - `changeKind {item, to: 'takes'|'scripts'}`: Take ⇄ Script on the same id;
 /// - `conflicts`, `resolveConflict {id, choice}`: the waiting conflicts and the user's choice. A
@@ -66,6 +69,8 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
     /// The notification centre `notificationStatus` and `enableNotifications` ask. Nil in tests that don't need one.
     var notifications: NotificationCentre?
     var vault: Vault?
+    /// Where `setWritingTools` keeps the setting. Tests pass their own.
+    var defaults: UserDefaults = .standard
     /// The sync folder. Nil in tests that don't need one, and then the page offers none.
     var syncFolder: SyncFolder?
     /// Sync (M3). Nil in tests that don't need it, and then a `sync` request is answered as skipped.
@@ -87,6 +92,9 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
     private var libraryChangeSince: Date?
     /// `setSpotlight {level}`: the page's Spotlight setting, handed to the `LibraryMirror`.
     var setSpotlight: (String) -> Void = { _ in }
+    /// The stored Writing Tools setting just changed. The window rebuilds its web view, because a
+    /// web view's configuration is copied when it is made.
+    var writingToolsChanged: () -> Void = {}
     private var libraryChangeTimer: DispatchWorkItem?
 
     /// Call after any successful write to the library. A later change restarts the wait, and the
@@ -191,7 +199,10 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
         return WKUserScript(source: "window.catchlightLibrary = \(json);", injectionTime: .atDocumentStart, forMainFrameOnly: true, in: .page)
     }
 
+    /// Also used for the new web view a Writing Tools change makes, so the unreadable flag is
+    /// cleared here: it describes the library as this install reads it, not an earlier read.
     func install(in controller: WKUserContentController) {
+        libraryUnreadable = false
         addUserScripts(to: controller)
         controller.addScriptMessageHandler(self, contentWorld: .page, name: Self.name)
     }
@@ -442,6 +453,12 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
             guard let level = body["level"] as? String else { return replyHandler(nil, "setSpotlight needs a level") }
             setSpotlight(level)
             replyHandler(true, nil)
+        case "setWritingTools":
+            let level = WritingToolsSetting(body["level"] as? String)
+            let changed = level != WritingToolsSetting(defaults.string(forKey: WritingToolsSetting.key))
+            defaults.set(level.rawValue, forKey: WritingToolsSetting.key)
+            replyHandler(true, nil)
+            if changed { writingToolsChanged() }
         case "ping":
             // A round trip: messages are handled in order, so everything sent before it is done.
             replyHandler(true, nil)

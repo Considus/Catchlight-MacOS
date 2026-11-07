@@ -283,6 +283,23 @@ final class PageLibraryTests: XCTestCase {
         XCTAssertEqual(try vault.library!.store.tombstones().count, 0, "nothing was deleted")
     }
 
+    /// A new web view (a Writing Tools change) reads the library again: once it reads, saves are allowed.
+    func testInstallingAgainClearsAnUnreadableLibraryOnceItReads() throws {
+        let vault = Vault(secrets: MemorySecrets(), directory: dir)
+        try vault.createAccount(words: try Vault.newPhrase(), restored: true)
+        _ = try vault.library!.saveTakes([["id": UUID().uuidString, "at": "2026-07-01T09:00:00Z", "isNote": true, "blocks": [["k": "text", "text": "Kept"]]]])
+        var db: OpaquePointer?
+        XCTAssertEqual(sqlite3_open(dir.appendingPathComponent("Database/catchlight.db").path, &db), SQLITE_OK)
+        XCTAssertEqual(sqlite3_exec(db, "CREATE TABLE saved AS SELECT id, payload FROM takes; UPDATE takes SET payload = x'00';", nil, nil, nil), SQLITE_OK)
+        let (_, bridge) = page(with: vault)
+        XCTAssertTrue(bridge.libraryUnreadable)
+
+        XCTAssertEqual(sqlite3_exec(db, "UPDATE takes SET payload = (SELECT payload FROM saved WHERE saved.id = takes.id);", nil, nil, nil), SQLITE_OK)
+        sqlite3_close(db)
+        bridge.install(in: WKUserContentController())
+        XCTAssertFalse(bridge.libraryUnreadable)
+    }
+
     /// Greptile on #43: a restore saved the page's empty list over the library it had reopened.
     func testARestoreShowsTheReopenedLibraryAndSavesNothingOverIt() throws {
         let words = try Vault.newPhrase()
