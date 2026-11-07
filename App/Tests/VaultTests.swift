@@ -287,6 +287,21 @@ final class LibraryTests: XCTestCase {
         XCTAssertEqual(try library.pageTakes().count, 1)
     }
 
+    /// The unchanged-item shortcut: a list straight from the snapshot writes nothing, and an edit
+    /// later undone back to the snapshot's wording is still written, because the snapshot's Take
+    /// for it is no longer the one the shortcut was made from.
+    func testAnEditUndoneToTheSnapshotsWordingIsStillSaved() throws {
+        try library.saveTakes([page("A"), page("B")])
+        let shown = try library.pageTakes()
+        XCTAssertEqual(try library.saveTakes(shown, generation: library.generation), Library.SaveReport(unchanged: 2))
+
+        var edited = shown
+        edited[0]["blocks"] = [["k": "text", "text": "A, edited"]]
+        XCTAssertEqual(try library.saveTakes(edited, generation: library.generation), Library.SaveReport(upserted: 1, unchanged: 1))
+        XCTAssertEqual(try library.saveTakes(shown, generation: library.generation), Library.SaveReport(upserted: 1, unchanged: 1))
+        XCTAssertEqual(try library.store.allTakes().map(\.plainText).sorted(), ["A", "B"])
+    }
+
     private func script(_ text: String, id: UUID = UUID()) -> [String: Any] {
         ["id": id.uuidString, "at": "2026-07-01T09:00:00.000Z", "mode": "a4", "blocks": [text]]
     }

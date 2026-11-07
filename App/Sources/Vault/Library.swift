@@ -73,6 +73,10 @@ final class Library {
     /// a save naming another library's snapshot is refused rather than diffed against the wrong Takes.
     private static var lastGeneration = 0
     private var snapshots: [Int: [UUID: Take]] = [:]
+    /// Per snapshot, an item's page form beside the Take it stands for: a save whose item is still
+    /// that form, for a Take the snapshot still holds as that Take, is unchanged without
+    /// translating it. Translating every item made one edit in a 5,000-Take library take 1.5 s.
+    private var shown: [Int: [UUID: (take: Take, page: NSDictionary)]] = [:]
 
     /// The page's two lists. Each holds one kind; an item of a kind the page doesn't know (a newer
     /// client's) is in neither and never touched.
@@ -99,7 +103,11 @@ final class Library {
         Self.lastGeneration += 1
         generation = Self.lastGeneration
         snapshots[generation] = Dictionary(uniqueKeysWithValues: all.map { ($0.id, $0) })
-        if snapshots.count > Self.snapshotsKept, let oldest = snapshots.keys.min() { snapshots[oldest] = nil }
+        var forms: [UUID: (take: Take, page: NSDictionary)] = [:]
+        for (take, page) in zip(all.filter(PageList.takes.holds), takes) { forms[take.id] = (take, page as NSDictionary) }
+        for (take, page) in zip(all.filter(PageList.scripts.holds), scripts) { forms[take.id] = (take, page as NSDictionary) }
+        shown[generation] = forms
+        if snapshots.count > Self.snapshotsKept, let oldest = snapshots.keys.min() { snapshots[oldest] = nil; shown[oldest] = nil }
         return (generation, takes, scripts)
     }
 
@@ -164,13 +172,21 @@ final class Library {
                 continue
             }
             let was = id.flatMap { base[$0] }
+            if let id, let was, let form = shown[gen]?[id], form.take == was, form.page.isEqual(to: item) {
+                report.unchanged += 1
+                continue
+            }
             let take: Take
             do { take = try list.core(from: item, existing: was, now: now) } catch {
                 report.rejected.append(item["id"] as? String ?? "?")
                 Self.log.error("a Take did not translate: \(String(describing: error), privacy: .public)")
                 continue
             }
-            if was != nil, take == was { report.unchanged += 1; continue }
+            if let was, take == was {
+                shown[gen, default: [:]][take.id] = (was, item as NSDictionary)
+                report.unchanged += 1
+                continue
+            }
             if held.contains(take.id) {
                 report.held.append(item["id"] as? String ?? "?")
                 // Owner, 2026-10-08: an edit that reached a held item (typed while the conflict
