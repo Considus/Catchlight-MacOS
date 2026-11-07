@@ -76,7 +76,6 @@ enum DebugLaunch {
     }
 
     static func attach(to controller: MainWindowController) {
-        useFolder(controller.bridge.syncFolder)
         if defaults.bool(forKey: "CLDebugNoExternalOpen") {
             controller.bridge.openExternally = { url in
                 log.info("CLDebugNoExternalOpen: would open \(url.absoluteString, privacy: .public)")

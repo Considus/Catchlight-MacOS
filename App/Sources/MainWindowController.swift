@@ -43,6 +43,9 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
         syncDefaults = DebugLaunch.syncDefaults() ?? syncDefaults
         #endif
         bridge.syncFolder = SyncFolder(defaults: syncDefaults)
+        #if DEBUG
+        DebugLaunch.useFolder(bridge.syncFolder)   // before the web view, which reads the folder once at load
+        #endif
         if let vault, let folder = bridge.syncFolder { bridge.sync = SyncService(vault: vault, folder: folder, defaults: syncDefaults) }
         // Reminders and Spotlight follow the library; one pass now, with the library open.
         bridge.notifications = notifications
