@@ -9,15 +9,14 @@ import os
 ///
 /// One pass at a time, off the main thread; a request while a pass is running is answered as
 /// skipped, because the running pass already covers it and the engine is idempotent. Scripts are
-/// in the same library and sync only once `syncScripts` is on. When the page should sync (launch, after a save, Sync Now) is the page's to decide,
+/// in the same library and sync unless `syncScripts` is set off. When the page should sync (launch, after a save, Sync Now) is the page's to decide,
 /// because the sync setting lives there.
 final class SyncService {
     private static let log = Logger(subsystem: "com.considus.catchlight.mac", category: "sync")
     static let deviceIdKey = "syncDeviceId"
-    /// Whether Scripts go to the sync folder. Off until the
-    /// owner turns it on, once every phone reading the folder runs a build from 2026-10-01 or later:
-    /// an older phone shows a Script as a Take and turns it back into one when it saves it.
-    /// Off, the Mac keeps its Scripts in its library and Core's engine never uploads one.
+    /// Whether Scripts go to the sync folder. On unless set off (owner, 2026-11-07): Scripts sync
+    /// to the folder for every Mac, and the iPhone, whose engine doesn't hold Scripts, never shows
+    /// one. Off, the Mac keeps its Scripts in its library and Core's engine never uploads one.
     static let syncScriptsKey = "syncScripts"
 
     let vault: Vault
@@ -51,7 +50,7 @@ final class SyncService {
         self.defaults = defaults
     }
 
-    var holdsScripts: Bool { defaults.bool(forKey: Self.syncScriptsKey) }
+    var holdsScripts: Bool { defaults.object(forKey: Self.syncScriptsKey) as? Bool ?? true }
 
     /// A stable id for this install, which the engine's lock and manifest name. Made once.
     var deviceId: UUID {

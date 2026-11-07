@@ -19,13 +19,13 @@ final class SyncServiceTests: XCTestCase {
     }
 
     /// A Mac with its own library and settings, on the account `words` opens, synced to the shared folder.
-    private func mac(_ name: String, words: [String], syncScripts: Bool = false) throws -> SyncService {
+    private func mac(_ name: String, words: [String], syncScripts: Bool? = false) throws -> SyncService {
         let vault = Vault(secrets: MemorySecrets(), directory: root.appendingPathComponent(name))
         try vault.createAccount(words: words, restored: true)
         let suite = "catchlight.tests.\(UUID())"
         suites.append(suite)
         let defaults = UserDefaults(suiteName: suite)!
-        defaults.set(syncScripts, forKey: SyncService.syncScriptsKey)
+        if let syncScripts { defaults.set(syncScripts, forKey: SyncService.syncScriptsKey) }
         let folder = SyncFolder(defaults: defaults)
         folder.pick = { [root] _, done in done(root!.appendingPathComponent("Cloud")) }
         folder.choose(in: nil) { _ in }
@@ -83,6 +83,32 @@ final class SyncServiceTests: XCTestCase {
         XCTAssertEqual(onB.map { $0["blocks"] as? [String] }, [["# Winter series", "- [ ] Frame size"]])
         XCTAssertEqual(onB.first?["mode"] as? String, "a4")
         XCTAssertEqual(try b.vault.library!.pageTakes().count, 0, "and it is a Script there, not a Take")
+    }
+
+    /// Script sync is on by default (Mark, 2026-11-07): a new install sends its Scripts to the folder.
+    func testANewInstallSyncsScripts() throws {
+        let words = try Vault.newPhrase()
+        let a = try mac("A", words: words, syncScripts: nil), b = try mac("B", words: words, syncScripts: nil)
+        XCTAssertTrue(a.holdsScripts)
+        let id = try writeScript("# Winter series", on: a)
+        XCTAssertEqual(try sync(a).uploaded, [id])
+        XCTAssertEqual(try sync(b).applied, [id])
+        XCTAssertEqual(try b.vault.library!.pageScripts().count, 1)
+    }
+
+    /// A device whose engine doesn't hold Scripts, as the iPhone's doesn't, never shows one: the
+    /// Script reaches the folder but not its Takes.
+    func testADeviceThatDoesNotHoldScriptsNeverShowsOne() throws {
+        let words = try Vault.newPhrase()
+        let a = try mac("A", words: words, syncScripts: nil), phone = try mac("Phone", words: words, syncScripts: false)
+        let script = try writeScript("# Winter series", on: a)
+        let take = try write("A plain Take", on: a)
+        XCTAssertEqual(Set(try sync(a).uploaded), [script, take])
+        let report = try sync(phone)
+        XCTAssertEqual(report.applied, [take])
+        XCTAssertEqual(try phone.vault.library!.pageTakes().count, 1)
+        XCTAssertEqual(try phone.vault.library!.pageScripts().count, 0)
+        XCTAssertNil(try phone.vault.library!.store.take(id: script))
     }
 
     /// The real page: Sync Now brings in a Script another Mac wrote, and the Scripts list shows it.

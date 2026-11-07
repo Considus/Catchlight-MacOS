@@ -57,7 +57,7 @@
   let scriptsGeneration = null;
   // A Take the shell couldn't read keeps its stored version, so say so rather than let the edit
   // look saved.
-  // Scripts sync only once the shell says they do (SyncService.syncScriptsKey).
+  // Scripts sync when the shell says they do (SyncService.syncScriptsKey, on by default).
   const sendList = (kind, list) => (saves++, (kind === 'takes' || library.syncScripts) && syncSoon(), post('save', { kind, list, generation: kind === 'scripts' ? scriptsGeneration ?? library.generation : library.generation }))
     .then(r => {
       if (kind === 'scripts') scriptsUnsaved = !!r?.rejected?.length;
