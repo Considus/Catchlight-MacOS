@@ -1049,6 +1049,45 @@ addEventListener('resize', queueGlints);
 still.addEventListener('change', queueGlints);
 new MutationObserver(queueGlints).observe(document.querySelector('#app'), { childList: true, subtree: true });
 
+// ---------- the beam's last stretch, into the + ----------
+// The dock draws the beam's last 18px over its own fade, undimmed, into the + ring
+// (.dock::before). The dock sits above the list, so that stretch is cut away wherever a card
+// or an Iris passes under it: there the card covers the beam, as it does on the timeline.
+let stubFrame = 0;
+function cutBeamStubs() {
+  stubFrame = 0;
+  document.querySelectorAll('.pane').forEach(pane => {
+    const dock = pane.querySelector('.dock:not(.editor-bar)'), list = pane.querySelector('.timeline');
+    if (!dock || !list) return;
+    const d = dock.getBoundingClientRect(), s = getComputedStyle(dock, '::before');
+    const h = parseFloat(s.height), left = d.left + parseFloat(s.left), right = left + parseFloat(s.width);
+    if (!(h > 0)) return;
+    const holes = [];
+    list.querySelectorAll('.card, .iris-wrap').forEach(el => {
+      const r = el.getBoundingClientRect();
+      if (!r.height || r.right <= left || r.left >= right || r.bottom <= d.top || r.top >= d.top + h) return;
+      holes.push([Math.max(0, r.top - d.top), Math.min(h, r.bottom - d.top)]);
+    });
+    holes.sort((a, b) => a[0] - b[0]);
+    const stops = ['#000 0px'];
+    let end = 0;
+    for (const [a, b] of holes) {
+      if (b <= end) continue;
+      stops.push(`#000 ${Math.max(a, end).toFixed(2)}px`, `transparent ${Math.max(a, end).toFixed(2)}px`, `transparent ${b.toFixed(2)}px`, `#000 ${b.toFixed(2)}px`);
+      end = b;
+    }
+    dock.style.setProperty('--stub-mask', holes.length ? `linear-gradient(to bottom, ${stops.join(', ')}, #000 100%)` : 'none');
+  });
+}
+const queueStubs = () => { if (!stubFrame) stubFrame = requestAnimationFrame(cutBeamStubs); };
+document.querySelectorAll('.timeline').forEach(t => {
+  t.addEventListener('scroll', queueStubs, { passive: true });
+  // A swipe or a drag moves a card without scrolling the list.
+  for (const ev of ['pointermove', 'wheel', 'transitionend']) t.addEventListener(ev, queueStubs, { passive: true });
+});
+addEventListener('resize', queueStubs);
+new MutationObserver(queueStubs).observe(document.querySelector('#app'), { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'hidden'] });
+
 // ---------- start ----------
 applyScene(); applyLayout();
 if (!script() && scripts[0]) current = scripts[0].id;

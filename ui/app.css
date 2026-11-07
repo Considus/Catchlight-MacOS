@@ -179,6 +179,7 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
   content: ""; position: absolute; top: 0; height: 18px; width: 36px; pointer-events: none;
   left: calc(12px + (100cqw - 24px) / 8 - 18px);
   background: var(--beam);
+  -webkit-mask-image: var(--stub-mask, none); mask-image: var(--stub-mask, none);   /* cut where a card passes under (app.js, cutBeamStubs) */
 }
 .dock { --beam:
     linear-gradient(90deg, transparent 17.2px, rgba(255,255,255,.9) 17.2px, rgba(255,255,255,.9) 18.8px, transparent 18.8px),
