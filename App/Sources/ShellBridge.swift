@@ -42,7 +42,10 @@ enum SystemInfo {
 ///   `held`) and sync never uploads it, until `resolveConflict {id, choice, revision}`, which
 ///   alone writes it, and only for the pair the page read (`revision`, from `conflicts`). A pair
 ///   marked `converted` has no `remote`: its other side is now a Script on another device, and
-///   its choices are `new` (keep this Mac's version as a new Take) and `letGo`;
+///   its choices are `new` (keep this Mac's version as a new Take) and `letGo`. An entry marked
+///   `unverified` is a cloud copy that failed its check (`local` and `cloud`, either may be
+///   missing). It is not held; `resolveUnverified {id, choice: 'local'|'cloud'|'skip'}` keeps
+///   a side, as a fresh edit, or skips it until the next sync finds it again;
 /// - `importNotes`, `importFile`: notes from the sync folder's Import folder, or from files the
 ///   user picks, imported as Takes (`NoteImport`).
 final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
@@ -152,7 +155,7 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
         }
         // These must not overlap a sync pass (SyncService.whenIdle); the flush's `ping` waits too,
         // so everything the page sent before quitting is written before the app goes.
-        if ["save", "changeKind", "reload", "createAccount", "replaceAccount", "eraseEverything", "resolveConflict", "ping"].contains(cmd), let sync, sync.isSyncing {
+        if ["save", "changeKind", "reload", "createAccount", "replaceAccount", "eraseEverything", "resolveConflict", "resolveUnverified", "ping"].contains(cmd), let sync, sync.isSyncing {
             sync.whenIdle { [weak self] in
                 self?.userContentController(userContentController, didReceive: message, replyHandler: replyHandler)
             }
@@ -211,28 +214,20 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
             // Both versions in the page's shape, for the choice screen.
             guard let sync, vault?.library != nil else { return replyHandler([Any](), nil) }
             do {
-                // Each side in its own kind's shape: a Take made a Script here can conflict with
-                // the Take another device edited.
-                func side(_ take: Take) throws -> [String: Any] {
-                    var page = take.isScript ? ScriptTranslation.page(from: take) : try TakeTranslation.page(from: take)
-                    page["kind"] = take.isScript ? "script" : "take"
-                    page["modifiedAt"] = (take.modifiedAt.timeIntervalSince1970 * 1000).rounded()
-                    return page
-                }
                 // `stored`: the held item as the store has it, in its own list's shape, which the
                 // page puts back over any change (`keepHeld`); never the page's own copy, which may
                 // carry an edit the shell refused. `revision`: sent back with the choice.
                 let store = vault?.library?.store
                 replyHandler(try sync.conflicts.pending.map { pair -> [String: Any] in
                     let stored = try store?.take(id: pair.local.id) ?? pair.local
-                    var entry: [String: Any] = ["id": pair.local.id.uuidString.lowercased(), "local": try side(pair.local),
+                    var entry: [String: Any] = ["id": pair.local.id.uuidString.lowercased(), "local": try Self.conflictSide(pair.local),
                             "stored": stored.isScript ? ScriptTranslation.page(from: stored) : try TakeTranslation.page(from: stored),
                             "storedKind": stored.isScript ? "scripts" : "takes",
                             "revision": sync.conflicts.revision(pair.local.id) ?? ""]
                     // Converted: the other side is now a Script on another device, which this Mac
                     // never reads, so the version the pair held before is not shown either.
                     if sync.conflicts.converted.contains(pair.local.id) { entry["converted"] = true }
-                    else { entry["remote"] = try side(pair.remote) }
+                    else { entry["remote"] = try Self.conflictSide(pair.remote) }
                     return entry
                 } + sync.conflicts.damaged.subtracting(sync.conflicts.pending.map(\.local.id)).sorted { $0.uuidString < $1.uuidString }.map { id -> [String: Any] in
                     // A conflict that doesn't open: no versions to show, but its Take is held.
@@ -242,10 +237,33 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                         entry["storedKind"] = stored.isScript ? "scripts" : "takes"
                     }
                     return entry
+                } + sync.conflicts.unverified.filter { !sync.conflicts.heldIDs.contains($0.id) }.map { item -> [String: Any] in
+                    // Not held: nothing stored is put back, and editing it is not refused.
+                    var entry: [String: Any] = ["id": item.id.uuidString.lowercased(), "unverified": true]
+                    if let local = item.local { entry["local"] = try Self.conflictSide(local) }
+                    if let cloud = item.cloud { entry["cloud"] = try Self.conflictSide(cloud) }
+                    return entry
                 }, nil)
             } catch {
                 Self.log.error("conflicts did not translate: \(String(describing: error), privacy: .public)")
                 replyHandler(nil, "the waiting conflicts could not be read")
+            }
+        case "resolveUnverified":
+            guard let sync, let library = vault?.library,
+                  let id = (body["id"] as? String).flatMap(UUID.init(uuidString:)),
+                  let choice = body["choice"] as? String, ["local", "cloud", "skip"].contains(choice) else {
+                return replyHandler(nil, "resolveUnverified needs an id and a choice of local, cloud or skip")
+            }
+            do {
+                switch choice {
+                case "local": try sync.conflicts.keepLocalUnverified(id: id, store: library.store)
+                case "cloud": try sync.conflicts.keepCloudUnverified(id: id, store: library.store)
+                default: sync.conflicts.skipUnverified(id: id)
+                }
+                replyHandler(true, nil)
+            } catch {
+                Self.log.error("an unverified choice was not saved: \(String(describing: error), privacy: .public)")
+                replyHandler(nil, (error as? LocalizedError)?.errorDescription ?? String(describing: error))
             }
         case "resolveConflict":
             guard let sync, let library = vault?.library,
@@ -343,6 +361,15 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
         Self.log.info("import: \(done.takes) Takes, \(done.scripts) Scripts, \(done.failed) failed, \(outcome.skipped) files skipped")
         reply(["takes": done.takes, "scripts": done.scripts, "failed": done.failed,
                "scanned": outcome.scanned, "skipped": outcome.skipped], nil)
+    }
+
+    /// One side of a conflict in its own kind's shape: a Take made a Script here can conflict with
+    /// the Take another device edited.
+    private static func conflictSide(_ take: Take) throws -> [String: Any] {
+        var page = take.isScript ? ScriptTranslation.page(from: take) : try TakeTranslation.page(from: take)
+        page["kind"] = take.isScript ? "script" : "take"
+        page["modifiedAt"] = (take.modifiedAt.timeIntervalSince1970 * 1000).rounded()
+        return page
     }
 
     /// The summary Take an import leaves in Dailies: "Import successful. 3 Takes added.", or "1 Take

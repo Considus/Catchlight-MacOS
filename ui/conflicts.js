@@ -9,6 +9,10 @@
 // A CONVERTED pair (`converted`, no `remote`): another device has since turned the Take into a
 // Script this Mac doesn't hold, so there is no other version to show. Its choices are keeping this
 // Mac's version as a new Take, or letting it go; never a pick, which would write into the Script.
+// An UNVERIFIED item (`unverified`) is a Take whose copy in the cloud folder failed its check,
+// as on the iPhone: this Mac's version, the cloud copy, or both, either may be missing. It is not
+// held (editing it is allowed), and the shell answers keeping a side or skipping it
+// (`resolveUnverified`). Skipping drops it until the next sync finds it again.
 
 const conflictBanner = document.createElement('div');
 conflictBanner.className = 'conflict-banner';
@@ -33,21 +37,32 @@ const conflictText = t => t.kind === 'script'
   : (t.blocks || []).map(b => (b.k === 'check' ? (b.done ? '☑ ' : '☐ ') : '') + b.text).join('\n').trim() || L10N.t('Untitled Take');
 // What the waiting pairs are, in words: Takes, Scripts, or Takes and Scripts. A pair counts as a
 // Script when either side is one (a Take made a Script here, edited as a Take elsewhere).
-const isScriptPair = c => c.local?.kind === 'script' || c.remote?.kind === 'script';
+const isScriptPair = c => c.local?.kind === 'script' || c.remote?.kind === 'script' || c.cloud?.kind === 'script';
 // Which of Takes, Scripts or both the pairs are, so each sentence can be whole for each.
 const conflictKinds = list => {
   const scripts = list.filter(isScriptPair).length, takes = list.length - scripts;
   return scripts && takes ? 'both' : scripts ? 'scripts' : 'takes';
 };
+// ?unverified: one item of each shape, to look at the cards in a plain browser (no shell, no
+// writes: a choice only takes the sample off the list).
+let sampleUnverified = new URLSearchParams(location.search).has('unverified') && (() => {
+  const take = (text, ago) => ({ kind: 'take', blocks: [{ k: 'text', text }], modifiedAt: Date.now() - ago });
+  return [
+    { id: 'sample-both', unverified: true, local: take('Pick up the keys from the neighbour before Friday.', 36e5), cloud: take('Pick up the keys from the neighbour.', 3 * 864e5) },
+    { id: 'sample-local', unverified: true, local: take('Draft of the talk: three ideas, one story.', 5 * 36e5) },
+    { id: 'sample-cloud', unverified: true, cloud: take('Birthday list for Sam.', 7 * 864e5) },
+  ];
+})();
+const isUnverified = id => conflictList.some(c => c.id === id && c.unverified);
 const conflictWhen = t => {
   const ms = t.modifiedAt ?? Date.parse(t.at);
   return Number.isFinite(ms) ? new Date(ms).toLocaleString(L10N.dateLocale(undefined), { dateStyle: 'medium', timeStyle: 'short' }) : '';
 };
 
 async function loadConflicts() {
-  if (!window.catchlightBridge?.conflicts) return;
+  if (!window.catchlightBridge?.conflicts && !sampleUnverified) return;
   let all;
-  try { all = await catchlightBridge.conflicts(); }
+  try { all = sampleUnverified || await catchlightBridge.conflicts(); }
   catch (e) { console.error('Reading the conflicts failed', e); return; }
   // A conflict that doesn't open has no versions to choose between, but its Take stays held,
   // and the user is told once a launch.
@@ -57,19 +72,20 @@ async function loadConflicts() {
     conflictDamagedNoticed.add(c.id);
     if (typeof notice === 'function') notice(t("A waiting conflict couldn't be opened, so its Take stays as it is and isn't synced. Report it so it can be looked at."), 'conflict');
   }
-  setHeld(all);   // skipped ones too: they still wait for the choice
+  setHeld(all.filter(c => !c.unverified));   // skipped ones too: they still wait for the choice. Unverified ones are never held.
   // A pair the next sync found again is waiting again.
   for (const id of [...conflictSkipped]) if (!conflictList.some(c => c.id === id)) conflictSkipped.delete(id);
   // A pick only stands for the versions it was made against: if a sync replaced either side,
   // the user chooses again.
   for (const c of conflictList) {
-    const sig = JSON.stringify([c.local, c.remote, !!c.converted]);
+    const sig = JSON.stringify([c.local, c.remote, c.cloud, !!c.converted]);
     if (conflictSeen[c.id] !== sig) { delete conflictChoice[c.id]; conflictSeen[c.id] = sig; }
   }
   paintConflicts();
 }
 
 const shownConflicts = () => conflictList.filter(c => !conflictSkipped.has(c.id));
+const conflictsOf = list => ({ pairs: list.filter(c => !c.unverified), unverified: list.filter(c => c.unverified) });
 
 function paintConflicts() {
   const n = conflictList.length;
@@ -90,10 +106,11 @@ function paintConflictSheet() {
     return;
   }
   // This Mac's version alone, shown but not picked: a converted pair has nothing to choose between.
-  const solePanel = c => `<div class="cf-version">
-      <span class="cf-label">${L10N.t('Local')}</span>
-      <span class="cf-when">${esc(conflictWhen(c.local))}</span>
-      <span class="cf-body">${esc(conflictText(c.local))}</span>
+  const solePanel = (c, side = 'local', note = '') => `<div class="cf-version">
+      <span class="cf-label">${side === 'local' ? L10N.t('Local') : L10N.t('Cloud')}</span>
+      <span class="cf-when">${esc(conflictWhen(c[side]))}</span>
+      ${note ? `<span class="cf-when">${esc(note)}</span>` : ''}
+      <span class="cf-body">${esc(conflictText(c[side]))}</span>
     </div>`;
   const convertedItem = c => `<section class="cf-item cf-converted" data-id="${esc(c.id)}">
       <p class="cf-note">${t('This Take was turned into a Script on another device.')}</p>
@@ -105,21 +122,47 @@ function paintConflictSheet() {
         <button class="slink" type="button" data-cf="skip" data-id="${esc(c.id)}">${t('Skip for now')}</button>
       </div>
     </section>`;
-  const panel = (c, side) => {
+  const panel = (c, side, note = '') => {
     const t = c[side], picked = conflictChoice[c.id] === side;
     return `<button class="cf-version${picked ? ' picked' : ''}" type="button" data-cf="pick" data-id="${esc(c.id)}" data-side="${side}" aria-pressed="${picked}">
       <span class="cf-label">${side === 'local' ? L10N.t('Local') : L10N.t('Cloud')}${isScriptPair(c) ? ` · ${t.kind === 'script' ? L10N.t('Script') : L10N.t('Take')}` : ''}</span>
       <span class="cf-when">${esc(conflictWhen(t))}</span>
+      ${note ? `<span class="cf-when">${esc(note)}</span>` : ''}
       <span class="cf-body">${esc(conflictText(t))}</span>
     </button>`;
   };
+  // A cloud copy that failed its check, in one of three shapes (the iPhone's): both versions to
+  // pick between, only this Mac's, or only the cloud copy to recover.
+  const skipButton = c => `<button class="slink" type="button" data-cf="skip" data-id="${esc(c.id)}">${t('Skip for now')}</button>`;
+  const replacesNewer = `<p class="cf-guide cf-after">${t('Keeping it replaces any newer edit that may exist on another device when it syncs.')}</p>`;
+  const unverifiedItem = c => `<section class="cf-item cf-unverified" data-id="${esc(c.id)}">${
+    c.local && c.cloud ? `<div class="cf-pair">${panel(c, 'local')}${panel(c, 'cloud', t("Didn't pass its check, and may be an older version."))}</div>
+      ${replacesNewer}
+      <div class="cf-actions">
+        <button class="fr-pill primary" type="button" data-cf="keep" data-id="${esc(c.id)}"${conflictChoice[c.id] ? '' : ' disabled'}>${t('Keep this version')}</button>
+        ${skipButton(c)}
+      </div>`
+    : c.local ? `<div class="cf-pair cf-sole">${solePanel(c, 'local', t("The newer version from another device can't be read."))}</div>
+      ${replacesNewer}
+      <div class="cf-actions">
+        <button class="fr-pill primary" type="button" data-cf="keep" data-id="${esc(c.id)}" data-side="local">${t('Keep this version')}</button>
+        ${skipButton(c)}
+      </div>`
+    : `<p class="cf-note">${t('Recover this Take?')}</p>
+      <div class="cf-pair cf-sole">${solePanel(c, 'cloud', t("It's in your cloud folder but not on this Mac. It didn't pass its check, so it may be an older version."))}</div>
+      <div class="cf-actions">
+        <button class="fr-pill primary" type="button" data-cf="keep" data-id="${esc(c.id)}" data-side="cloud">${t('Recover')}</button>
+        ${skipButton(c)}
+      </div>`}
+    </section>`;
   // The guide is about choosing between two versions, which a converted pair doesn't offer.
-  const pairs = list.filter(c => !c.converted), kinds = conflictKinds(pairs);
+  const { pairs: ordinary, unverified } = conflictsOf(list);
+  const pairs = ordinary.filter(c => !c.converted), kinds = conflictKinds(pairs);
   conflictSheet.innerHTML = `<h2 id="conflicts-heading">${t('Sync conflicts')}</h2>
     ${pairs.length ? `<p class="cf-guide">${kinds === 'both' ? t("These Takes and Scripts were edited on different devices, so we can't tell which to keep. Choose the version you'd like to keep, or keep both. A version you don't keep is removed.")
       : kinds === 'scripts' ? t("These Scripts were edited on different devices, so we can't tell which to keep. Choose the version you'd like to keep, or keep both. A version you don't keep is removed.")
       : t("These Takes were edited on different devices, so we can't tell which to keep. Choose the version you'd like to keep, or keep both. A version you don't keep is removed.")}</p>` : ''}
-    ${list.map(c => c.converted ? convertedItem(c) : `<section class="cf-item" data-id="${esc(c.id)}">
+    ${ordinary.map(c => c.converted ? convertedItem(c) : `<section class="cf-item" data-id="${esc(c.id)}">
       <div class="cf-pair">${panel(c, 'local')}${panel(c, 'remote')}</div>
       <div class="cf-actions">
         <button class="fr-pill primary" type="button" data-cf="keep" data-id="${esc(c.id)}"${conflictChoice[c.id] ? '' : ' disabled'}>${t('Keep this version')}</button>
@@ -127,6 +170,7 @@ function paintConflictSheet() {
         <button class="slink" type="button" data-cf="skip" data-id="${esc(c.id)}">${t('Skip for now')}</button>
       </div>
     </section>`).join('')}
+    ${unverified.length ? `<p class="cf-guide">${t("The copies of these Takes in your cloud folder didn't pass their check. Nothing changes on this Mac until you choose.")}</p>${unverified.map(unverifiedItem).join('')}` : ''}
     <div class="cf-close"><button class="slink" type="button" data-cf="close">${t('Close')}</button></div>`;
 }
 
@@ -172,6 +216,28 @@ async function resolveConflict(id, choice) {
   await loadConflicts();
 }
 
+// Keep a side of an unverified item, or skip it. The shell writes the kept side as a fresh edit;
+// then the lists reload as after any choice, so the kept Take shows and goes to the other devices.
+async function resolveUnverified(id, choice) {
+  if (sampleUnverified) {
+    sampleUnverified = sampleUnverified.filter(c => c.id !== id);
+    return loadConflicts();
+  }
+  try {
+    await catchlightBridge.resolveUnverified(id, choice);
+  } catch (e) {
+    console.error('Saving a choice for an unverified copy failed', e);
+    ask(t("Your choice wasn't saved"), t('Both versions are still there. Try again, and if it keeps happening, report it with this detail: %@', String(e?.message ?? e)), [[t('OK'), null, 'cancel']]);
+    return loadConflicts();
+  }
+  delete conflictChoice[id];
+  if (choice !== 'skip') {
+    await catchlightBridge.refresh().catch(e => console.error('Refreshing the Takes failed', e));
+    catchlightBridge.sync?.('save').catch?.(e => console.error('Sync after a conflict choice failed', e));
+  }
+  await loadConflicts();
+}
+
 conflictBanner.addEventListener('click', e => { if (e.target.closest('[data-cf="review"]')) openConflicts(); });
 conflictSheet.addEventListener('click', e => {
   const b = e.target.closest('[data-cf]');
@@ -179,11 +245,14 @@ conflictSheet.addEventListener('click', e => {
   const id = b.dataset.id;
   switch (b.dataset.cf) {
     case 'pick': conflictChoice[id] = b.dataset.side; paintConflictSheet(); break;
-    case 'keep': if (conflictChoice[id]) resolveConflict(id, conflictChoice[id]); break;
+    case 'keep':
+      if (isUnverified(id)) { const side = b.dataset.side || conflictChoice[id]; if (side) resolveUnverified(id, side); }
+      else if (conflictChoice[id]) resolveConflict(id, conflictChoice[id]);
+      break;
     case 'both': resolveConflict(id, 'both'); break;
     case 'asNew': resolveConflict(id, 'new'); break;
     case 'letGo': resolveConflict(id, 'letGo'); break;
-    case 'skip': conflictSkipped.add(id); paintConflictSheet(); break;
+    case 'skip': if (isUnverified(id)) resolveUnverified(id, 'skip'); else { conflictSkipped.add(id); paintConflictSheet(); } break;
     case 'close': conflictSheet.close(); break;
   }
 });
