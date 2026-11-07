@@ -803,11 +803,16 @@ function exportMarkdown(list, now = new Date()) {
   }
   return out;
 }
-// The shells hand this to a save panel or share sheet; the prototype downloads it.
+// A shell hands this to its save panel or share sheet (`shell.exportFile`); a plain browser downloads it.
 const exportName = (now = new Date()) => `catchlight-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}.md`;
 const exportTake = t => exportTakes([t]);
 function exportTakes(list) {
-  const now = new Date(), a = document.createElement('a');
+  const now = new Date(), shell = window.catchlightBridge?.shell;
+  if (shell?.exportFile) {
+    shell.exportFile(exportName(now), exportMarkdown(list, now)).catch(e => console.error('Exporting the Takes failed', e));
+    return;
+  }
+  const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([exportMarkdown(list, now)], { type: 'text/markdown' }));
   a.download = exportName(now); a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 0);

@@ -2,6 +2,7 @@ import AppKit
 import WebKit
 import CatchlightCore
 import os
+import UniformTypeIdentifiers
 import UserNotifications
 
 /// What the Mac reports about itself, for About and Report an Issue (`shell.systemInfo`).
@@ -49,7 +50,9 @@ enum SystemInfo {
 /// - `enableNotifications`: asks for the permission when it was never asked, opens System
 ///   Settings' Notifications pane for the app when it was denied, and answers the status after;
 /// - `importNotes`, `importFile`: notes from the sync folder's Import folder, or from files the
-///   user picks, imported as Takes (`NoteImport`).
+///   user picks, imported as Takes (`NoteImport`);
+/// - `exportFile {name, text}`: the save panel as a sheet on the window, suggesting `name` (Markdown);
+///   writes `text` as UTF-8, atomically, and answers `{saved: true}` or `{cancelled: true}`.
 final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
     static let name = "catchlight"
     private static let log = Logger(subsystem: "com.considus.catchlight.mac", category: "bridge")
@@ -110,6 +113,19 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
 
     /// The open panel for Import from a File. Replaced in tests, which can't drive a panel.
     var pickImportFiles: (NSWindow?, @escaping ([URL]?) -> Void) -> Void = NoteImport.pickFiles
+
+    /// The save panel for Export Take and Export Takes: the suggested file name, then the chosen
+    /// file or nil when cancelled. Replaced in tests, which can't drive a panel.
+    var pickSaveURL: (NSWindow?, String, @escaping (URL?) -> Void) -> Void = ShellBridge.runSavePanel
+
+    static func runSavePanel(in window: NSWindow?, suggestedName: String, _ done: @escaping (URL?) -> Void) {
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [UTType(filenameExtension: "md") ?? .plainText]
+        panel.nameFieldStringValue = suggestedName
+        panel.canCreateDirectories = true
+        let finish: (NSApplication.ModalResponse) -> Void = { done($0 == .OK ? panel.url : nil) }
+        if let window { panel.beginSheetModal(for: window, completionHandler: finish) } else { finish(panel.runModal()) }
+    }
 
     /// The language the page speaks: the bundle's own choice for `String(localized:)` (the first of
     /// the user's preferred languages among the `.lproj` folders the String Catalogs built), so the
@@ -366,6 +382,20 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                 pickImportFiles(window) { urls in
                     guard let urls else { return replyHandler(["cancelled": true], nil) }
                     parse { .done(NoteImport.parse(urls)) }
+                }
+            }
+        case "exportFile":
+            guard let name = body["name"] as? String, let text = body["text"] as? String else { return replyHandler(nil, "exportFile needs a name and text") }
+            pickSaveURL(window, name) { url in
+                guard let url else { return replyHandler(["cancelled": true], nil) }
+                // The chosen place can be a cloud folder, so the write stays off the main thread.
+                DispatchQueue.global(qos: .userInitiated).async {
+                    do {
+                        try Data(text.utf8).write(to: url, options: .atomic)
+                        DispatchQueue.main.async { replyHandler(["saved": true], nil) }
+                    } catch {
+                        DispatchQueue.main.async { replyHandler(nil, error.localizedDescription) }
+                    }
                 }
             }
         case "notificationStatus", "enableNotifications":

@@ -249,6 +249,9 @@
       forgetFolder: () => post('forgetFolder'),
       systemInfo: () => `${info.osName} ${info.osVersion} · ${info.model}`,
       copyText: text => post('copy', { text }),
+      // Export Take(s): the Mac's save panel suggests `name` and writes `text`. Answers
+      // { saved: true } or { cancelled: true }.
+      exportFile: (name, text) => post('exportFile', { name, text }),
       // The Spotlight setting (settings.js sends it at load and on every change). The shell
       // indexes at `none` or `type` only: the text levels clamp to `type`.
       setSpotlight: level => post('setSpotlight', { level }),
