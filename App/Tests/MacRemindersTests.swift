@@ -71,6 +71,28 @@ final class MacRemindersTests: XCTestCase {
         XCTAssertEqual(c.timeZone, calendar.timeZone)
     }
 
+    private func expectedSubtitle(_ date: Date, allDay: Bool) -> String {
+        let formatter = DateFormatter()
+        formatter.calendar = calendar
+        formatter.timeZone = calendar.timeZone
+        formatter.dateStyle = .medium
+        formatter.timeStyle = allDay ? .none : .short
+        return formatter.string(from: date)
+    }
+
+    func testSubtitleIsTheOccurrenceAsDateAndTime() {
+        let when = date(8, 10)
+        let plan = reminders().plan([take(at: when)])
+        XCTAssertEqual(plan.first?.content.subtitle, expectedSubtitle(when, allDay: false))
+    }
+
+    func testAllDaySubtitleIsTheDateOnly() {
+        let when = date(9, 0)
+        let plan = reminders().plan([take(at: when, allDay: true)])
+        XCTAssertEqual(plan.first?.content.subtitle, expectedSubtitle(when, allDay: true))
+        XCTAssertNotEqual(plan.first?.content.subtitle, expectedSubtitle(when, allDay: false))
+    }
+
     func testPastOneShotGivesNone() {
         XCTAssertTrue(reminders().plan([take(at: date(7, 11))]).isEmpty)
         XCTAssertTrue(reminders().plan([take(at: date(7, 12))]).isEmpty)
@@ -119,7 +141,7 @@ final class MacRemindersTests: XCTestCase {
         XCTAssertEqual(plan.count, MacReminders.maxPending)
         let fires = try plan.map { try XCTUnwrap(calendar.date(from: components($0)!)) }
         XCTAssertEqual(fires, fires.sorted())
-        // 120 planned; the 56 soonest end partway through 14 November.
+        // 120 planned; the 56 soonest end partway through 13 November.
         XCTAssertEqual(try XCTUnwrap(components(plan.last!)?.day), 13)
     }
 
@@ -150,6 +172,7 @@ final class MacRemindersTests: XCTestCase {
         centre.pending = [t.id.uuidString]
         reminders().reconcile([t])
         XCTAssertEqual(centre.added.map(\.identifier), [t.id.uuidString])
+        XCTAssertEqual(centre.removedPending, [t.id.uuidString])
     }
 
     func testReconcileAsksAuthorisationOnceWhenNotDeterminedAndThePlanHasRequests() {
