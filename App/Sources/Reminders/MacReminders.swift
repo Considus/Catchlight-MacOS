@@ -82,7 +82,6 @@ final class MacReminders {
             .map(\.request)
     }
 
-    /// Replaces this app's pending requests with the plan. Foreign ids are left alone.
     /// Removes every pending and delivered notification. This app's centre holds only its own,
     /// so nothing foreign is lost. For an erase or a replaced account.
     func removeAll() {

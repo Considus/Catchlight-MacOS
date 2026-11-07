@@ -149,13 +149,12 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
         let finish = { [weak self] in
             guard !done else { return }
             done = true
-            // A change still waiting out its delay is mirrored now, or quitting would lose it, and
-            // quitting waits for the reminders to be reconciled so a removal isn't cut short.
-            if self?.bridge.takePendingLibraryChange() == true {
-                self?.mirrorLibrary(inBackground: false, completion: complete)
-            } else {
-                complete()
-            }
+            // Mirror once more on the way out, always: a change may still be waiting out its delay,
+            // or its background read may be in flight (this read supersedes it). Quitting waits for
+            // the reminders to be reconciled, so a removal isn't cut short.
+            guard let self else { return complete() }
+            _ = self.bridge.takePendingLibraryChange()
+            self.mirrorLibrary(inBackground: false, completion: complete)
         }
         webView.callAsyncJavaScript("return await (window.catchlightBridge?.flush?.() ?? false);", arguments: [:], in: nil, in: .page) { result in
             if case .failure(let error) = result { Self.log.error("flush failed: \(String(describing: error), privacy: .public)") }
