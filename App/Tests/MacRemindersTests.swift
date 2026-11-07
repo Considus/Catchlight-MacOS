@@ -2,7 +2,7 @@ import CatchlightCore
 import UserNotifications
 import XCTest
 
-private final class FakeCentre: NotificationCentre {
+final class FakeCentre: NotificationCentre {
     var added: [UNNotificationRequest] = []
     var pending: [String] = []
     var removedPending: [String] = []

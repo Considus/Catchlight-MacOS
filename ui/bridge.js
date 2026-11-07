@@ -249,6 +249,9 @@
       forgetFolder: () => post('forgetFolder'),
       systemInfo: () => `${info.osName} ${info.osVersion} · ${info.model}`,
       copyText: text => post('copy', { text }),
+      // The Spotlight setting (settings.js sends it at load and on every change). The shell
+      // indexes at `none` or `type` only: the text levels clamp to `type`.
+      setSpotlight: level => post('setSpotlight', { level }),
       ...(library && {
         // The phrase comes from Core (BIP-39 English, 12 different words), made before the page
         // loaded, and the shell checks one typed in against the list and its checksum.

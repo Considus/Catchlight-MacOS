@@ -1,5 +1,7 @@
 import AppKit
 import WebKit
+import CatchlightCore
+import UserNotifications
 import os
 
 /// The one window: a WKWebView showing the bundled ui/ through the `catchlight://` scheme
@@ -13,6 +15,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
     let webView: WKWebView
     let bridge = ShellBridge()
     let menuController = MenuController()
+    private var libraryMirror: LibraryMirror?
 
     /// `vault` is nil only in tests that load the page without a library; the page then keeps
     /// the browser prototype's localStorage behaviour.
@@ -25,6 +28,15 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
         bridge.syncFolder = SyncFolder()
         if let vault, let folder = bridge.syncFolder { bridge.sync = SyncService(vault: vault, folder: folder) }
         bridge.install(in: configuration.userContentController)
+        // Reminders and Spotlight follow the library; one pass now, with the library open.
+        let mirror = LibraryMirror(reminders: MacReminders(centre: UNUserNotificationCenter.current()), spotlight: CoreSpotlightIndexer())
+        libraryMirror = mirror
+        bridge.libraryChanged = { [weak mirror, weak vault] in
+            guard let mirror, let takes = LibraryMirror.takes(from: vault) else { return }
+            mirror.refresh(takes: takes)
+        }
+        bridge.setSpotlight = { [weak mirror] in mirror?.setExposure($0) }
+        if vault != nil { bridge.notifyLibraryChanged() }
         webView = WKWebView(frame: .zero, configuration: configuration)
         #if DEBUG
         if #available(macOS 13.3, *) {

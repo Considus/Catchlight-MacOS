@@ -35,6 +35,7 @@ enum SystemInfo {
 /// - `validatePhrase {words}`, `createAccount {words, restored}`, `replaceAccount {words}`,
 ///   `revealPhrase`, `eraseEverything`: the account, through the `Vault`;
 /// - `chooseFolder`, `forgetFolder`: the sync folder, through `SyncFolder` (the open panel);
+/// - `setSpotlight {level}`: the Spotlight setting (`none` or `type`; the text levels clamp to `type`);
 /// - `sync {trigger}`: one sync pass through `SyncService`, answered with what it did;
 /// - `changeKind {item, to: 'takes'|'scripts'}`: Take ⇄ Script on the same id;
 /// - `conflicts`, `resolveConflict {id, choice}`: the waiting conflicts and the user's choice. A
@@ -60,6 +61,26 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
     /// Set when the library could not be read at launch. The page then holds empty lists, and
     /// a save from it would be applied as the whole library, so every save is refused.
     private(set) var libraryUnreadable = false
+    /// Called, once per run-loop turn however many changes there were, after the library has
+    /// changed: a save, a conflict choice, an import, a sync that brought changes, or an account
+    /// change. The window controller points it at the `LibraryMirror`.
+    var libraryChanged: () -> Void = {}
+    /// `setSpotlight {level}`: the page's Spotlight setting, handed to the `LibraryMirror`.
+    var setSpotlight: (String) -> Void = { _ in }
+    private var libraryChangePending = false
+
+    /// Call after any successful write to the library. Coalesced: changes in the same run-loop
+    /// turn run `libraryChanged` once.
+    func notifyLibraryChanged() {
+        guard !libraryChangePending else { return }
+        libraryChangePending = true
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            libraryChangePending = false
+            libraryChanged()
+        }
+    }
+
     /// The open panel for Import from a File. Replaced in tests, which can't drive a panel.
     var pickImportFiles: (NSWindow?, @escaping ([URL]?) -> Void) -> Void = NoteImport.pickFiles
 
@@ -258,6 +279,7 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                 // Refused if a pass replaced the pair after the page read it (the choice may have
                 // waited behind that pass): the user chooses again between the versions now waiting.
                 try sync.conflicts.resolve(id: id, choice: choice, store: library.store, revision: revision)
+                notifyLibraryChanged()
                 replyHandler(true, nil)
             } catch {
                 Self.log.error("a conflict choice was not saved: \(String(describing: error), privacy: .public)")
@@ -266,7 +288,7 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
         case "sync":
             guard let sync, !libraryUnreadable else { return replyHandler(["skipped": true], nil) }
             let before = (pending: sync.conflicts.pending.count, unverified: sync.conflicts.unverified.count)
-            sync.run { outcome in
+            sync.run { [weak self] outcome in
                 switch outcome {
                 case .skipped:
                     replyHandler(["skipped": true], nil)
@@ -274,6 +296,7 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                     replyHandler(["error": SyncService.notice(for: error) as Any? ?? NSNull()], nil)
                 case .finished(let r):
                     let fresh = sync.conflicts.pending.count - before.pending
+                    if !r.applied.isEmpty || !r.deletedLocally.isEmpty || fresh > 0 { self?.notifyLibraryChanged() }
                     let freshScripts = fresh > 0 ? sync.conflicts.pending.suffix(fresh).filter { $0.local.isScript || $0.remote.isScript }.count : 0
                     replyHandler(["newConflictScripts": freshScripts, "applied": r.applied.count, "deleted": r.deletedLocally.count, "uploaded": r.uploaded.count,
                                   "conflicts": sync.conflicts.count,
@@ -318,6 +341,10 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                     parse { .done(NoteImport.parse(urls)) }
                 }
             }
+        case "setSpotlight":
+            guard let level = body["level"] as? String else { return replyHandler(nil, "setSpotlight needs a level") }
+            setSpotlight(level)
+            replyHandler(true, nil)
         case "ping":
             // A round trip: messages are handled in order, so everything sent before it is done.
             replyHandler(true, nil)
@@ -340,6 +367,7 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
             let summary = Self.importSummary(done.takes, done.scripts)
             _ = library.importItems([Take(createdAt: Date(), modifiedAt: Date(), blocks: [.text(TextBlock(text: summary))], isNote: true)])
         }
+        notifyLibraryChanged()
         Self.log.info("import: \(done.takes) Takes, \(done.scripts) Scripts, \(done.failed) failed, \(outcome.skipped) files skipped")
         reply(["takes": done.takes, "scripts": done.scripts, "failed": done.failed,
                "scanned": outcome.scanned, "skipped": outcome.skipped], nil)
@@ -384,6 +412,7 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                                               keepConflict: { [sync] pair in try sync?.conflicts.keep(pair) })
                 Self.log.info("\(kind ?? "", privacy: .public) saved: \(report.upserted) written, \(report.deleted) deleted, \(report.rejected.count) rejected, \(report.held.count) held for a conflict choice, \(report.conflicts.count) to the conflict screen, \(report.keptOverDelete.count) kept over a delete")
                 if !report.rejected.isEmpty { Self.log.error("save kept \(report.rejected.count) items it could not read") }
+                notifyLibraryChanged()
                 reply(["upserted": report.upserted, "deleted": report.deleted, "rejected": report.rejected, "held": report.held,
                        "forked": report.forked.count,
                        "conflicts": report.conflicts.count, "keptOverDelete": report.keptOverDelete.count], nil)
@@ -402,6 +431,7 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                 // The item as stored, in its new list's shape: the page keeps this one, so its next
                 // save carries what the page's own copy didn't (a reminder, Important).
                 let shaped = pageList == .scripts ? ScriptTranslation.page(from: changed) : try TakeTranslation.page(from: changed)
+                notifyLibraryChanged()
                 reply(["conflicts": conflicts, "item": shaped], nil)
             case "reload":
                 // The page asks for the library as it is now (after a sync, say). Everything it
@@ -417,6 +447,7 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
             case "createAccount":
                 try vault.createAccount(words: words, restored: body["restored"] as? Bool ?? false)
                 libraryUnreadable = false
+                notifyLibraryChanged()
                 reply(try libraryContents(vault), nil)
             case "replaceAccount":
                 // Settings ▸ Second device, as the iPhone, but nothing is erased first
@@ -426,12 +457,14 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                 // The old cloud folder belongs to the account being replaced (AppModel, as iOS).
                 syncFolder?.forget()
                 libraryUnreadable = false
+                notifyLibraryChanged()
                 reply(try libraryContents(vault), nil)
             case "revealPhrase":
                 reply(vault.phrase() as Any? ?? NSNull(), nil)
             case "eraseEverything":
                 try vault.eraseEverything()
                 syncFolder?.forget()   // nothing of the erased account stays connected
+                notifyLibraryChanged()
                 reply(true, nil)
             default:
                 reply(nil, "unknown command \(cmd)")
