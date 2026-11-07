@@ -38,8 +38,12 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
         self.uiRoot = uiRoot
         bridge.defaults = defaults
         bridge.vault = vault
-        bridge.syncFolder = SyncFolder()
-        if let vault, let folder = bridge.syncFolder { bridge.sync = SyncService(vault: vault, folder: folder) }
+        var syncDefaults = UserDefaults.standard
+        #if DEBUG
+        syncDefaults = DebugLaunch.syncDefaults() ?? syncDefaults
+        #endif
+        bridge.syncFolder = SyncFolder(defaults: syncDefaults)
+        if let vault, let folder = bridge.syncFolder { bridge.sync = SyncService(vault: vault, folder: folder, defaults: syncDefaults) }
         // Reminders and Spotlight follow the library; one pass now, with the library open.
         bridge.notifications = notifications
         let mirror = mirror ?? LibraryMirror(reminders: MacReminders(centre: notifications), spotlight: CoreSpotlightIndexer())
