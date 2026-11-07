@@ -77,6 +77,9 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
     /// brought changes, or an account change. The window controller points it at the
     /// `LibraryMirror`. Trailing debounce: it runs `libraryChangeDelay` after the last change.
     var libraryChanged: () -> Void = {}
+    /// Called after an erase or a replaced account, so the notifications and the Spotlight index
+    /// of the old account go at once rather than after the debounce.
+    var accountWiped: () -> Void = {}
     /// How long after the last change `libraryChanged` runs. The page saves on every edit.
     var libraryChangeDelay: TimeInterval = 0.5
     /// The longest a change waits, so continuous saving still refreshes this often.
@@ -579,6 +582,7 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                 // The old cloud folder belongs to the account being replaced (AppModel, as iOS).
                 syncFolder?.forget()
                 libraryUnreadable = false
+                accountWiped()
                 notifyLibraryChanged()
                 reply(try libraryContents(vault), nil)
             case "revealPhrase":
@@ -586,6 +590,7 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
             case "eraseEverything":
                 try vault.eraseEverything()
                 syncFolder?.forget()   // nothing of the erased account stays connected
+                accountWiped()
                 notifyLibraryChanged()
                 reply(true, nil)
             default:

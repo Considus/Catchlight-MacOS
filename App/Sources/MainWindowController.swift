@@ -34,6 +34,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
         let mirror = LibraryMirror(reminders: MacReminders(centre: UNUserNotificationCenter.current()), spotlight: CoreSpotlightIndexer())
         libraryMirror = mirror
         bridge.setSpotlight = { [weak mirror] in mirror?.setExposure($0) }
+        bridge.accountWiped = { [weak mirror] in mirror?.accountWiped() }
         if vault != nil { bridge.notifyLibraryChanged() }
         webView = WKWebView(frame: .zero, configuration: configuration)
         #if DEBUG
@@ -139,12 +140,22 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
         // SyncService.whenIdle) isn't kept waiting behind it, for a closing window as for quitting.
         bridge.sync?.cancel()
         var done = false
+        var completed = false
+        let complete = {
+            guard !completed else { return }
+            completed = true
+            completion()
+        }
         let finish = { [weak self] in
             guard !done else { return }
             done = true
-            // A change still waiting out its delay is mirrored now, or quitting would lose it.
-            if self?.bridge.takePendingLibraryChange() == true { self?.mirrorLibrary(inBackground: false) }
-            completion()
+            // A change still waiting out its delay is mirrored now, or quitting would lose it, and
+            // quitting waits for the reminders to be reconciled so a removal isn't cut short.
+            if self?.bridge.takePendingLibraryChange() == true {
+                self?.mirrorLibrary(inBackground: false, completion: complete)
+            } else {
+                complete()
+            }
         }
         webView.callAsyncJavaScript("return await (window.catchlightBridge?.flush?.() ?? false);", arguments: [:], in: nil, in: .page) { result in
             if case .failure(let error) = result { Self.log.error("flush failed: \(String(describing: error), privacy: .public)") }
@@ -153,13 +164,19 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
         DispatchQueue.main.asyncAfter(deadline: .now() + timeout) {
             if !done { Self.log.error("flush timed out; closing anyway") }
             finish()
+            if !completed { Self.log.error("mirroring on the way out timed out; closing anyway") }
+            complete()
         }
     }
 
     /// Brings reminders and Spotlight in step with the library (`LibraryMirror.mirror`).
-    private func mirrorLibrary(inBackground: Bool) {
-        guard let mirror = libraryMirror, let read = LibraryMirror.reader(for: bridge.vault) else { return }
-        mirror.mirror(using: read, inBackground: inBackground)
+    /// `completion` runs once the reminders are reconciled, or at once when there is nothing to do.
+    private func mirrorLibrary(inBackground: Bool, completion: (() -> Void)? = nil) {
+        guard let mirror = libraryMirror, let read = LibraryMirror.reader(for: bridge.vault) else {
+            completion?()
+            return
+        }
+        mirror.mirror(using: read, inBackground: inBackground, completion: completion)
     }
 
     /// Closing the window ends the app (AppDelegate), so the page saves first.

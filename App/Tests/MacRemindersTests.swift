@@ -5,20 +5,56 @@ import XCTest
 final class FakeCentre: NotificationCentre {
     var added: [UNNotificationRequest] = []
     var pending: [String] = []
+    var delivered: [String] = []
     var removedPending: [String] = []
     var removedDelivered: [String] = []
+    var removeAllCount = 0
     var status: UNAuthorizationStatus = .authorized
     var authorizationAsked = 0
+    /// When set, every callback waits for `flush()`, and answers with what it saw when asked,
+    /// as the real centre answers from another queue.
+    var deferCallbacks = false
+    private var waiting: [() -> Void] = []
 
-    func add(_ request: UNNotificationRequest) { added.append(request) }
-    func removePending(_ ids: [String]) { removedPending += ids }
-    func removeDelivered(_ ids: [String]) { removedDelivered += ids }
-    func pendingIdentifiers(_ done: @escaping ([String]) -> Void) { done(pending) }
-    func authorizationStatus(_ done: @escaping (UNAuthorizationStatus) -> Void) { done(status) }
+    private func later(_ block: @escaping () -> Void) {
+        if deferCallbacks { waiting.append(block) } else { block() }
+    }
+
+    func flush() {
+        while !waiting.isEmpty { waiting.removeFirst()() }
+    }
+
+    func add(_ request: UNNotificationRequest) {
+        added.append(request)
+        pending.removeAll { $0 == request.identifier }
+        pending.append(request.identifier)
+    }
+    func removePending(_ ids: [String]) {
+        removedPending += ids
+        pending.removeAll { ids.contains($0) }
+    }
+    func removeDelivered(_ ids: [String]) {
+        removedDelivered += ids
+        delivered.removeAll { ids.contains($0) }
+    }
+    func removeAll() {
+        removeAllCount += 1
+        pending = []
+        delivered = []
+    }
+    func pendingIdentifiers(_ done: @escaping ([String]) -> Void) {
+        let seen = pending
+        later { done(seen) }
+    }
+    func deliveredIdentifiers(_ done: @escaping ([String]) -> Void) {
+        let seen = delivered
+        later { done(seen) }
+    }
+    func authorizationStatus(_ done: @escaping (UNAuthorizationStatus) -> Void) { later { done(self.status) } }
     func requestAuthorization(_ done: @escaping (Bool) -> Void) {
         authorizationAsked += 1
         status = .authorized
-        done(true)
+        later { done(true) }
     }
 }
 
@@ -189,5 +225,96 @@ final class MacRemindersTests: XCTestCase {
         centre.status = .notDetermined
         reminders().reconcile([])
         XCTAssertEqual(centre.authorizationAsked, 0)
+    }
+
+    // MARK: Delivered banners
+
+    func testReconcileRemovesADeliveredBannerForADeletedTake() {
+        let gone = UUID().uuidString
+        let goneRepeating = "\(UUID().uuidString)#4"
+        centre.delivered = [gone, goneRepeating, "other"]
+        reminders().reconcile([])
+        XCTAssertEqual(Set(centre.removedDelivered), [gone, goneRepeating])
+        XCTAssertEqual(centre.delivered, ["other"])
+    }
+
+    func testReconcileKeepsADeliveredBannerForATakeThatStillReminds() {
+        let fired = take(at: date(7, 9))   // this morning, already delivered
+        centre.delivered = [fired.id.uuidString]
+        reminders().reconcile([fired])
+        XCTAssertEqual(centre.delivered, [fired.id.uuidString])
+    }
+
+    func testReconcileRemovesADeliveredBannerForADoneTakeAndForAScript() {
+        let done = take(at: date(7, 9), done: true)
+        let script = take(at: date(7, 9), kind: "script")
+        centre.delivered = [done.id.uuidString, script.id.uuidString]
+        reminders().reconcile([done, script])
+        XCTAssertTrue(centre.delivered.isEmpty)
+    }
+
+    func testRemoveAllClearsPendingAndDelivered() {
+        centre.pending = [UUID().uuidString]
+        centre.delivered = [UUID().uuidString]
+        reminders().removeAll()
+        XCTAssertTrue(centre.pending.isEmpty)
+        XCTAssertTrue(centre.delivered.isEmpty)
+    }
+
+    // MARK: Completion and overlap
+
+    func testReconcileCompletesOnlyAfterTheRemovalsAreIssued() {
+        centre.deferCallbacks = true
+        centre.pending = [UUID().uuidString]
+        centre.delivered = [UUID().uuidString]
+        var completed = false
+        reminders().reconcile([]) { completed = true }
+        XCTAssertFalse(completed)
+        centre.flush()
+        XCTAssertTrue(completed)
+        XCTAssertTrue(centre.pending.isEmpty)
+        XCTAssertTrue(centre.delivered.isEmpty)
+    }
+
+    func testReconcileCompletesWhenThePlanIsAddedToo() {
+        centre.deferCallbacks = true
+        var completed = false
+        let t = take(at: date(8, 10))
+        reminders().reconcile([t]) { completed = true }
+        centre.flush()
+        XCTAssertTrue(completed)
+        XCTAssertEqual(centre.pending, [t.id.uuidString])
+    }
+
+    func testOverlappingReconcilesLeaveNoRequestForATakeDroppedByTheSecond() {
+        centre.deferCallbacks = true
+        let x = take("X", at: date(8, 10)), y = take("Y", at: date(8, 11))
+        let r = reminders()
+        var completions = 0
+        r.reconcile([x, y]) { completions += 1 }
+        r.reconcile([y]) { completions += 1 }   // the second plan has no X
+        centre.flush()
+        XCTAssertEqual(centre.pending, [y.id.uuidString])
+        XCTAssertEqual(completions, 2)
+    }
+
+    func testSeveralWaitingReconcilesCoalesceToTheNewest() {
+        centre.deferCallbacks = true
+        let a = take("A", at: date(8, 10)), b = take("B", at: date(8, 11)), c = take("C", at: date(8, 12))
+        let r = reminders()
+        r.reconcile([a])
+        r.reconcile([a, b])
+        r.reconcile([c])
+        centre.flush()
+        XCTAssertEqual(centre.pending, [c.id.uuidString])
+        XCTAssertFalse(centre.added.contains { $0.identifier == b.id.uuidString }, "the middle one never ran")
+    }
+
+    func testATakeWithOnlyAPlaceReminderGetsNoRequest() {
+        let place = LocationTrigger(latitude: 51.5, longitude: -0.1, radiusMetres: 100, triggerOnArrival: true)
+        let t = Take(blocks: [.textLine("Buy milk")], locationReminder: place)
+        XCTAssertTrue(reminders().plan([t]).isEmpty)
+        reminders().reconcile([t])
+        XCTAssertTrue(centre.added.isEmpty)
     }
 }

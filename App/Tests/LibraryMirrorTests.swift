@@ -98,6 +98,104 @@ final class LibraryMirrorTests: XCTestCase {
         XCTAssertEqual(spotlight.indexed, [a.id])
     }
 
+    func testAnAccountWipeRemovesEveryNotificationAndTheWholeIndex() {
+        let m = mirror()
+        m.setExposure("type")
+        m.refresh(takes: [take()])
+        centre.pending = [UUID().uuidString]
+        centre.delivered = [UUID().uuidString]
+        m.accountWiped()
+        XCTAssertTrue(centre.pending.isEmpty)
+        XCTAssertTrue(centre.delivered.isEmpty)
+        XCTAssertEqual(spotlight.deindexAllCount, 1)
+    }
+
+    func testAfterAWipeTheNextRefreshIndexesTakesAgain() {
+        let m = mirror()
+        m.setExposure("type")
+        let a = take()
+        m.refresh(takes: [a])
+        m.accountWiped()
+        m.refresh(takes: [a])
+        XCTAssertEqual(spotlight.indexed, [a.id, a.id])
+    }
+
+    func testASecondRefreshWithNothingChangedIndexesNothing() {
+        let m = mirror()
+        m.setExposure("type")
+        let a = take(), b = take()
+        m.refresh(takes: [a, b])
+        spotlight.indexed = []
+        m.refresh(takes: [a, b])
+        XCTAssertTrue(spotlight.indexed.isEmpty)
+    }
+
+    func testANewTakeAndATakeWhoseTypeLabelChangedAreIndexed() {
+        let m = mirror()
+        m.setExposure("type")
+        var a = take()
+        let b = take()
+        m.refresh(takes: [a, b])
+        spotlight.indexed = []
+        a.timeReminder = TimeReminder(scheduledDate: Date().addingTimeInterval(3600),
+                                      notificationIdentifier: a.id.uuidString)   // Note becomes Reminder
+        let c = take()
+        m.refresh(takes: [a, b, c])
+        XCTAssertEqual(Set(spotlight.indexed), [a.id, c.id])
+    }
+
+    func testRefreshCompletesOnlyAfterTheRemindersAreReconciled() {
+        let m = mirror()
+        centre.deferCallbacks = true
+        centre.pending = [UUID().uuidString]
+        var completed = false
+        m.refresh(takes: []) { completed = true }
+        XCTAssertFalse(completed)
+        centre.flush()
+        XCTAssertTrue(completed)
+        XCTAssertTrue(centre.pending.isEmpty)
+    }
+
+    func testMirrorCompletesWhenTheLibraryCannotBeRead() {
+        var completed = false
+        mirror().mirror(using: { nil }, inBackground: false) { completed = true }
+        XCTAssertTrue(completed)
+    }
+
+    func testMirrorCompletesAfterTheReconcileOnTheQuitPath() {
+        let m = mirror()
+        centre.deferCallbacks = true
+        centre.pending = [UUID().uuidString]
+        var completed = false
+        m.mirror(using: { [] }, inBackground: false) { completed = true }
+        XCTAssertFalse(completed)
+        centre.flush()
+        XCTAssertTrue(completed)
+    }
+
+    func testAnEraseAndAReplaceFromThePageWipeTheAccount() throws {
+        let vault = Vault(secrets: MemorySecrets(), directory: dir)
+        try vault.createAccount(words: try Vault.newPhrase(), restored: true)
+        let (harness, bridge) = page(with: vault)
+        var wipes = 0
+        bridge.accountWiped = { wipes += 1 }
+        _ = try harness.run("""
+            await window.webkit.messageHandlers.catchlight.postMessage({cmd: 'replaceAccount', words: \(try jsonWords(Vault.newPhrase()))});
+            return true;
+            """, in: self)
+        XCTAssertEqual(wipes, 1, "replace")
+        _ = try harness.run("""
+            await window.webkit.messageHandlers.catchlight.postMessage({cmd: 'eraseEverything'});
+            return true;
+            """, in: self)
+        XCTAssertEqual(wipes, 2, "erase")
+        RunLoop.main.run(until: Date().addingTimeInterval(0.7))
+    }
+
+    private func jsonWords(_ words: [String]) throws -> String {
+        String(decoding: try JSONSerialization.data(withJSONObject: words), as: UTF8.self)
+    }
+
     func testRefreshReconcilesReminders() {
         let m = mirror()
         centre.pending = [UUID().uuidString]

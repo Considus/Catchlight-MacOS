@@ -13,8 +13,9 @@ final class LibraryMirror {
     private let defaults: UserDefaults
     private(set) var exposure: SpotlightExposure
     private var lastTakes: [Take]?
-    /// What was indexed by the last refresh, so a Take that is gone can be removed.
-    private var indexed: Set<UUID> = []
+    /// What was indexed by the last refresh and under which type label, so a Take that is gone
+    /// can be removed, and a Take already indexed under its label is left alone.
+    private var indexed: [UUID: String] = [:]
     /// Reading every Take takes tens of milliseconds on a big library, so it is off the main
     /// thread. Serial, so the answers arrive in the order they were asked.
     private let readQueue = DispatchQueue(label: "com.considus.catchlight.mirror", qos: .utility)
@@ -47,28 +48,38 @@ final class LibraryMirror {
 
     /// Reads the Takes with `read` and refreshes with them. Main thread only. A background read
     /// runs on `readQueue` and its result is dropped if a newer request was made meanwhile.
-    func mirror(using read: @escaping () -> [Take]?, inBackground: Bool) {
+    /// `completion` runs on the main thread once the reminders are reconciled, at once when
+    /// there is nothing to read; a dropped background read never calls it.
+    func mirror(using read: @escaping () -> [Take]?, inBackground: Bool, completion: (() -> Void)? = nil) {
         generation += 1
         let mine = generation
         guard inBackground else {
-            if let takes = read() { refresh(takes: takes) }
+            if let takes = read() { refresh(takes: takes, completion: completion) } else { completion?() }
             return
         }
         readQueue.async { [weak self] in
             guard let takes = read() else { return }
             DispatchQueue.main.async {
                 guard let self, self.generation == mine else { return }
-                self.refresh(takes: takes)
+                self.refresh(takes: takes, completion: completion)
             }
         }
     }
 
-    func refresh(takes: [Take]) {
+    /// The account was erased or replaced: every notification of ours and the whole Spotlight
+    /// index go, as on the iPhone. The refresh the change schedules fills them from the new library.
+    func accountWiped() {
+        reminders.removeAll()
+        spotlight.deindexAll()
+        indexed = [:]
+    }
+
+    func refresh(takes: [Take], completion: (() -> Void)? = nil) {
         lastTakes = takes
-        reminders.reconcile(takes)
+        reminders.reconcile(takes, completion: completion)
         switch exposure {
         case .none:
-            indexed = []
+            indexed = [:]
             if clearPending {
                 clearPending = false
                 spotlight.deindexAll()
@@ -77,10 +88,14 @@ final class LibraryMirror {
             clearPending = false
             spotlight.exposure = .type
             let current = takes.filter { $0.kind == nil }
-            for take in current { spotlight.index(take) }
-            let ids = Set(current.map(\.id))
-            for gone in indexed.subtracting(ids) { spotlight.deindex(takeID: gone) }
-            indexed = ids
+            var labels: [UUID: String] = [:]
+            for take in current {
+                let label = SpotlightAttributes.title(for: take)
+                labels[take.id] = label
+                if indexed[take.id] != label { spotlight.index(take) }
+            }
+            for gone in Set(indexed.keys).subtracting(labels.keys) { spotlight.deindex(takeID: gone) }
+            indexed = labels
         }
     }
 
