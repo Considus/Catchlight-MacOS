@@ -16,7 +16,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
     let bridge = ShellBridge()
     let menuController = MenuController()
     private var libraryMirror: LibraryMirror?
-    private(set) lazy var takeOpener = TakeOpener { [weak self] id in self?.callPage("catchlightOpenTake", id) }
+    private(set) lazy var takeOpener = TakeOpener { [weak self] id, reply in self?.callPage("catchlightOpenTake", id, completion: reply) }
 
     /// `vault` is nil only in tests that load the page without a library; the page then keeps
     /// the browser prototype's localStorage behaviour.
@@ -224,7 +224,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         // A page loaded in full screen (the launch restored it, or a reload) needs telling.
         if window?.styleMask.contains(.fullScreen) == true { markFullScreen(true) }
-        takeOpener.pageDidLoad()
+        // Only the app's own page: the error page and a failed load have no catchlightOpenTake.
+        if webView.url?.absoluteString == Self.startURL.absoluteString { takeOpener.pageDidLoad() }
         #if DEBUG
         DebugLaunch.pageDidLoad(webView)
         #endif
@@ -235,6 +236,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
     private var lastTermination: Date?
 
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+        takeOpener.pageDidUnload()
         let now = Date()
         defer { lastTermination = now }
         if let last = lastTermination, now.timeIntervalSince(last) < 60 {

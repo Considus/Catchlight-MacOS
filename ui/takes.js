@@ -701,21 +701,25 @@ function exitToResting() {
 
 // A click on a Take's notification or Spotlight result (the shell calls this): leave search, the
 // Sequence, a month filter and the Storyboard for the resting timeline, then scroll the Take's
-// card into view and focus it, as Tab does. The id is matched without regard to case. A Take
-// that isn't there does nothing and returns false.
+// card into view and focus it, as Tab does. The id is matched without regard to case. Answers
+// 'opened'; 'missing' for a Take that isn't there (nothing changes); 'busy' while the Focus-ring,
+// the reminder picker, Settings, the Shot List, an alert, the conflict sheet or first run owns
+// the keyboard (menu.js `free`, plus the conflict sheet), when nothing changes either and the
+// shell asks again. An open editor is saved first.
 window.catchlightOpenTake = id => {
   const want = String(id).toLowerCase();
   const take = takes.find(x => String(x.id).toLowerCase() === want);
-  if (!take) return false;
+  if (!take) return 'missing';
+  if (!free() || conflictSheet.open) return 'busy';
   if (draft) commitEdit();
   if (layout.dailies === 'hidden') toggleHide('dailies');
   storyboard = false;
   exitToResting();
   const card = document.querySelector(`#takes [data-take="${take.id}"], #pinned [data-take="${take.id}"]`);
-  if (!card) return false;
+  if (!card) return 'missing';
   card.scrollIntoView({ block: 'center' });
   card.focus();
-  return true;
+  return 'opened';
 };
 
 // Toggle rules from UIState: Important stands alone; Notes clears Tasks and Reminders; Tasks
