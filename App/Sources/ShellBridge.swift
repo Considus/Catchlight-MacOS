@@ -237,7 +237,7 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                         entry["storedKind"] = stored.isScript ? "scripts" : "takes"
                     }
                     return entry
-                } + sync.conflicts.unverified.map { item -> [String: Any] in
+                } + sync.conflicts.unverified.filter { !sync.conflicts.heldIDs.contains($0.id) }.map { item -> [String: Any] in
                     // Not held: nothing stored is put back, and editing it is not refused.
                     var entry: [String: Any] = ["id": item.id.uuidString.lowercased(), "unverified": true]
                     if let local = item.local { entry["local"] = try Self.conflictSide(local) }

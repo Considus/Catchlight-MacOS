@@ -72,6 +72,66 @@ final class UnverifiedCopyTests: XCTestCase {
         XCTAssertNil(try store.take(id: cloud.id))
     }
 
+    func testKeepingLocalKeepsAnEditMadeAfterThePass() throws {
+        let (_, store) = try memoryStore()
+        let now = Date()
+        var local = take("Snapshot", modified: now.addingTimeInterval(-100))
+        try store.upsert(local)
+        local = try XCTUnwrap(try store.take(id: local.id))
+        var cloud = local
+        cloud.blocks = [.text(TextBlock(text: "Cloud"))]
+        cloud.modifiedAt = now.addingTimeInterval(500)
+        let queue = ConflictQueue()
+        queue.enqueueUnverified([UnverifiedCopy(id: local.id, local: local, cloud: cloud)])
+        var edited = local
+        edited.blocks = [.text(TextBlock(text: "Edited after the pass"))]
+        edited.modifiedAt = now.addingTimeInterval(900)
+        try store.upsert(edited)
+        let storedAt = try XCTUnwrap(try store.take(id: local.id)).modifiedAt
+
+        try queue.keepLocalUnverified(id: local.id, store: store, now: now)
+
+        let kept = try XCTUnwrap(try store.take(id: local.id))
+        XCTAssertEqual(kept.plainText, "Edited after the pass")
+        XCTAssertGreaterThan(kept.modifiedAt, storedAt)
+        XCTAssertGreaterThan(kept.modifiedAt, cloud.modifiedAt)
+    }
+
+    func testAnItemForAWaitingConflictIsNotOfferedAndAKeepWritesNothing() throws {
+        let (vault, store) = try memoryStore()
+        var local = take("Mine", modified: Date().addingTimeInterval(-100))
+        try store.upsert(local)
+        local = try XCTUnwrap(try store.take(id: local.id))
+        var remote = local
+        remote.blocks = [.text(TextBlock(text: "From the iPhone"))]
+        var cloud = local
+        cloud.blocks = [.text(TextBlock(text: "Unverified cloud"))]
+        let sync = SyncService(vault: vault, folder: SyncFolder(defaults: UserDefaults(suiteName: suite)!), defaults: UserDefaults(suiteName: suite)!)
+        sync.conflicts.enqueue([(local: local, remote: remote)])
+        sync.conflicts.enqueueUnverified([UnverifiedCopy(id: local.id, local: local, cloud: cloud)])
+        XCTAssertTrue(sync.conflicts.unverified.isEmpty, "a held Take is never offered")
+
+        // The pair arrived after the item was queued: the keep refuses and writes nothing.
+        let other = ConflictQueue()
+        other.enqueueUnverified([UnverifiedCopy(id: local.id, local: local, cloud: cloud)])
+        other.enqueue([(local: local, remote: remote)])
+        XCTAssertThrowsError(try other.keepCloudUnverified(id: local.id, store: store))
+        XCTAssertThrowsError(try other.keepLocalUnverified(id: local.id, store: store))
+        XCTAssertEqual(try store.take(id: local.id)?.plainText, "Mine")
+        XCTAssertEqual(try store.take(id: local.id)?.modifiedAt, local.modifiedAt)
+
+        // And the bridge does not list it.
+        let harness = WebViewHarness(root: WebViewHarness.repoUI, ruleList: nil)
+        let bridge = ShellBridge()
+        bridge.vault = vault
+        bridge.sync = sync
+        bridge.install(in: harness.webView.configuration.userContentController)
+        harness.load("index.html", in: self)
+        objc_setAssociatedObject(harness, "bridge", bridge, .OBJC_ASSOCIATION_RETAIN)
+        let listed = try harness.run("return JSON.stringify((await catchlightBridge.conflicts()).map(c => !!c.unverified));", in: self) as? String
+        XCTAssertEqual(listed, "[false]")
+    }
+
     /// A library with one unverified item of each shape, and the page on it.
     private func pageWithThreeShapes(_ harnessOut: inout WebViewHarness?) throws -> (Vault, SyncService, [UUID]) {
         let (vault, store) = try memoryStore()
@@ -118,6 +178,8 @@ final class UnverifiedCopyTests: XCTestCase {
         let answer = try harness.run("return await catchlightBridge.resolveUnverified(\(Self.js(ids[0])), 'local');", in: self) as? Bool
         XCTAssertEqual(answer, true)
         XCTAssertEqual(try vault.library!.store.take(id: ids[0])?.plainText, "Both: this Mac")
+        let stamped = try XCTUnwrap(try vault.library!.store.take(id: ids[0])).modifiedAt
+        XCTAssertGreaterThan(stamped, Date().addingTimeInterval(-60), "stamped as a fresh edit")
         XCTAssertEqual(sync.conflicts.unverified.count, 2)
     }
 

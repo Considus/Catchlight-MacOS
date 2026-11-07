@@ -217,11 +217,15 @@ final class ConflictQueue {
         case choiceDoesNotFit
         /// The Take changed between reading it and letting it go, so nothing was kept.
         case takeChanged
+        /// An unverified copy for a Take waiting for a conflict choice: keeping either copy writes
+        /// the raw store, which would change a held Take.
+        case held
         var errorDescription: String? {
             switch self {
             case .pairChanged: return "the versions changed while you were choosing"
             case .choiceDoesNotFit: return "that choice does not fit this conflict"
             case .takeChanged: return "the Take changed while its conflict was resolved"
+            case .held: return "this Take is waiting for a conflict choice"
             }
         }
     }
@@ -334,8 +338,10 @@ final class ConflictQueue {
         add(pair)
     }
 
+    /// Never for a Take waiting for a conflict choice (as on the iPhone): keeping either copy
+    /// writes the raw store, which would change a held Take.
     func enqueueUnverified(_ items: [UnverifiedCopy]) {
-        for item in items {
+        for item in items where !heldIDs.contains(item.id) {
             if let i = unverified.firstIndex(where: { $0.id == item.id }) { unverified[i] = item }
             else { unverified.append(item) }
         }
@@ -345,8 +351,12 @@ final class ConflictQueue {
     /// (as `resolve` does), so the next push makes it the newest and replaces the cloud copy; a
     /// newer edit on another device that couldn't be read is replaced when that device syncs.
     func keepLocalUnverified(id: UUID, store: TakeStore, now: Date = Date()) throws {
-        guard let i = unverified.firstIndex(where: { $0.id == id }), let winner = unverified[i].local else { return }
-        try keepUnverified(winner, after: unverified[i].cloud, at: i, store: store, now: now)
+        guard let i = unverified.firstIndex(where: { $0.id == id }), let snapshot = unverified[i].local else { return }
+        if heldIDs.contains(id) { throw Failure.held }
+        // This Mac's version is the Take as it is NOW: unverified items aren't held, so it may
+        // have been edited since the pass. The snapshot stands in only if it has gone.
+        let current = try store.take(id: id) ?? snapshot
+        try keepUnverified(current, after: unverified[i].cloud, at: i, store: store, now: now)
     }
 
     /// Keep the cloud copy that decrypted: beside this Mac's version, or to recover a Take that
@@ -354,7 +364,9 @@ final class ConflictQueue {
     /// verifies again. Does nothing when no copy decrypted.
     func keepCloudUnverified(id: UUID, store: TakeStore, now: Date = Date()) throws {
         guard let i = unverified.firstIndex(where: { $0.id == id }), let winner = unverified[i].cloud else { return }
-        try keepUnverified(winner, after: unverified[i].local, at: i, store: store, now: now)
+        if heldIDs.contains(id) { throw Failure.held }
+        let current = try store.take(id: id) ?? unverified[i].local
+        try keepUnverified(winner, after: current, at: i, store: store, now: now)
     }
 
     /// Skip for now: nothing is written, and the next sync brings it back if it is still unresolved.
@@ -364,7 +376,7 @@ final class ConflictQueue {
 
     private func keepUnverified(_ winner: Take, after other: Take?, at index: Int, store: TakeStore, now: Date) throws {
         var kept = winner
-        kept.modifiedAt = [other?.modifiedAt].compactMap { $0 }.reduce(winner.modifiedAt, max)
+        kept.modifiedAt = max(winner.modifiedAt, other?.modifiedAt ?? winner.modifiedAt)
         kept.markModified(at: now)
         try store.upsert(kept)
         unverified.remove(at: index)
