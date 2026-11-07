@@ -12600,115 +12600,115 @@
         }
       }
     },
-    "Catchlight 0.1 (prototype)" : {
+    "Catchlight %@" : {
       "extractionState" : "manual",
       "localizations" : {
         "da" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Catchlight 0.1 (prototype)"
+            "value" : "Catchlight %@"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Catchlight 0.1 (Prototyp)"
+            "value" : "Catchlight %@"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Catchlight 0.1 (prototipo)"
+            "value" : "Catchlight %@"
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Catchlight 0.1 (prototyyppi)"
+            "value" : "Catchlight %@"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Catchlight 0.1 (prototype)"
+            "value" : "Catchlight %@"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Catchlight 0.1 (prototipo)"
+            "value" : "Catchlight %@"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Catchlight 0.1（プロトタイプ）"
+            "value" : "Catchlight %@"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Catchlight 0.1(프로토타입)"
+            "value" : "Catchlight %@"
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Catchlight 0.1 (prototype)"
+            "value" : "Catchlight %@"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Catchlight 0.1 (prototype)"
+            "value" : "Catchlight %@"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Catchlight 0.1 (prototyp)"
+            "value" : "Catchlight %@"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Catchlight 0.1 (protótipo)"
+            "value" : "Catchlight %@"
           }
         },
         "pt-PT" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Catchlight 0.1 (protótipo)"
+            "value" : "Catchlight %@"
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Catchlight 0.1 (prototyp)"
+            "value" : "Catchlight %@"
           }
         },
         "th" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Catchlight 0.1 (ต้นแบบ)"
+            "value" : "Catchlight %@"
           }
         },
         "tr" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Catchlight 0.1 (prototip)"
+            "value" : "Catchlight %@"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Catchlight 0.1（原型）"
+            "value" : "Catchlight %@"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Catchlight 0.1（原型）"
+            "value" : "Catchlight %@"
           }
         }
       }
@@ -63595,115 +63595,115 @@
         }
       }
     },
-    "Version 0.1 (prototype)" : {
+    "Version %@" : {
       "extractionState" : "manual",
       "localizations" : {
         "da" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Version 0.1 (prototype)"
+            "value" : "Version %@"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Version 0.1 (Prototyp)"
+            "value" : "Version %@"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Versión 0.1 (prototipo)"
+            "value" : "Versión %@"
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Versio 0.1 (prototyyppi)"
+            "value" : "Versio %@"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Version 0.1 (prototype)"
+            "value" : "Version %@"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Versione 0.1 (prototipo)"
+            "value" : "Versione %@"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "バージョン0.1（プロトタイプ）"
+            "value" : "バージョン%@"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "버전 0.1(프로토타입)"
+            "value" : "버전 %@"
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Versjon 0.1 (prototype)"
+            "value" : "Versjon %@"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Versie 0.1 (prototype)"
+            "value" : "Versie %@"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Wersja 0.1 (prototyp)"
+            "value" : "Wersja %@"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Versão 0.1 (protótipo)"
+            "value" : "Versão %@"
           }
         },
         "pt-PT" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Versão 0.1 (protótipo)"
+            "value" : "Versão %@"
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Version 0.1 (prototyp)"
+            "value" : "Version %@"
           }
         },
         "th" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "เวอร์ชัน 0.1 (ต้นแบบ)"
+            "value" : "เวอร์ชัน %@"
           }
         },
         "tr" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Sürüm 0.1 (prototip)"
+            "value" : "Sürüm %@"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "版本 0.1（原型）"
+            "value" : "版本 %@"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "版本 0.1（原型）"
+            "value" : "版本 %@"
           }
         }
       }

@@ -244,6 +244,7 @@
     },
     shell: {
       osVersion: () => info.osVersion,
+      version: () => info.version,
       // The sync folder: the Mac's open panel. The answer is the path to show, or null on cancel;
       // the bookmark that gives access stays in the shell (SyncFolder.swift).
       chooseFolder: () => post('chooseFolder'),

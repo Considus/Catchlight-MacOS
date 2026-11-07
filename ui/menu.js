@@ -132,7 +132,7 @@ function dockTo(mode) {
   renderTakes();
   if (mode === 'search') $('#take-search').focus();
 }
-const supportUrl = 'https://catchlight.app/support/?platform=' + PLATFORM.osName + '&app=0.1';
+const supportUrl = 'https://catchlight.app/support/?platform=' + PLATFORM.osName + '&app=' + encodeURIComponent(shell.version());
 
 // ---------- the menus ----------
 // Each item: id, label (text or a function of the moment), keys, enabled(), checked(), run(),

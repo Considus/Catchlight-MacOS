@@ -143,7 +143,7 @@ function settingsPage() {
     link('export', 'export', t('Export Takes'), '', false),
     folder ? link('import-notes', 'import', t('Import notes'), '', false) : '',
     link('import-file', 'file', t('Import from a file'), '', false),
-    link('about', 'info', t('About'), t('Catchlight 0.1 (prototype)')),
+    link('about', 'info', t('About'), t('Catchlight %@', shell.version())),
     link('start-over', 'restart', t('Start over'), '', false, ' danger'),
   ], t('Erases every Take here and creates a new Privacy phrase. Cloud copies become unreadable too. Export first, it is the only way back.'))}
   ${group(t('Support'), [
@@ -175,7 +175,7 @@ const SUB = {
   about: () => [t('About'), `<div class="ssub-col">
       ${brandMark()}
       <h2 class="ssub-heading">${t('Privacy-first notes and reminders')}</h2>
-      <p class="quiet sversion" tabindex="0" data-copy-info title="${esc(t('Right-click to copy version and device info'))}">${t('Version 0.1 (prototype)')}</p>
+      <p class="quiet sversion" tabindex="0" data-copy-info title="${esc(t('Right-click to copy version and device info'))}">${t('Version %@', shell.version())}</p>
       <div class="scard"><h4>${t('Open Source Licences')}</h4>
         <p>${t('Cormorant Garamond and DM Sans, under the SIL Open Font License 1.1. The licence text for each is beside the fonts and listed in NOTICE.')}</p>
         <p class="quiet">${t('The BIP-39 English wordlist is sourced from the Trezor project and bundled under the MIT licence.')}</p></div>
@@ -409,8 +409,8 @@ sheet.addEventListener('pointerdown', e => {
 // keyboard, as VoiceOver's named action on iOS.
 // The support page, told the platform, the app version and the OS version, and nothing else
 // (SettingsView.reportAnIssue).
-const reportUrl = () => 'https://catchlight.app/support/?' + new URLSearchParams({ platform: PLATFORM.osName, app: '0.1', os: shell.osVersion() });
-const supportInfo = () => `Catchlight 0.1 (prototype)\n${shell.systemInfo()}`;
+const reportUrl = () => 'https://catchlight.app/support/?' + new URLSearchParams({ platform: PLATFORM.osName, app: shell.version(), os: shell.osVersion() });
+const supportInfo = () => `Catchlight ${shell.version()}\n${shell.systemInfo()}`;
 sheet.addEventListener('keydown', e => {
   const v = e.target.closest('[data-copy-info]');
   if (!v || !(e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10'))) return;
