@@ -341,6 +341,35 @@ final class ConflictQueue {
         }
     }
 
+    /// Keep this Mac's version of an unverified item. Stamped as a fresh edit after the cloud copy
+    /// (as `resolve` does), so the next push makes it the newest and replaces the cloud copy; a
+    /// newer edit on another device that couldn't be read is replaced when that device syncs.
+    func keepLocalUnverified(id: UUID, store: TakeStore, now: Date = Date()) throws {
+        guard let i = unverified.firstIndex(where: { $0.id == id }), let winner = unverified[i].local else { return }
+        try keepUnverified(winner, after: unverified[i].cloud, at: i, store: store, now: now)
+    }
+
+    /// Keep the cloud copy that decrypted: beside this Mac's version, or to recover a Take that
+    /// isn't on this Mac. Stamped as a fresh edit so the next push uploads it and the cloud
+    /// verifies again. Does nothing when no copy decrypted.
+    func keepCloudUnverified(id: UUID, store: TakeStore, now: Date = Date()) throws {
+        guard let i = unverified.firstIndex(where: { $0.id == id }), let winner = unverified[i].cloud else { return }
+        try keepUnverified(winner, after: unverified[i].local, at: i, store: store, now: now)
+    }
+
+    /// Skip for now: nothing is written, and the next sync brings it back if it is still unresolved.
+    func skipUnverified(id: UUID) {
+        unverified.removeAll { $0.id == id }
+    }
+
+    private func keepUnverified(_ winner: Take, after other: Take?, at index: Int, store: TakeStore, now: Date) throws {
+        var kept = winner
+        kept.modifiedAt = [other?.modifiedAt].compactMap { $0 }.reduce(winner.modifiedAt, max)
+        kept.markModified(at: now)
+        try store.upsert(kept)
+        unverified.remove(at: index)
+    }
+
     /// `.local`, `.remote` and `.both` for an ordinary pair; `.asNew` and `.letGo` for a converted
     /// one, whose other side is a Script this Mac never reads.
     enum Choice: String { case local, remote, both, asNew = "new", letGo }

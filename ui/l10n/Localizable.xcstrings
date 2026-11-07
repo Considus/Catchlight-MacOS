@@ -21347,6 +21347,119 @@
         }
       }
     },
+    "Didn't pass its check, and may be an older version." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hat die Überprüfung nicht bestanden und ist möglicherweise eine ältere Version."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "N’a pas passé la vérification et peut être une version antérieure."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No superó la comprobación y podría ser una versión anterior."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non ha superato la verifica e potrebbe essere una versione precedente."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não passou na verificação e pode ser uma versão mais antiga."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Is niet door de controle gekomen en is mogelijk een oudere versie."
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não passou na verificação e pode ser uma versão mais antiga."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie przeszedł weryfikacji i może być starszą wersją."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Klarade inte kontrollen och kan vara en äldre version."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bestod ikke kontrollen og kan være en ældre version."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bestod ikke kontrollen og kan være en eldre versjon."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ei läpäissyt tarkistusta, joten kyseessä voi olla vanhempi versio."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kontrolü geçemedi ve daha eski bir sürüm olabilir."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検証に失敗しました。古いバージョンである可能性があります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "검증을 통과하지 못했으며 이전 버전일 수 있습니다."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未通过验证，可能是较旧的版本。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未通過驗證，可能是較舊的版本。"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ไม่ผ่านการตรวจสอบ และอาจเป็นเวอร์ชันที่เก่ากว่า"
+          }
+        }
+      }
+    },
     "Disabled" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -32013,6 +32126,119 @@
         }
       }
     },
+    "It's in your cloud folder but not on this Mac. It didn't pass its check, so it may be an older version." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Die Datei befindet sich in deinem Cloud-Ordner, aber nicht auf diesem Mac. Sie hat die Prüfung nicht bestanden und ist daher möglicherweise eine ältere Version."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ce fichier se trouve dans votre dossier cloud, mais pas sur ce Mac. Il n’a pas passé la vérification ; il s’agit donc peut-être d’une ancienne version."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Está en tu carpeta de la nube, pero no en este Mac. No pasó la comprobación, por lo que puede ser una versión anterior."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Si trova nella tua cartella cloud ma non su questo Mac. Non ha superato la verifica, quindi potrebbe essere una versione precedente."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Está na sua pasta na nuvem, mas não neste Mac. Não passou na verificação, então pode ser uma versão antiga."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Het staat in je cloudmap, maar niet op deze Mac. Het is niet door de controle gekomen en is mogelijk een oudere versie."
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Está na sua pasta na nuvem, mas não neste Mac. Não passou na verificação, pelo que poderá ser uma versão mais antiga."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Znajduje się w folderze w chmurze, ale nie na tym Macu. Plik nie przeszedł weryfikacji, więc może to być starsza wersja."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Den finns i din molnmapp men inte på den här Macen. Den klarade inte kontrollen, så det kan vara en äldre version."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Den ligger i din skymappe, men ikke på denne Mac. Den bestod ikke sin kontrol, så det kan være en ældre version."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Den ligger i skymappen din, men ikke på denne Macen. Den besto ikke kontrollen, så det kan være en eldre versjon."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Se on pilvikansiossasi, mutta ei tässä Macissa. Se ei läpäissyt tarkistusta, joten kyseessä voi olla vanhempi versio."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bulut klasörünüzde var ama bu Mac'te yok. Kontrolü geçemedi, bu nedenle daha eski bir sürüm olabilir."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "クラウドフォルダに存在しますが、このMacにはありません。チェックを通過しなかったため、古いバージョンの可能性があります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "클라우드 폴더에는 있지만 이 Mac에는 없습니다. 검사를 통과하지 못해 이전 버전일 수 있습니다."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "该记录在您的云文件夹中，但不在这台 Mac 上。它未通过验证，因此可能是较旧的版本。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "該紀錄位於您的雲端資料夾，但不在這部 Mac 上。它未通過驗證，因此可能是較舊的版本。"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "อยู่ในโฟลเดอร์คลาวด์ของคุณแต่ไม่ได้อยู่ใน Mac เครื่องนี้ ไม่ผ่านการตรวจสอบ ดังนั้นอาจเป็นเวอร์ชันที่เก่ากว่า"
+          }
+        }
+      }
+    },
     "Italic" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -32687,6 +32913,119 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "將此版本保留為新的 Take"
+          }
+        }
+      }
+    },
+    "Keeping it replaces any newer edit that may exist on another device when it syncs." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wenn du sie behältst, werden beim Synchronisieren neuere Änderungen auf einem anderen Gerät ersetzt."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La conserver remplacera toute modification plus récente qui pourrait se trouver sur un autre appareil lors de la synchronisation."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Al conservarla, se sustituirá cualquier edición más reciente que exista en otro dispositivo al sincronizar."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantenendo questa versione sostituirai qualsiasi modifica più recente presente su un altro dispositivo al momento della sincronizzazione."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ao mantê-la, você substituirá qualquer edição mais recente que possa existir em outro dispositivo quando ele sincronizar."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Als je deze versie behoudt, vervangt die bij de synchronisatie een nieuwere bewerking die mogelijk op een ander apparaat staat."
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ao mantê-la, substituirá qualquer edição mais recente que possa existir noutro dispositivo quando este sincronizar."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zachowanie jej zastąpi podczas synchronizacji wszelkie nowsze edycje, które mogą istnieć na innym urządzeniu."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Om du behåller den ersätter den alla nyare ändringar som kan finnas på en annan enhet när den synkroniseras."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hvis du beholder den, erstatter den eventuelle nyere redigeringer, der måtte eksistere på en anden enhed, når den synkroniseres."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Når den synkroniseres, erstatter dette eventuelle nyere endringer som kan finnes på en annen enhet."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sen säilyttäminen korvaa mahdollisen uudemman muokkauksen, joka voi olla toisella laitteella sen synkronoituessa."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bunu korumak, eşitlendiğinde başka bir cihazda bulunabilecek daha yeni düzenlemelerin üzerine yazar."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "これを保持すると、同期時に他のデバイスにあるより新しい編集内容が上書きされます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 버전을 유지하면 동기화할 때 다른 기기에 있는 더 최신 편집 내용이 대체됩니다."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保留此版本后，同步时可能会替换另一台设备上存在的任何较新修改。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保留此版本會在同步時取代其他裝置上可能存在的較新編輯內容。"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "การเก็บไว้จะแทนที่การแก้ไขที่ใหม่กว่าที่อาจมีอยู่ในอุปกรณ์อื่นเมื่อทำการซิงค์"
           }
         }
       }
@@ -44828,6 +45167,232 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "準備好還原。"
+          }
+        }
+      }
+    },
+    "Recover" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wiederherstellen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Récupérer"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recuperar"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recupera"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recuperar"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terughalen"
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recuperar"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odzyskaj"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Återställ"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gendan"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gjenopprett"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Palauta"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kurtar"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "復元"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "복구"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "恢复"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "復原"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "กู้คืน"
+          }
+        }
+      }
+    },
+    "Recover this Take?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diesen Take wiederherstellen?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Récupérer ce Take ?"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Recuperar este Take?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recuperare questo Take?"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recuperar este Take?"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze Take terughalen?"
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recuperar este Take?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odzyskać ten Take?"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Återställa den här Taken?"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gendan denne Take?"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gjenopprette denne Take-en?"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Palautetaanko tämä Take?"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bu Take kurtarılsın mı?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このTakeを復元しますか？"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 Take를 복구할까요?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "恢复这条 Take？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要復原此 Take 嗎？"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "กู้คืน Take นี้หรือไม่?"
           }
         }
       }
@@ -57946,6 +58511,119 @@
         }
       }
     },
+    "The copies of these Takes in your cloud folder didn't pass their check. Nothing changes on this Mac until you choose." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Die Kopien dieser Takes in deinem Cloud-Ordner haben die Überprüfung nicht bestanden. Auf diesem Mac wird nichts geändert, bis du eine Auswahl triffst."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Les copies de ces Takes dans votre dossier cloud n'ont pas passé la vérification. Rien ne change sur ce Mac tant que vous n'avez pas fait de choix."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Las copias de estos Takes en tu carpeta de la nube no pasaron la verificación. Nada cambiará en este Mac hasta que elijas una opción."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Le copie di questi Take nella cartella cloud non hanno superato il controllo. Su questo Mac non cambierà nulla finché non scegli."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "As cópias destes Takes na sua pasta na nuvem não passaram na verificação. Nada muda neste Mac até que você escolha."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "De kopieën van deze Takes in je cloudmap zijn niet door de controle gekomen. Er verandert niets op deze Mac totdat je een keuze maakt."
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "As cópias destes Takes na sua pasta na nuvem não passaram na verificação. Nada muda neste Mac até que escolha."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kopie tych Takes w Twoim folderze w chmurze nie przeszły weryfikacji. Na tym Macu nic się nie zmieni, dopóki nie dokonasz wyboru."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kopiorna av dessa Takes i din molnmapp klarade inte kontrollen. Inget ändras på den här Macen förrän du väljer."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kopierne af disse Takes i din skymappe bestod ikke deres kontrol. Der sker ingen ændringer på denne Mac, før du vælger."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kopiene av disse Take-ene i skymappen din besto ikke kontrollen. Ingenting endres på denne Macen før du velger."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Näiden Takejen pilvikansiossa olevat kopiot eivät läpäisseet tarkistusta. Mikään ei muutu tällä Macilla, ennen kuin valitset."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bulut klasörünüzdeki bu Take'lerin kopyaları doğrulamadan geçemedi. Siz seçim yapana kadar bu Mac'te hiçbir şey değişmeyecektir."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "クラウドフォルダ内のこれらのTakeのコピーは検証に通りませんでした。選択するまで、このMac上のデータは変更されません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "클라우드 폴더에 있는 이 Take의 사본이 검증을 통과하지 못했습니다. 직접 선택하기 전까지 이 Mac에서는 아무것도 변경되지 않습니다."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "云文件夹中的这些 Takes 未能通过校验。在你做出选择之前，这台 Mac 上的内容不会发生变化。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "雲端資料夾中的這些 Takes 副本未通過檢查。在你做出選擇前，這部 Mac 上的內容都不會變更。"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "สำเนาของ Take เหล่านี้ในโฟลเดอร์คลาวด์ของคุณไม่ผ่านการตรวจสอบ ไม่มีการเปลี่ยนแปลงใด ๆ ใน Mac เครื่องนี้จนกว่าคุณจะเลือก"
+          }
+        }
+      }
+    },
     "The log is written by the shell, which doesn't exist yet." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -58055,6 +58733,119 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "記錄由 App 外殼寫入，而外殼尚未推出。"
+          }
+        }
+      }
+    },
+    "The newer version from another device can't be read." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die neuere Version von einem anderen Gerät kann nicht gelesen werden."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La version plus récente provenant d'un autre appareil ne peut pas être lue."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se puede leer la versión más reciente de otro dispositivo."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile leggere la versione più recente proveniente da un altro dispositivo."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A versão mais recente de outro dispositivo não pode ser lida."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De nieuwere versie van een ander apparaat kan niet worden gelezen."
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A versão mais recente de outro dispositivo não pode ser lida."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie można odczytać nowszej wersji z innego urządzenia."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Den nyare versionen från en annan enhet går inte att läsa."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Den nyere version fra en anden enhed kan ikke læses."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Den nyere versjonen fra en annen enhet kan ikke leses."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toisen laitteen uudempaa versiota ei voida lukea."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Başka bir cihazdaki daha yeni sürüm okunamıyor."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "別のデバイスにある新しいバージョンを読み取れません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "다른 기기의 최신 버전을 읽을 수 없습니다."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法读取来自另一台设备的较新版本。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法讀取另一部裝置上的較新版本。"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ไม่สามารถอ่านเวอร์ชันใหม่จากอุปกรณ์อื่นได้"
           }
         }
       }
