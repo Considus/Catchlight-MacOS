@@ -199,7 +199,10 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
         return WKUserScript(source: "window.catchlightLibrary = \(json);", injectionTime: .atDocumentStart, forMainFrameOnly: true, in: .page)
     }
 
+    /// Also used for the new web view a Writing Tools change makes, so the unreadable flag is
+    /// cleared here: it describes the library as this install reads it, not an earlier read.
     func install(in controller: WKUserContentController) {
+        libraryUnreadable = false
         addUserScripts(to: controller)
         controller.addScriptMessageHandler(self, contentWorld: .page, name: Self.name)
     }
