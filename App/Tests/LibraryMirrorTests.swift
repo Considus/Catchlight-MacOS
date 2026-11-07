@@ -136,6 +136,38 @@ final class LibraryMirrorTests: XCTestCase {
         RunLoop.main.run(until: Date().addingTimeInterval(0.7))
     }
 
+    func testContinuousChangesStillRunWithinTheMaximumWait() {
+        let bridge = ShellBridge()
+        bridge.libraryChangeDelay = 0.3
+        bridge.libraryChangeMaxWait = 0.5
+        let start = Date()
+        var ranAt: [TimeInterval] = []
+        bridge.libraryChanged = { ranAt.append(Date().timeIntervalSince(start)) }
+        while Date().timeIntervalSince(start) < 1.3 {
+            bridge.notifyLibraryChanged()
+            RunLoop.main.run(until: Date().addingTimeInterval(0.1))
+        }
+        XCTAssertGreaterThanOrEqual(ranAt.count, 2, "a change every 0.1 s never starved the refresh")
+        XCTAssertLessThan(try! XCTUnwrap(ranAt.first), 0.8)
+        _ = bridge.takePendingLibraryChange()
+    }
+
+    func testAnOlderBackgroundReadNeverOverwritesANewerOne() {
+        let m = mirror()
+        m.setExposure("type")
+        let older = take(), newer = take()
+        let gate = DispatchSemaphore(value: 0)
+        m.mirror(using: { gate.wait(); return [older] }, inBackground: true)
+        m.mirror(using: { [newer] }, inBackground: false)   // the quit path
+        XCTAssertEqual(spotlight.indexed, [newer.id])
+        gate.signal()
+        let settled = expectation(description: "the older read finished")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { settled.fulfill() }
+        wait(for: [settled], timeout: 5)
+        XCTAssertEqual(spotlight.indexed, [newer.id], "the older result was dropped")
+        XCTAssertTrue(spotlight.deindexed.isEmpty)
+    }
+
     func testAPendingChangeCanBeTakenForQuitting() {
         let bridge = ShellBridge()
         bridge.libraryChanged = { XCTFail("a change taken for quitting must not run later") }

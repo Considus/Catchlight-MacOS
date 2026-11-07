@@ -15,6 +15,12 @@ final class LibraryMirror {
     private var lastTakes: [Take]?
     /// What was indexed by the last refresh, so a Take that is gone can be removed.
     private var indexed: Set<UUID> = []
+    /// Reading every Take takes tens of milliseconds on a big library, so it is off the main
+    /// thread. Serial, so the answers arrive in the order they were asked.
+    private let readQueue = DispatchQueue(label: "com.considus.catchlight.mirror", qos: .utility)
+    /// Bumped on the main thread by every request; a result is applied only if it is still the
+    /// latest, so an older background read never overwrites a newer one.
+    private var generation = 0
     /// Set when the level changes to `.none`; the next refresh clears the index once.
     private var clearPending = false
 
@@ -37,6 +43,24 @@ final class LibraryMirror {
         if level == .none { clearPending = true }
         exposure = level
         if let lastTakes { refresh(takes: lastTakes) }
+    }
+
+    /// Reads the Takes with `read` and refreshes with them. Main thread only. A background read
+    /// runs on `readQueue` and its result is dropped if a newer request was made meanwhile.
+    func mirror(using read: @escaping () -> [Take]?, inBackground: Bool) {
+        generation += 1
+        let mine = generation
+        guard inBackground else {
+            if let takes = read() { refresh(takes: takes) }
+            return
+        }
+        readQueue.async { [weak self] in
+            guard let takes = read() else { return }
+            DispatchQueue.main.async {
+                guard let self, self.generation == mine else { return }
+                self.refresh(takes: takes)
+            }
+        }
     }
 
     func refresh(takes: [Take]) {

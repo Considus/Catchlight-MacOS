@@ -67,20 +67,29 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
     var libraryChanged: () -> Void = {}
     /// How long after the last change `libraryChanged` runs. The page saves on every edit.
     var libraryChangeDelay: TimeInterval = 0.5
+    /// The longest a change waits, so continuous saving still refreshes this often.
+    var libraryChangeMaxWait: TimeInterval = 2
+    private var libraryChangeSince: Date?
     /// `setSpotlight {level}`: the page's Spotlight setting, handed to the `LibraryMirror`.
     var setSpotlight: (String) -> Void = { _ in }
     private var libraryChangeTimer: DispatchWorkItem?
 
     /// Call after any successful write to the library. A later change restarts the wait, and the
-    /// last change always runs.
+    /// last change always runs, and never later than `libraryChangeMaxWait` after the first
+    /// change that is still waiting.
     func notifyLibraryChanged() {
         libraryChangeTimer?.cancel()
+        let now = Date()
+        let since = libraryChangeSince ?? now
+        libraryChangeSince = since
+        let wait = min(libraryChangeDelay, max(0, libraryChangeMaxWait - now.timeIntervalSince(since)))
         let run = DispatchWorkItem { [weak self] in
             self?.libraryChangeTimer = nil
+            self?.libraryChangeSince = nil
             self?.libraryChanged()
         }
         libraryChangeTimer = run
-        DispatchQueue.main.asyncAfter(deadline: .now() + libraryChangeDelay, execute: run)
+        DispatchQueue.main.asyncAfter(deadline: .now() + wait, execute: run)
     }
 
     /// Drops a change still waiting and says whether there was one, so a quitting app can run it
@@ -89,6 +98,7 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
         guard let run = libraryChangeTimer else { return false }
         run.cancel()
         libraryChangeTimer = nil
+        libraryChangeSince = nil
         return true
     }
 

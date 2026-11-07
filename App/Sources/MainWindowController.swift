@@ -16,9 +16,6 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
     let bridge = ShellBridge()
     let menuController = MenuController()
     private var libraryMirror: LibraryMirror?
-    /// Reading every Take takes tens of milliseconds on a big library, so it is off the main
-    /// thread. Serial, so the answers arrive in the order they were asked.
-    private let mirrorQueue = DispatchQueue(label: "com.considus.catchlight.mirror", qos: .utility)
 
     /// `vault` is nil only in tests that load the page without a library; the page then keeps
     /// the browser prototype's localStorage behaviour.
@@ -148,19 +145,10 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
         }
     }
 
-    /// Brings reminders and Spotlight in step with the library. The read runs off the main thread
-    /// (the store serialises its own reads); the refresh runs on it, as the mirror is not
-    /// thread-safe.
+    /// Brings reminders and Spotlight in step with the library (`LibraryMirror.mirror`).
     private func mirrorLibrary(inBackground: Bool) {
         guard let mirror = libraryMirror, let read = LibraryMirror.reader(for: bridge.vault) else { return }
-        if inBackground {
-            mirrorQueue.async {
-                guard let takes = read() else { return }
-                DispatchQueue.main.async { mirror.refresh(takes: takes) }
-            }
-        } else if let takes = read() {
-            mirror.refresh(takes: takes)
-        }
+        mirror.mirror(using: read, inBackground: inBackground)
     }
 
     /// Closing the window ends the app (AppDelegate), so the page saves first.
