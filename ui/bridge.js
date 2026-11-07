@@ -256,6 +256,10 @@
       // The Spotlight setting (settings.js sends it at load and on every change). The shell
       // indexes at `none` or `type` only: the text levels clamp to `type`.
       setSpotlight: level => post('setSpotlight', { level }),
+      // The Writing Tools setting: 'off', 'panel' or 'inline' (settings.js sends it at load and on
+      // every change). Anything else is 'off'. A change makes the shell rebuild its web view, after
+      // the page has saved, because a web view takes this at creation.
+      setWritingTools: level => post('setWritingTools', { level }),
       // The Mac's notification permission: 'enabled', 'denied' or 'ask'. Enabling asks when the
       // permission was never asked, and otherwise opens System Settings; it answers the status after.
       notificationStatus: () => post('notificationStatus'),
