@@ -72,6 +72,19 @@ final class UnverifiedCopyTests: XCTestCase {
         XCTAssertNil(try store.take(id: cloud.id))
     }
 
+    func testAKeepOnAnItemThatIsGoneOrHasNoSuchSideThrowsAndWritesNothing() throws {
+        let (_, store) = try memoryStore()
+        let queue = ConflictQueue()
+        let gone = UUID()
+        XCTAssertThrowsError(try queue.keepLocalUnverified(id: gone, store: store)) { XCTAssertEqual($0 as? ConflictQueue.Failure, .gone) }
+        XCTAssertThrowsError(try queue.keepCloudUnverified(id: gone, store: store)) { XCTAssertEqual($0 as? ConflictQueue.Failure, .gone) }
+        let local = take("Only here", modified: Date())
+        queue.enqueueUnverified([UnverifiedCopy(id: local.id, local: local, cloud: nil)])
+        XCTAssertThrowsError(try queue.keepCloudUnverified(id: local.id, store: store)) { XCTAssertEqual($0 as? ConflictQueue.Failure, .gone) }
+        XCTAssertNil(try store.take(id: local.id))
+        XCTAssertEqual(queue.unverified.count, 1)
+    }
+
     func testKeepingLocalKeepsAnEditMadeAfterThePass() throws {
         let (_, store) = try memoryStore()
         let now = Date()
