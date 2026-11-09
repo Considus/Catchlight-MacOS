@@ -51,10 +51,11 @@ packages:
   # iPhone app so the two can't drift. From 1.4.0 it takes any Core 1.x
   # (Catchlight-AppleStorage#13), so a Core bump no longer needs a matching one here.
   # 1.5.0: Obie changes stamped strictly forward with Core's markModified, so they always
-  # sync; it needs Core 1.7.0 (Catchlight-AppleStorage#16).
+  # sync; it needs Core 1.7.0 (Catchlight-AppleStorage#16). 1.6.0: a Take deleted during a
+  # sync stays deleted (Catchlight-AppleStorage#26).
   CatchlightAppleStorage:
     url: https://github.com/Considus/Catchlight-AppleStorage
-    exactVersion: 1.5.0
+    exactVersion: 1.6.0
 
 targets:
   Catchlight:
