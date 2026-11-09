@@ -1036,11 +1036,16 @@ function turnGlints() {
   glintFrame = 0;
   const h = innerHeight;
   if (!h) return;   // a window with no height yet (a hidden pane) has nowhere to place the light
+  // Only an Iris on screen is turned, and only when its angle changes: rewriting every Iris in
+  // a long list on each scroll frame cost a third of the frame (300 Takes: 25 ms a frame
+  // against 17 ms). One that scrolls into view is turned in the frame it appears.
   document.querySelectorAll('.iris-wrap').forEach(w => {
     const r = w.getBoundingClientRect();
+    if (r.bottom < 0 || r.top > h) return;
     const t = Math.min(1, Math.max(0, (r.top + r.height / 2) / h));
     const deg = still.matches ? 0 : (t - 0.5) * 2 * 26;
-    w.querySelector('.glints')?.setAttribute('transform', `rotate(${deg.toFixed(1)} 20 20)`);
+    const g = w.querySelector('.glints'), turn = `rotate(${deg.toFixed(1)} 20 20)`;
+    if (g && g.getAttribute('transform') !== turn) g.setAttribute('transform', turn);
   });
 }
 const queueGlints = () => { if (!glintFrame) glintFrame = requestAnimationFrame(turnGlints); };
