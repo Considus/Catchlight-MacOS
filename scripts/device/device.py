@@ -132,6 +132,36 @@ def bundle_build(app_path):
 
 # ---- commands -------------------------------------------------------------
 
+def check_against_installed(root, installed, sha, allow_downgrade=False):
+    """Refuse installing a build older than the one Mark runs: an older build may not read what a
+    newer one wrote, and his real notes are on this Mac.
+
+    `installed` is the (version, stamp) of the copy at the destination, or None. The stamp is the
+    commit it was built from. A "+dirty" stamp is compared by its commit; a "1" stamp (a build from
+    before stamps existed) or a commit this repo does not know cannot be compared, so a fresh
+    build goes in rather than a guess about which one it is.
+    """
+    if not installed or not installed[1]:
+        return
+    shown = installed[1]
+    if shown == "1":
+        print(f"the installed build is stamped {shown!r} (from before build stamps): installing fresh")
+        return
+    stamp = shown[:-len("+dirty")] if shown.endswith("+dirty") else shown
+    known = run(["git", "-C", root, "cat-file", "-e", f"{stamp}^{{commit}}"], GIT_TIMEOUT,
+                label="git cat-file", check=False)[0] == 0
+    if not known:
+        print(f"the installed build {shown!r} is not a commit this repo knows: installing fresh")
+        return
+    older = run(["git", "-C", root, "merge-base", "--is-ancestor", sha, stamp], GIT_TIMEOUT,
+                label="git merge-base", check=False)[0] == 0
+    same = min(len(stamp), len(sha)) >= 7 and (stamp.startswith(sha) or sha.startswith(stamp))  # one commit, two abbreviations
+    if older and not same and not allow_downgrade:
+        raise Failure(f"{sha} is older than the installed {shown}: installing it is a downgrade onto "
+                      "Mark's real notes, and an older build may not read what a newer one wrote. "
+                      "Ask Mark, then run again with --allow-downgrade.")
+
+
 def repo_root():
     here = os.path.dirname(os.path.abspath(__file__))
     return run(["git", "-C", here, "rev-parse", "--show-toplevel"], GIT_TIMEOUT,
@@ -191,6 +221,7 @@ def install_locked(args):
     # ^{commit} so an annotated tag resolves to the commit the stamp script will see.
     sha = run(["git", "-C", root, "rev-parse", "--short", f"{args.ref}^{{commit}}"], GIT_TIMEOUT,
               label="git rev-parse")[1].strip()
+    check_against_installed(root, bundle_build(args.dest), sha, args.allow_downgrade)
     print(f"building {args.ref} at {sha}")
 
     run(["git", "-C", root, "worktree", "prune"], GIT_TIMEOUT, label="git worktree prune")
@@ -339,6 +370,8 @@ def main(argv=None):
     sub.add_parser("status", parents=[common], help="which build is installed, against origin/main")
     p_install = sub.add_parser("install", parents=[common], help="clean-build a ref and install it")
     p_install.add_argument("--ref", default="origin/main", help="git ref to build (default origin/main)")
+    p_install.add_argument("--allow-downgrade", action="store_true",
+                           help="install a build older than the installed one (Mark has agreed)")
     p_install.add_argument("--launch", action="store_true", help="open the new build afterwards")
     p_logs = sub.add_parser("logs", parents=[common], help="read the diagnostics log (and crashes)")
     p_logs.add_argument("--crashes", action="store_true", help="also copy Catchlight crash reports")
