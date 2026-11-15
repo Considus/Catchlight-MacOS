@@ -468,7 +468,7 @@ final class PageLibraryTests: XCTestCase {
             """, in: self) as? Int
         XCTAssertEqual(after, 2, "the refresh that waited goes once the edit ends")
     }
-    /// #50 review (Greptile): a Focus-ring opened from the list holds the Take with no editor open.
+    /// #50 review (Greptile): a Focus row opened from the list holds the Take with no editor open.
     func testARefreshWaitsForAFocusRingOpenFromTheList() throws {
         let vault = Vault(secrets: MemorySecrets(), directory: dir)
         try vault.createAccount(words: try Vault.newPhrase(), restored: true)
@@ -484,7 +484,7 @@ final class PageLibraryTests: XCTestCase {
             const applied = await catchlightBridge.refresh();
             return JSON.stringify([applied, takes.length]);
             """, in: self) as? String
-        XCTAssertEqual(during, "[false,1]", "nothing replaces the list while a Focus-ring holds a Take")
+        XCTAssertEqual(during, "[false,1]", "nothing replaces the list while a Focus row holds a Take")
 
         let after = try harness.run("""
             closeFocusRing(true);

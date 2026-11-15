@@ -40,4 +40,4 @@ A menu item's tick is its `AXMenuItemMarkChar` attribute, which reflects the pag
 
 ## The page in a browser
 
-Serve `ui/` as [`ui/README.md`](../ui/README.md) says under "Running it", and prove a change with a screenshot in Night and in Daylight. Clear the `cl.*` keys from `localStorage` afterwards, so the placeholder data is back to its defaults.
+Serve `ui/` as [`ui/README.md`](../ui/README.md) says under "Running it", and prove a change with a screenshot in Dark and in Light. Clear the `cl.*` keys from `localStorage` afterwards, so the placeholder data is back to its defaults.

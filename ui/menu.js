@@ -22,7 +22,7 @@ const SEP = { sep: true };
 
 // ---------- what the commands act on ----------
 const ready = () => !document.body.classList.contains('first-running') && !alertBox.open && !document.querySelector('.reset-done');
-// Free: nothing that owns the keyboard is open. The Focus-ring, the reminder picker, the Shot List
+// Free: nothing that owns the keyboard is open. The Focus row, the reminder picker, the Shot List
 // and Settings each close themselves first, as their own keys already do (takes.js ⌘S).
 const free = () => ready() && !focusRing && !reminderFor && !shotListOpen() && sheet.hidden;
 const cardTake = () => { const c = document.activeElement?.closest?.('[data-take]'); return c ? takes.find(t => t.id === c.dataset.take) : null; };
@@ -186,8 +186,8 @@ const ITEMS = {
   paneDailies: { label: () => layout.dailies === 'hidden' ? t('Show Dailies') : t('Hide Dailies'), keys: { mac: 'Ctrl+Mod+S', windows: 'Mod+Shift+D', linux: 'Mod+Shift+D' }, enabled: free, run: () => toggleHide('dailies') },
   paneScripts: { label: () => layout.scripts === 'hidden' ? t('Show Scripts') : t('Hide Scripts'), keys: { mac: 'Ctrl+Mod+L', windows: 'Mod+Shift+K', linux: 'Mod+Shift+K' }, enabled: free, run: () => toggleHide('scripts') },
   sceneAuto: { label: t('Match System'), checked: () => scene === 'auto', run: () => setScene('auto') },
-  sceneNight: { label: t('Night'), checked: () => scene === 'night', run: () => setScene('night') },
-  sceneDaylight: { label: t('Daylight'), checked: () => scene === 'daylight', run: () => setScene('daylight') },
+  sceneNight: { label: t('Dark'), checked: () => scene === 'night', run: () => setScene('night') },
+  sceneDaylight: { label: t('Light'), checked: () => scene === 'daylight', run: () => setScene('daylight') },
   pageContinuous: { label: t('Continuous'), enabled: () => !!script(), checked: () => script()?.mode === 'continuous', run: () => setPage('continuous') },
   pageA4: { label: t('A4'), enabled: () => !!script(), checked: () => script()?.mode === 'a4', run: () => setPage('a4') },
   pageLetter: { label: t('US Letter'), enabled: () => !!script(), checked: () => script()?.mode === 'letter', run: () => setPage('letter') },

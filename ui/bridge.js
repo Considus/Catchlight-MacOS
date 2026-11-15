@@ -202,7 +202,7 @@
     library,
     save: saveList,
     // Take the library (Takes and Scripts) as the shell holds it now. While a Take is held open (the editor, a
-    // Focus-ring, the reminder picker) this waits for it to close, and if a save went out while the request was in flight it asks again,
+    // Focus row, the reminder picker) this waits for it to close, and if a save went out while the request was in flight it asks again,
     // so the list the page keeps always includes its own latest save.
     async refresh() {
       const busy = () => typeof editingTake === 'function' && editingTake();
