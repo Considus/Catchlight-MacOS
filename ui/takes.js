@@ -1,5 +1,5 @@
 'use strict';
-// Dailies: Takes, in-place editing and the Focus-ring, as the iOS app does them. Loaded
+// Dailies: Takes, in-place editing and the Focus row, as the iOS app does them. Loaded
 // after app.js and uses its helpers. The model mirrors the Take in
 // Catchlight-Core: ordered blocks of text and checklist items; a Take is a Task when it has a
 // checklist item and complete when every item is ticked. Placeholder data, no sync.
@@ -187,7 +187,7 @@ function renderTakes() {
 // (KeyboardTakeEditor on iOS). Clicking outside, Escape and ⌘S save; only × discards.
 const sidebar = $('#sidebar'), editorCard = $('#take-editor'), rows = $('#take-rows');
 let draft = null, original = null, focusRing = null;
-// A Take is held open: in the editor, in a Focus-ring, or in the reminder picker. Each holds the
+// A Take is held open: in the editor, in a Focus row, or in the reminder picker. Each holds the
 // Take itself, so the list must not be replaced under it (bridge.js refresh waits for all three).
 const editingTake = () => !!(draft || focusRing || (typeof reminderFor !== 'undefined' && reminderFor));
 let draftComplete = false;   // was every item ticked at the last change? (All tasks done)
@@ -331,7 +331,7 @@ rows.addEventListener('input', e => {
   if (box) labelCheck(box, e.target.textContent, box.closest('.erow').classList.contains('ticked'));
   readRows(); paintIris(); paintBar();
 });
-// Where the caret last sat in the editor, so the Focus-ring and the reminder picker can put it
+// Where the caret last sat in the editor, so the Focus row and the reminder picker can put it
 // back on the line it came from (DailiesView.applyInlineFanCommand, closeReminderEditor).
 let lastCaret = null;
 document.addEventListener('selectionchange', () => {
@@ -427,7 +427,7 @@ function toggleDone(t) {
 
 // The reminder picker is in reminders.js.
 
-// ---------- the Focus-ring (FocusRingFanView on iOS) ----------
+// ---------- the Focus row (FocusRingFanView on iOS) ----------
 // Four Marks fan out to the right of the Iris at R = 68: Note -80°, Task -26.7°,
 // Remind +26.7°, Important +80°. A Take is never "none": with Task and Remind both off,
 // Note comes back on. Clicking the veil applies the selection and closes.
@@ -482,7 +482,7 @@ function openFocusRing(t, irisEl, fromEditor) {
     ring.append(b);
   }
   focusRing = { t, sel, fromEditor };
-  ring.setAttribute('role', 'dialog'); ring.setAttribute('aria-label', L10N.t('Focus-ring'));
+  ring.setAttribute('role', 'dialog'); ring.setAttribute('aria-label', L10N.t('Focus row'));
   ring.hidden = false;
   ringInert(true);
   paintRing();
@@ -582,7 +582,7 @@ function closeFocusRing(apply) {
 document.addEventListener('keydown', e => { if (focusRing && !reminderFor && e.key === 'Escape') { e.preventDefault(); closeFocusRing(true); } });
 
 // ---------- clicks and presses on the timeline ----------
-// Click a card's body to edit it; click its Iris for the Focus-ring; hold the Iris for
+// Click a card's body to edit it; click its Iris for the Focus row; hold the Iris for
 // 0.45s to make it the Obie (or stop it being one).
 let irisHold = null;
 sidebar.addEventListener('pointerdown', e => {
@@ -702,7 +702,7 @@ function exitToResting() {
 // A click on a Take's notification or Spotlight result (the shell calls this): leave search, the
 // Sequence, a month filter and the Storyboard for the resting timeline, then scroll the Take's
 // card into view and focus it, as Tab does. The id is matched without regard to case. Answers
-// 'opened'; 'missing' for a Take that isn't there (nothing changes); 'busy' while the Focus-ring,
+// 'opened'; 'missing' for a Take that isn't there (nothing changes); 'busy' while the Focus row,
 // the reminder picker, Settings, the Shot List, an alert, the conflict sheet or first run owns
 // the keyboard (menu.js `free`, plus the conflict sheet), when nothing changes either and the
 // shell asks again. An open editor is saved first.

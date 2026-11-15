@@ -1021,7 +1021,7 @@ let scene = store.get('scene', 'auto');
 const mq = matchMedia('(prefers-color-scheme: light)');
 function applyScene() {
   document.documentElement.dataset.scene = scene === 'auto' ? (mq.matches ? 'daylight' : 'night') : scene;
-  $('#tb-scene').title = scene === 'auto' ? t('Scene: follows the system') : scene === 'night' ? t('Scene: Night') : t('Scene: Daylight');
+  $('#tb-scene').title = scene === 'auto' ? t('Scene: follows the system') : scene === 'night' ? t('Scene: Dark') : t('Scene: Light');
 }
 mq.addEventListener('change', applyScene);
 $('#tb-scene').addEventListener('click', () => { scene = scenes[(scenes.indexOf(scene) + 1) % 3]; store.set('scene', scene); applyScene(); });

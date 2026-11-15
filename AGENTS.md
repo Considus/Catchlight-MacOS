@@ -57,4 +57,4 @@ Proving the shell by hand (launch arguments, logs, the menu bar, a blank window)
    ```
 
 3. Stage by explicit path, never `git add -A` or `git commit -a`.
-4. Fill [`.github/pull_request_template.md`](.github/pull_request_template.md), with the test count and, for `ui/`, screenshots in Night and Daylight.
+4. Fill [`.github/pull_request_template.md`](.github/pull_request_template.md), with the test count and, for `ui/`, screenshots in Dark and Light.

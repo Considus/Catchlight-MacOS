@@ -2,7 +2,7 @@ import Foundation
 
 /// Opens a Take in the page for a click on its notification or its Spotlight result. A click can
 /// arrive before the page has loaded (a cold launch from a notification), so the latest one waits
-/// until `pageDidLoad`. The page answers "busy" while something owns the keyboard (a Focus-ring,
+/// until `pageDidLoad`. The page answers "busy" while something owns the keyboard (a Focus row,
 /// the reminder picker, Settings, an alert...) and changes nothing, so the click is asked again a
 /// second later, for up to a minute.
 final class TakeOpener {

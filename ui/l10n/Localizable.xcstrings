@@ -20330,119 +20330,6 @@
         }
       }
     },
-    "Daylight" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "da" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Dagslys"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Tageslicht"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Luz de día"
-          }
-        },
-        "fi" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Päivänvalo"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Lumière du jour"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Luce del giorno"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "デイライト"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "주간"
-          }
-        },
-        "nb" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Dagslys"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Daglicht"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Światło dzienne"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Luz do dia"
-          }
-        },
-        "pt-PT" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Luz do dia"
-          }
-        },
-        "sv" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Dagsljus"
-          }
-        },
-        "th" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "กลางวัน"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Gündüz"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "日光"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "日光"
-          }
-        }
-      }
-    },
     "Default timing" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -26707,115 +26594,115 @@
         }
       }
     },
-    "Focus-ring" : {
+    "Focus row" : {
       "extractionState" : "manual",
       "localizations" : {
         "da" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Fokusring"
+            "value" : "Fokusrække"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Fokus-Ring"
+            "value" : "Fokus-Zeile"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Anillo de enfoque"
+            "value" : "Fila de enfoque"
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Tarkennusrengas"
+            "value" : "Tarkennusrivi"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Anneau de focus"
+            "value" : "Rangée Focus"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Anello Focus"
+            "value" : "Riga Focus"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "フォーカスリング"
+            "value" : "フォーカス行"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Focus 링"
+            "value" : "Focus 행"
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Fokus-ring"
+            "value" : "Fokus-rad"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Focus-ring"
+            "value" : "Focus-rij"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Pierścień ostrości"
+            "value" : "Wiersz ostrości"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Anel de foco"
+            "value" : "Linha de foco"
           }
         },
         "pt-PT" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Anel de Foco"
+            "value" : "Linha de Foco"
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Focus-cirkel"
+            "value" : "Focus-rad"
           }
         },
         "th" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Focus ring"
+            "value" : "แถว Focus"
           }
         },
         "tr" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Odak halkası"
+            "value" : "Odak satırı"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "焦点环"
+            "value" : "焦点行"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "焦點環"
+            "value" : "焦點列"
           }
         }
       }
@@ -37712,119 +37599,6 @@
         }
       }
     },
-    "Night" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "da" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Nat"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Nacht"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Noche"
-          }
-        },
-        "fi" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Yö"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Nuit"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Notte"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "ナイト"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "야간"
-          }
-        },
-        "nb" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Natt"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Nacht"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Noc"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Noite"
-          }
-        },
-        "pt-PT" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Noite"
-          }
-        },
-        "sv" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Natt"
-          }
-        },
-        "th" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "กลางคืน"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Gece"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "夜间"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "夜間"
-          }
-        }
-      }
-    },
     "No notes to import from your selection." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -41780,25 +41554,25 @@
         }
       }
     },
-    "Open the Focus-ring" : {
+    "Open the Focus row" : {
       "extractionState" : "manual",
       "localizations" : {
         "da" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Åbn Fokusringen"
+            "value" : "Åbn Fokusrækken"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Fokus-Ring öffnen"
+            "value" : "Fokus-Zeile öffnen"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Abrir el anillo de enfoque"
+            "value" : "Abrir la fila de enfoque"
           }
         },
         "fi" : {
@@ -41810,311 +41584,311 @@
         "fr" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Ouvrir l’anneau de focus"
+            "value" : "Ouvrir la rangée Focus"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Apri l’anello Focus"
+            "value" : "Apri la riga Focus"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "フォーカスリングを開く"
+            "value" : "フォーカス行を開く"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Focus 링 열기"
+            "value" : "Focus 행 열기"
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Åpne Fokus-ringen"
+            "value" : "Åpne Fokus-raden"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Open de Focus-ring"
+            "value" : "Open de Focus-rij"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Otwórz pierścień ostrości"
+            "value" : "Otwórz wiersz ostrości"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Abrir o anel de foco"
+            "value" : "Abrir a linha de foco"
           }
         },
         "pt-PT" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Abrir o anel de Foco"
+            "value" : "Abrir a linha de Foco"
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Öppna Focus-cirkeln"
+            "value" : "Öppna Focus-raden"
           }
         },
         "th" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "เปิด Focus ring"
+            "value" : "เปิดแถว Focus"
           }
         },
         "tr" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Odak halkasını aç"
+            "value" : "Odak satırını aç"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "打开焦点环"
+            "value" : "打开焦点行"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "開啟焦點環"
+            "value" : "開啟焦點列"
           }
         }
       }
     },
-    "Opens the Focus ring. ⌥Return makes this your Obie." : {
+    "Opens the Focus row. ⌥Return makes this your Obie." : {
       "extractionState" : "manual",
       "localizations" : {
         "da" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Åbner Fokusringen. ⌥Return gør dette til din Obie."
+            "value" : "Åbner Fokusrækken. ⌥Return gør dette til din Obie."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Öffnet den Fokus-Ring. ⌥Return macht diesen Take zu deinem Obie."
+            "value" : "Öffnet die Fokus-Zeile. ⌥Return macht diesen Take zu deinem Obie."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Abre el anillo de enfoque. ⌥Retorno convierte esto en tu Obie."
+            "value" : "Abre la fila de enfoque. ⌥Retorno convierte esto en tu Obie."
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Avaa tarkennusrenkaan. ⌥Rivinvaihto tekee tästä Obiesi."
+            "value" : "Avaa tarkennusrivin. ⌥Rivinvaihto tekee tästä Obiesi."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Ouvre l’anneau de focus. ⌥Retour en fait votre Obie."
+            "value" : "Ouvre la rangée Focus. ⌥Retour en fait votre Obie."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Apre l’anello Focus. ⌥A capo lo rende il tuo Obie."
+            "value" : "Apre la riga Focus. ⌥A capo lo rende il tuo Obie."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "フォーカスリングを開きます。⌥ReturnでこれをObieにします。"
+            "value" : "フォーカス行を開きます。⌥ReturnでこれをObieにします。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Focus 링을 엽니다. ⌥Return을 누르면 이 항목이 Obie로 설정됩니다."
+            "value" : "Focus 행을 엽니다. ⌥Return을 누르면 이 항목이 Obie로 설정됩니다."
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Åpner Fokus-ringen. ⌥Retur gjør denne til Obie-en din."
+            "value" : "Åpner Fokus-raden. ⌥Retur gjør denne til Obie-en din."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Opent de Focus-ring. Met ⌥Return maak je deze Take je Obie."
+            "value" : "Opent de Focus-rij. Met ⌥Return maak je deze Take je Obie."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Otwiera pierścień ostrości. ⌥Return ustawia to jako Twoje Obie."
+            "value" : "Otwiera wiersz ostrości. ⌥Return ustawia to jako Twoje Obie."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Abre o anel de foco. ⌥Return o torna seu Obie."
+            "value" : "Abre a linha de foco. ⌥Return o torna seu Obie."
           }
         },
         "pt-PT" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Abre o anel de Foco. ⌥Return torna este o seu Obie."
+            "value" : "Abre a linha de Foco. ⌥Return torna este o seu Obie."
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Öppnar Focus-cirkeln. ⌥Retur gör den här till din Obie."
+            "value" : "Öppnar Focus-raden. ⌥Retur gör den här till din Obie."
           }
         },
         "th" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "เปิด Focus ring กด ⌥Return เพื่อตั้งค่านี้เป็น Obie ของคุณ"
+            "value" : "เปิดแถว Focus กด ⌥Return เพื่อตั้งค่านี้เป็น Obie ของคุณ"
           }
         },
         "tr" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Odak halkasını açar. ⌥Return bunu Obie'niz yapar."
+            "value" : "Odak satırını açar. ⌥Return bunu Obie'niz yapar."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "打开焦点环。按 ⌥Return 可将其设为你的 Obie。"
+            "value" : "打开焦点行。按 ⌥Return 可将其设为你的 Obie。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "開啟焦點環。按 ⌥Return 即可將此設為你的 Obie。"
+            "value" : "開啟焦點列。按 ⌥Return 即可將此設為你的 Obie。"
           }
         }
       }
     },
-    "Opens the Focus ring. ⌥Return turns this back into a standard Take." : {
+    "Opens the Focus row. ⌥Return turns this back into a standard Take." : {
       "extractionState" : "manual",
       "localizations" : {
         "da" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Åbner Fokusringen. ⌥Return gør dette til en standard-Take igen."
+            "value" : "Åbner Fokusrækken. ⌥Return gør dette til en standard-Take igen."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Öffnet den Fokus-Ring. ⌥Return wandelt ihn wieder in einen standardmäßigen Take um."
+            "value" : "Öffnet die Fokus-Zeile. ⌥Return wandelt ihn wieder in einen standardmäßigen Take um."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Abre el anillo de enfoque. ⌥Retorno vuelve a convertir esto en un Take estándar."
+            "value" : "Abre la fila de enfoque. ⌥Retorno vuelve a convertir esto en un Take estándar."
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Avaa tarkennusrenkaan. ⌥Rivinvaihto muuttaa tämän takaisin tavalliseksi Take:ksi."
+            "value" : "Avaa tarkennusrivin. ⌥Rivinvaihto muuttaa tämän takaisin tavalliseksi Take:ksi."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Ouvre l’anneau de focus. ⌥Retour le rétablit en Take standard."
+            "value" : "Ouvre la rangée Focus. ⌥Retour le rétablit en Take standard."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Apre l’anello Focus. ⌥A capo lo ripristina come Take standard."
+            "value" : "Apre la riga Focus. ⌥A capo lo ripristina come Take standard."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "フォーカスリングを開きます。⌥Returnでこれを標準のTakeに戻します。"
+            "value" : "フォーカス行を開きます。⌥Returnでこれを標準のTakeに戻します。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Focus 링을 엽니다. ⌥Return을 누르면 이 항목이 일반 Take로 돌아갑니다."
+            "value" : "Focus 행을 엽니다. ⌥Return을 누르면 이 항목이 일반 Take로 돌아갑니다."
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Åpner Fokus-ringen. ⌥Retur gjør denne om til en vanlig Take igjen."
+            "value" : "Åpner Fokus-raden. ⌥Retur gjør denne om til en vanlig Take igjen."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Opent de Focus-ring. Met ⌥Return zet je deze terug als standaard-Take."
+            "value" : "Opent de Focus-rij. Met ⌥Return zet je deze terug als standaard-Take."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Otwiera pierścień ostrości. ⌥Return z powrotem zmienia go w zwykły Take."
+            "value" : "Otwiera wiersz ostrości. ⌥Return z powrotem zmienia go w zwykły Take."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Abre o anel de foco. ⌥Return volta a torná-lo um Take padrão."
+            "value" : "Abre a linha de foco. ⌥Return volta a torná-lo um Take padrão."
           }
         },
         "pt-PT" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Abre o anel de Foco. ⌥Return volta a converter este num Take padrão."
+            "value" : "Abre a linha de Foco. ⌥Return volta a converter este num Take padrão."
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Öppnar Focus-cirkeln. ⌥Retur gör om den här till en vanlig Take."
+            "value" : "Öppnar Focus-raden. ⌥Retur gör om den här till en vanlig Take."
           }
         },
         "th" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "เปิด Focus ring กด ⌥Return เพื่อเปลี่ยนกลับเป็น Take ทั่วไป"
+            "value" : "เปิดแถว Focus กด ⌥Return เพื่อเปลี่ยนกลับเป็น Take ทั่วไป"
           }
         },
         "tr" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Odak halkasını açar. ⌥Return bunu tekrar standart bir Take'e dönüştürür."
+            "value" : "Odak satırını açar. ⌥Return bunu tekrar standart bir Take'e dönüştürür."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "打开焦点环。按 ⌥Return 可将其改回标准 Take。"
+            "value" : "打开焦点行。按 ⌥Return 可将其改回标准 Take。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "開啟焦點環。按 ⌥Return 即可將此 Take 還原為標準 Take。"
+            "value" : "開啟焦點列。按 ⌥Return 即可將此 Take 還原為標準 Take。"
           }
         }
       }
@@ -49803,228 +49577,228 @@
         }
       }
     },
-    "Scene: Daylight" : {
+    "Scene: Dark" : {
       "extractionState" : "manual",
       "localizations" : {
         "da" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Scene: Dagslys"
+            "value" : "Scene: Mørk"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Szene: Tageslicht"
+            "value" : "Szene: Dunkel"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Escena: Luz de día"
+            "value" : "Escena: Oscuro"
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Kohtaus: Päivänvalo"
+            "value" : "Kohtaus: Tumma"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Scène : Lumière du jour"
+            "value" : "Scène : Sombre"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Scena: Luce del giorno"
+            "value" : "Scena: Scuro"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "シーン：デイライト"
+            "value" : "シーン：ダーク"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "장면: 주간"
+            "value" : "장면: 다크"
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Scene: Dagslys"
+            "value" : "Scene: Mørk"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Scène: Daglicht"
+            "value" : "Scène: Donker"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Scena: Światło dzienne"
+            "value" : "Scena: Ciemny"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Cena: Luz do dia"
+            "value" : "Cena: Escuro"
           }
         },
         "pt-PT" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Cena: Luz do dia"
+            "value" : "Cena: Escuro"
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Scen: Dagsljus"
+            "value" : "Scen: Mörkt"
           }
         },
         "th" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "ฉาก: กลางวัน"
+            "value" : "ฉาก: มืด"
           }
         },
         "tr" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Sahne: Gündüz"
+            "value" : "Sahne: Koyu"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "场景：日光"
+            "value" : "场景：深色"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "場景：日光"
+            "value" : "場景：深色"
           }
         }
       }
     },
-    "Scene: Night" : {
+    "Scene: Light" : {
       "extractionState" : "manual",
       "localizations" : {
         "da" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Scene: Nat"
+            "value" : "Scene: Lys"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Szene: Nacht"
+            "value" : "Szene: Hell"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Escena: Noche"
+            "value" : "Escena: Claro"
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Kohtaus: Yö"
+            "value" : "Kohtaus: Vaalea"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Scène : Nuit"
+            "value" : "Scène : Clair"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Scena: Notte"
+            "value" : "Scena: Chiaro"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "シーン：ナイト"
+            "value" : "シーン：ライト"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "장면: 야간"
+            "value" : "장면: 라이트"
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Scene: Natt"
+            "value" : "Scene: Lyst"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Scène: Nacht"
+            "value" : "Scène: Licht"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Scena: Noc"
+            "value" : "Scena: Jasny"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Cena: Noite"
+            "value" : "Cena: Claro"
           }
         },
         "pt-PT" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Cena: Noite"
+            "value" : "Cena: Claro"
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Scen: Natt"
+            "value" : "Scen: Ljus"
           }
         },
         "th" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "ฉาก: กลางคืน"
+            "value" : "ฉาก: สว่าง"
           }
         },
         "tr" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Sahne: Gece"
+            "value" : "Sahne: Açık"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "场景：夜间"
+            "value" : "场景：浅色"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "場景：夜間"
+            "value" : "場景：淺色"
           }
         }
       }

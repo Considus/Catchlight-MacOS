@@ -6,7 +6,7 @@
 @font-face { font-family: "DM Sans"; font-style: normal; font-weight: 300; src: url(fonts/dm-sans-normal-300.woff2) format("woff2"); }
 @font-face { font-family: "DM Sans"; font-style: normal; font-weight: 400; src: url(fonts/dm-sans-normal-400.woff2) format("woff2"); }
 
-/* Night is the design default. */
+/* Dark is the design default (data-scene "night"). */
 :root, :root[data-scene="night"] {
   --bg: #0F0E0C; --surface: #1C1A16; --text: #F5EDD8; --text-2: #B8B0A3;
   --text-done: rgba(184,176,163,.76); --accent: #C9A96E; --accent-fill: #C9A96E;   /* done text: 5.22:1 on a card, 4.58 on an Obie */
@@ -229,7 +229,7 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 .blk.check + .blk.check { margin-top: .15em; }
 /* On touch a checklist row is a 44pt row, as on iOS; the whole left gutter toggles it. */
 @media (pointer: coarse) { .blk.check { min-height: 44px; padding-top: 9px; } .blk.check input { top: 13px; } }
-.blk.check input { position: absolute; left: 1px; top: .3em; width: 18px; height: 18px; margin: 0; accent-color: var(--accent); }   /* 5.36:1 on Daylight's page; --accent-fill was 2.24 */
+.blk.check input { position: absolute; left: 1px; top: .3em; width: 18px; height: 18px; margin: 0; accent-color: var(--accent); }   /* 5.36:1 on Light's page; --accent-fill was 2.24 */
 .blk.check.done:not(.active) .txt { color: var(--text-done); }
 .blk.code { font: 13px/1.55 ui-monospace, "SF Mono", Menlo, monospace; background: var(--code-bg); padding: 10px 14px; border-radius: 8px; }
 .blk.hr:not(.active) { height: 1.2em; background: linear-gradient(var(--divider), var(--divider)) center / 100% 1px no-repeat; color: transparent; }
@@ -276,7 +276,7 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 .ehandle { flex: none; width: 36px; height: 32px; background: linear-gradient(color-mix(in srgb, var(--text-2) 55%, transparent), color-mix(in srgb, var(--text-2) 55%, transparent)) center 11px / 14px 1.5px no-repeat, linear-gradient(color-mix(in srgb, var(--text-2) 55%, transparent), color-mix(in srgb, var(--text-2) 55%, transparent)) center 15.5px / 14px 1.5px no-repeat, linear-gradient(color-mix(in srgb, var(--text-2) 55%, transparent), color-mix(in srgb, var(--text-2) 55%, transparent)) center 20px / 14px 1.5px no-repeat; }
 .card .body .ticked { color: var(--text-done); }
 
-/* ---------- the Focus-ring (FocusRingFanView on iOS) ---------- */
+/* ---------- the Focus row (FocusRingFanView on iOS) ---------- */
 .focus-ring { position: absolute; inset: 0; z-index: 8; background: transparent; transition: background .84s ease-in-out; }
 .focus-ring.open { background: var(--veil); }
 .sidebar.ringed .dock { opacity: .18; transition: opacity .3s; }
@@ -356,7 +356,7 @@ body.first-running .app { visibility: hidden; }
 .fr-brand { display: flex; flex-direction: column; align-items: center; gap: 16px; margin-bottom: 40px; }
 .fr-icon img { width: 72px; height: 72px; display: block; }
 /* The real wordmark, as the iPhone draws it (catchlight-wordmark, 44 pt high). Icon and
-   wordmark each come in a Night and a Daylight image; the scene shows one. */
+   wordmark each come in a Dark and a Light image; the scene shows one. */
 .fr-wordmark img { height: 44px; width: auto; display: block; }
 .fr-brand .for-daylight, :root[data-scene="daylight"] .fr-brand .for-night { display: none; }
 :root[data-scene="daylight"] .fr-brand .for-daylight { display: block; }

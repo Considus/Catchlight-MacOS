@@ -96,7 +96,7 @@ final class OpenTakeTests: XCTestCase {
     /// Each overlay owns the keyboard, so a click changes nothing while one is open and says so.
     func testAnOpenOverlayIsLeftAloneAndTheCallSaysBusy() throws {
         let overlays = [
-            ("the Focus-ring", "openFocusRing(takes[30], document.querySelector(`#takes [data-iris=\"${takes[30].id}\"]`), false);", "ring"),
+            ("the Focus row", "openFocusRing(takes[30], document.querySelector(`#takes [data-iris=\"${takes[30].id}\"]`), false);", "ring"),
             ("the reminder picker", "openReminder(takes[30], null, null);", "picker"),
             ("Settings", "openSettings();", "settingsOpen"),
         ]

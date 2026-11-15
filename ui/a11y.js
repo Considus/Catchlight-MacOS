@@ -7,7 +7,7 @@
 //     state, then its reminder. An Iris reads "Iris, <first line>", Obie, then what it carries.
 //   • On a card: Return or Space edits it; the context-menu key or ⇧F10 opens its menu, whose
 //     items Tab and the arrow keys walk, and Escape closes.
-//   • On an Iris: Return or Space opens the Focus-ring; ⌥Return does what holding it does
+//   • On an Iris: Return or Space opens the Focus row; ⌥Return does what holding it does
 //     (make this the Obie, or a standard Take again), standing in for VoiceOver's named action.
 //   • A change of dock mode is announced, and closing the editor puts focus back on the card.
 
@@ -64,7 +64,7 @@ function irisLabel(t) {
   const activity = L10N.list([t.isImportant && L10N.t('Important'), t.isNote && L10N.t('Note'), isTask(t) && (isComplete(t) ? L10N.t('completed Task') : L10N.t('Task')), t.reminder && L10N.t('Reminder')].filter(Boolean));
   return L10N.clauses([name ? L10N.t('Iris, %@', name) : L10N.t('Iris'), t.obie && L10N.t('Obie: your pinned Take'), activity]);
 }
-const irisHint = t => t.obie ? L10N.t('Opens the Focus ring. ⌥Return turns this back into a standard Take.') : L10N.t('Opens the Focus ring. ⌥Return makes this your Obie.');
+const irisHint = t => t.obie ? L10N.t('Opens the Focus row. ⌥Return turns this back into a standard Take.') : L10N.t('Opens the Focus row. ⌥Return makes this your Obie.');
 
 // What takeCard adds to a card and its Iris. The card is a named group, not a button: a button's
 // contents are hidden from a screen reader, and the Iris and the links inside have to stay

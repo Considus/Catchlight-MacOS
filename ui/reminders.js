@@ -108,7 +108,7 @@ let reminderFor = null, reminderAfter = null, reminderCancel = null, rs = null;
 const pad2 = n => String(n).padStart(2, '0');
 const hhmm = d => `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 
-// Open the picker for a Take. `after` runs on Done; `onCancel` on Cancel (from the Focus-ring,
+// Open the picker for a Take. `after` runs on Done; `onCancel` on Cancel (from the Focus row,
 // Cancel removes the reminder just added; from the editor bar it changes nothing).
 function openReminder(t, after, onCancel) {
   reminderFor = t; reminderAfter = after; reminderCancel = onCancel || null;

@@ -14,7 +14,7 @@ final class MenuTests: XCTestCase {
       {"title": "View", "items": [
         {"id": "storyboard", "label": "Storyboard", "shortcut": "Mod+2", "shortcutLabel": "⌘2", "role": null, "enabled": false, "checked": true},
         {"title": "Scene", "items": [
-          {"id": "sceneNight", "label": "Night", "shortcut": null, "shortcutLabel": "", "role": null, "enabled": true, "checked": false}
+          {"id": "sceneNight", "label": "Dark", "shortcut": null, "shortcutLabel": "", "role": null, "enabled": true, "checked": false}
         ]},
         {"id": "fullScreen", "label": "Enter Full Screen", "shortcut": "Ctrl+Mod+F", "shortcutLabel": "⌃⌘F", "role": "toggleFullScreen", "enabled": true, "checked": null}
       ]},
