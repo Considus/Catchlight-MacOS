@@ -134,7 +134,7 @@ def bundle_build(app_path):
 
 def check_against_installed(root, installed, sha, allow_downgrade=False):
     """Refuse installing a build older than the one Mark runs: an older build may not read what a
-    newer one wrote, and his real notes are on this Mac (app-devices.md).
+    newer one wrote, and his real notes are on this Mac.
 
     `installed` is the (version, stamp) of the copy at the destination, or None. The stamp is the
     commit it was built from. A "+dirty" stamp is compared by its commit; a "1" stamp (a build from
