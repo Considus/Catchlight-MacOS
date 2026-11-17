@@ -404,12 +404,12 @@ sheet.addEventListener('pointerdown', e => {
   addEventListener('pointerup', end); addEventListener('pointercancel', end);
 });
 
-// About's version line copies a short, paste-ready support block (AboutView.supportInfoString):
-// version, OS and model, and nothing from the user's Takes. Right-click it, or ⇧F10 from the
-// keyboard, as VoiceOver's named action on iOS.
 // The support page, told the platform, the app version and the OS version, and nothing else
 // (SettingsView.reportAnIssue).
 const reportUrl = () => 'https://catchlight.app/support/?' + new URLSearchParams({ platform: PLATFORM.osName, app: shell.version(), os: shell.osVersion() });
+// About's version line copies a short, paste-ready support block (AboutView.supportInfoString):
+// version, OS and model, and nothing from the user's Takes. Right-click it, or ⇧F10 from the
+// keyboard, as VoiceOver's named action on iOS.
 const supportInfo = () => `Catchlight ${shell.version()}\n${shell.systemInfo()}`;
 sheet.addEventListener('keydown', e => {
   const v = e.target.closest('[data-copy-info]');
