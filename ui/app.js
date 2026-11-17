@@ -978,6 +978,7 @@ function place(k, p) {
   }
   applyLayout();
 }
+// ⌃⌘S and ⌃⌘L show and hide Dailies and Scripts from the View menu, menu.js.
 function toggleHide(k) {
   if (layout[k] !== 'hidden') return place(k, 'hidden');
   const free = SLOTS.find(s => !Object.values(layout).includes(s));
@@ -1012,7 +1013,6 @@ document.addEventListener('mousedown', e => {
   if (!e.target.closest('#layout-pop, #tb-layout')) { $('#layout-pop').hidden = true; $('#tb-layout').setAttribute('aria-expanded', 'false'); }
   if (!e.target.closest('#page-pop, #tb-page')) { $('#page-pop').hidden = true; $('#tb-page').setAttribute('aria-expanded', 'false'); }
 });
-// ⌃⌘S and ⌃⌘L show and hide Dailies and Scripts from the View menu, menu.js.
 addEventListener('resize', debounce(paginate, 100));
 
 // ---------- Scene: follows the system unless chosen ----------

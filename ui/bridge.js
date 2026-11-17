@@ -55,8 +55,6 @@
   // Kept Scripts are diffed against their own snapshot, or a Script sync added meanwhile would
   // read as one the user deleted (Greptile on #55).
   let scriptsGeneration = null;
-  // A Take the shell couldn't read keeps its stored version, so say so rather than let the edit
-  // look saved.
   // Scripts sync when the shell says they do (SyncService.syncScriptsKey, on by default).
   const sendList = (kind, list) => (saves++, (kind === 'takes' || library.syncScripts) && syncSoon(), post('save', { kind, list, generation: kind === 'scripts' ? scriptsGeneration ?? library.generation : library.generation }))
     .then(r => {
@@ -90,6 +88,8 @@
               : t("These Takes changed on another device too, so your changes to them weren't saved. Choose which version of each to keep, then make the changes again."),
           [[t('Review'), () => window.openConflicts?.()], [t('OK'), null, 'cancel']]));
       }
+      // A Take the shell couldn't read keeps its stored version, so say so rather than let the edit
+      // look saved.
       if (r?.rejected?.length) {
         const n = r.rejected.length, detail = r.rejected.join(', ');
         whenNoDialog(() => ask(scriptsKind ? t("A Script wasn't saved") : t("A Take wasn't saved"),
