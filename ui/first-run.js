@@ -75,7 +75,6 @@ const shell = {
   chooseFolder: () => '~/Dropbox/Catchlight',   // the native folder picker, via the shell
   // The OS version and hardware model for About's copy line. A browser can't read either
   // truthfully, so the prototype stands in a sample of what the shell returns.
-  // The OS version and model, for About and Report an issue; a sample of what each shell reports.
   systemInfo: () => `${PLATFORM.osName} ${shell.osVersion()} · ${PLATFORM.sampleModel}`,
   osVersion: () => PLATFORM.sampleOs,
   version: () => '1.0',   // the app's version; the shell reads its own
