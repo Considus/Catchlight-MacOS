@@ -71,7 +71,6 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
         window.minSize = NSSize(width: 900, height: 600)
         window.contentView = webView
         window.isReleasedWhenClosed = false
-        // Restore the last frame; centre the default size on first launch.
         if !window.setFrameUsingName(Self.frameAutosaveName) {
             window.center()
         }

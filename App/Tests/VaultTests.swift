@@ -132,7 +132,6 @@ final class TakeTranslationTests: XCTestCase {
         XCTAssertEqual(take.timeReminder?.notificationIdentifier, id.uuidString)
         XCTAssertEqual(take.timeReminder?.alarmEnabled, true)
         XCTAssertEqual(take.schemaVersion, Take.currentSchemaVersion)
-        // And it reads back as the page wrote it.
         let back = try TakeTranslation.page(from: take)
         XCTAssertEqual((back["blocks"] as! [[String: Any]]).map { $0["text"] as? String }, ["Before the weekend", "Lens cloth"])
     }
