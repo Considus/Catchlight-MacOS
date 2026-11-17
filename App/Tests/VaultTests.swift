@@ -1123,6 +1123,8 @@ final class FailingStore: TakeStore {
     func setObie(id: UUID, replaceExisting: Bool) throws { try real.setObie(id: id, replaceExisting: replaceExisting) }
     func lastSyncDate() -> Date? { real.lastSyncDate() }
     func setLastSyncDate(_ date: Date) { real.setLastSyncDate(date) }
+    func syncRecord(id: UUID) throws -> SyncRecord? { try real.syncRecord(id: id) }
+    func setSyncRecord(_ record: SyncRecord?, id: UUID) throws { try real.setSyncRecord(record, id: id) }
     func tombstones() throws -> [Tombstone] { try real.tombstones() }
     func purgeTombstones(ids: [UUID]) throws { try real.purgeTombstones(ids: ids) }
     func applyRemote(_ take: Take) throws -> Bool { try real.applyRemote(take) }
