@@ -51,8 +51,11 @@ packages:
     # (Catchlight-Core#57). 2.1.0: each manifest entry names the upload of each device it was
     # built on, so an upload written over by a push that never had it is shown as a conflict;
     # an optional field in the synced manifest, which older builds read and drop
-    # (Catchlight-Core#58).
-    exactVersion: 2.1.0
+    # (Catchlight-Core#58). 2.2.0: a device keeps its own deletion once the folder has it, until
+    # retention, so a racing push can't bring the Take back; and a version shown only as
+    # couldn't-verify is never written over, nor asked about again once acted on
+    # (Catchlight-Core#60). No change to the synced format.
+    exactVersion: 2.2.0
   # The encrypted SQLite store, the Keychain items and the BIP-39 wordlist, shared with the
   # iPhone app so the two can't drift. From 1.4.0 it takes any Core 1.x
   # (Catchlight-AppleStorage#13), so a Core bump no longer needs a matching one here.
