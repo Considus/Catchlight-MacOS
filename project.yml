@@ -48,8 +48,11 @@ packages:
     # (Catchlight-Core#32). 1.7.0: Take.markModified, which AppleStorage 1.5.0 needs (#33).
     # 2.0.0: a per-Take sync record, so an edit made offline and uploaded late is never
     # written over unseen; every TakeStore keeps it, so AppleStorage 2.0.0 comes with it
-    # (Catchlight-Core#57).
-    exactVersion: 2.0.0
+    # (Catchlight-Core#57). 2.1.0: each manifest entry names the upload of each device it was
+    # built on, so an upload written over by a push that never had it is shown as a conflict;
+    # an optional field in the synced manifest, which older builds read and drop
+    # (Catchlight-Core#58).
+    exactVersion: 2.1.0
   # The encrypted SQLite store, the Keychain items and the BIP-39 wordlist, shared with the
   # iPhone app so the two can't drift. From 1.4.0 it takes any Core 1.x
   # (Catchlight-AppleStorage#13), so a Core bump no longer needs a matching one here.
