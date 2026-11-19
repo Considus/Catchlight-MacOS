@@ -28,7 +28,7 @@ open "$APP"
 xcodebuild test -scheme Catchlight -configuration Debug -derivedDataPath "$BUILD_DIR/mac" CODE_SIGNING_ALLOWED=NO ONLY_ACTIVE_ARCH=YES | grep -E "Executed|items checked"
 ```
 
-Read the test **count**, not the word "passed": every `func test` in `App/Tests/` plus Core's 33 `TakeStoreContractTests` (Core 2.0.0). Under heavy CPU load the tests that load the real page fail intermittently, on `main` too; rerun on an idle machine before reading such a failure as real.
+Read the test **count**, not the word "passed": every `func test` in `App/Tests/` plus Core's 33 `TakeStoreContractTests` (Core 2.2.0). Under heavy CPU load the tests that load the real page fail intermittently, on `main` too; rerun on an idle machine before reading such a failure as real.
 
 Proving the shell by hand (launch arguments, logs, the menu bar, a blank window) is in [`App/README.md`](App/README.md).
 
