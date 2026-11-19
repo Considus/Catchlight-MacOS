@@ -74,13 +74,15 @@ const UPDOWN = '<svg class="srow-chev" viewBox="0 0 24 24" aria-hidden="true"><p
 // A picker: the whole row is a native select, so it opens the platform's own menu with a
 // check beside the current value, as iOS's Menu does, on every shell and on touch.
 // An option can be [value, label, locked]: shown, greyed and not selectable, as iOS's Menu
-// disables one. A note sits under the label, as iOS puts a caption in the same cell.
+// disables one. A note sits under the setting's line, as iOS puts a caption in the same cell.
 function pick(id, ic, label, options, get, note = '') {
   const cur = options.find(o => o[0] === get());
-  return `<label class="srow${note ? ' tall' : ''}">${icon(ic)}<span class="srow-label">${label}${note ? `<small>${note}</small>` : ''}</span><span class="srow-value">${cur ? cur[1] : ''}</span>${UPDOWN}
+  const line = `${icon(ic)}<span class="srow-label">${label}</span><span class="srow-value">${cur ? cur[1] : ''}</span>${UPDOWN}`;
+  // With a note it is one row as on iOS: the setting's line, then the note 6 below, full width.
+  return `<label class="srow${note ? ' noted' : ''}">${note ? `<span class="srow-line">${line}</span><small class="srow-note">${note}</small>` : line}
     <select data-set="${id}" aria-label="${label}">${options.map(([v, l, locked]) => `<option value="${v}"${v === get() ? ' selected' : ''}${locked ? ' disabled' : ''}>${l}</option>`).join('')}</select></label>`;
 }
-const toggle = (id, ic, label, sub, on) => `<label class="srow tall">${icon(ic)}<span class="srow-label">${label}<small>${sub}</small></span>
+const toggle = (id, ic, label, sub, on) => `<label class="srow sub">${icon(ic)}<span class="srow-label">${label}<small>${sub}</small></span>
   <input type="checkbox" role="switch" class="srow-switch" data-set="${id}"${on ? ' checked' : ''}></label>`;
 const link = (id, ic, label, value = '', chev = true, cls = '', aria = '') => `<button class="srow${cls}" type="button" data-open="${id}"${aria ? ` aria-label="${esc(aria)}"` : ''}>${icon(ic)}<span class="srow-label">${label}</span><span class="srow-value">${value}</span>${chev ? CHEV : ''}</button>`;
 const group = (head, rows, foot = '') => `<h3 class="sgroup-head">${head}</h3><div class="sgroup">${rows.join('')}</div>${foot ? `<p class="sgroup-foot">${foot}</p>` : ''}`;
