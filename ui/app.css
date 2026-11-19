@@ -297,7 +297,7 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 .dock[data-mode="searching"] .dock-btn { min-height: 44px; }
 .dock-search {
   grid-column: span 2; align-self: center; width: 100%; height: 44px; min-width: 0; padding: 0 16px; border-radius: 14px;
-  border: 1px solid var(--outline); background: var(--card);
+  border: 1px solid var(--outline); background: var(--surface);   /* flatField: surface, 1 outline */
   color: var(--text); font: 15px var(--sys); outline: none;
 }
 .dock-search::placeholder { color: var(--muted); }
