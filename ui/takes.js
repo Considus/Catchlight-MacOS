@@ -552,10 +552,14 @@ function playRow(row, open) {
     }
   }
   // The card grows on the drop's curve, and shrinks last on the close.
+  // The close starts from wherever the open had reached, read before the open's hold is dropped,
+  // and the resting size is read once that hold is gone.
   for (const el of row.lifts) {
+    const from = getComputedStyle(el).paddingBottom;
+    el.getAnimations().forEach(a => a.cancel());
     const base = parseFloat(getComputedStyle(el).paddingBottom), grown = base + ROW.growth;
     if (open) el.animate([{ paddingBottom: base + 'px' }, { paddingBottom: grown + 'px' }], opts(ROW.drop, 0, EASE_OUT_CUBIC));
-    else { el.getAnimations().forEach(a => a.cancel()); el.animate([{ paddingBottom: grown + 'px' }, { paddingBottom: base + 'px' }], { ...opts(ROW.drop, far, EASE_IN_CUBIC), fill: 'none' }); }
+    else el.animate([{ paddingBottom: from }, { paddingBottom: base + 'px' }], { ...opts(ROW.drop, far, EASE_IN_CUBIC), fill: 'none' });
   }
   return now ? 0 : (far + ROW.drop) * k;
 }

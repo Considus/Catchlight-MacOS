@@ -150,4 +150,31 @@ final class IrisLookTests: XCTestCase {
         }
         XCTAssertTrue(marks.contains { $0["on"] as? Bool == true } && marks.contains { $0["on"] as? Bool == false })
     }
+
+    /// Closing shrinks the card from its grown size back to its resting size: no extra growth
+    /// first, whether the row had finished opening or not.
+    func testClosingShrinksTheCardFromItsGrownSize() throws {
+        let harness = page()
+        let r = try json(harness, """
+            const close = async finishOpen => {
+              // Closing repaints the timeline, so find the card afresh each time.
+              [...document.querySelectorAll('#takes .card')].find(c => !c.classList.contains('obie')).querySelector('.iris-wrap').click();
+              const lifted = document.querySelector('#focus-ring .lifted');
+              const rest = parseFloat(getComputedStyle(lifted).paddingBottom);
+              if (finishOpen) document.getAnimations().forEach(a => a.finish());
+              closeFocusRing(false);
+              const frames = lifted.getAnimations().map(a => a.effect.getKeyframes()).find(k => k[0].paddingBottom);
+              document.getAnimations().forEach(a => a.finish());
+              await new Promise(r => setTimeout(r, 900));   // the row clears itself once the close has run
+              return { rest, from: parseFloat(frames[0].paddingBottom), to: parseFloat(frames[frames.length - 1].paddingBottom) };
+            };
+            return { finished: await close(true), midway: await close(false) };
+            """)
+        for key in ["finished", "midway"] {
+            let c = try XCTUnwrap(r[key] as? [String: Double], key)
+            XCTAssertEqual(c["to"]!, c["rest"]!, accuracy: 0.5, "\(key): ends at the resting size")
+            XCTAssertLessThanOrEqual(c["from"]!, c["rest"]! + 22.5, "\(key): starts no bigger than grown")
+            if key == "finished" { XCTAssertEqual(c["from"]!, c["rest"]! + 22, accuracy: 0.5, "starts from the grown size") }
+        }
+    }
 }

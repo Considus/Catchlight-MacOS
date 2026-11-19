@@ -76,8 +76,9 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 .timeline, .pinned { --gap: 44px; --card-gap: max(10px, calc(var(--gap) - 22px)); --lines: 3; }
 .timeline {
   flex: 1; overflow-y: auto; position: relative; padding: 46px 0 120px;
-  scrollbar-width: thin;
+  scrollbar-width: none;   /* hidden, as the iPhone's; wheel, trackpad and keys still scroll */
 }
+.timeline::-webkit-scrollbar { display: none; }
 :is(.timeline, .pinned)[data-spacing="compact"] { --gap: 26px; }
 :is(.timeline, .pinned)[data-spacing="comfort"] { --gap: 62px; }
 :is(.timeline, .pinned)[data-preview="single"] { --lines: 1; }
