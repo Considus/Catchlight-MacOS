@@ -113,6 +113,56 @@ function commitReorder(id, displayIds) {
   saveTakes(); renderTakes();
 }
 
+// ---------- toolbar names that fit (ToolbarColumn) ----------
+// A name wraps between words; a single word too long for its column shrinks, to 80% at most,
+// before it may break, and it never ends in "…".
+function fitDockLabels(root = document) {
+  for (const l of root.querySelectorAll('.dock-btn .lbl')) {
+    l.style.fontSize = '';
+    const longest = Math.max(...l.textContent.split(/\s+/).map(w => {
+      const span = document.createElement('span');
+      span.style.whiteSpace = 'nowrap'; span.style.position = 'absolute'; span.style.visibility = 'hidden';
+      span.textContent = w; l.append(span);
+      const width = span.getBoundingClientRect().width; span.remove(); return width;
+    }));
+    const room = l.parentElement.clientWidth - 4;
+    if (longest > room && room > 0) l.style.fontSize = Math.max(13 * 0.8, 13 * room / longest * 0.96).toFixed(2) + 'px';
+  }
+}
+new ResizeObserver(() => fitDockLabels()).observe(document.querySelector('#sidebar'));
+new ResizeObserver(() => fitDockLabels()).observe(document.querySelector('#scriptlist'));
+
+// ---------- the Dailies heading's date (DailiesHeading.dateParts) ----------
+// Today in the language's own order and words, the day number followed by its ordinal: "Thursday
+// 12th November" in the UK, "Thursday, November 12th" in the US, "dimanche 1er novembre" in
+// French on the 1st; no suffix in any other language. The suffix is raised. Only on Dailies at
+// rest, as on the iPhone; Sequence, Search and the Storyboard keep the plain heading.
+function ordinalSuffix(day, lang) {
+  if (lang.startsWith('en')) {
+    if (day % 100 >= 11 && day % 100 <= 13) return 'th';
+    return { 1: 'st', 2: 'nd', 3: 'rd' }[day % 10] || 'th';
+  }
+  return lang.startsWith('fr') && day === 1 ? 'er' : '';
+}
+function dailiesDateParts(date, lang) {
+  const parts = new Intl.DateTimeFormat(lang, { weekday: 'long', day: 'numeric', month: 'long' }).formatToParts(date);
+  const i = parts.findIndex(p => p.type === 'day');
+  const text = ps => ps.map(p => p.value).join('');
+  if (i < 0) return { before: text(parts), day: '', suffix: '', after: '' };
+  return { before: text(parts.slice(0, i)), day: parts[i].value, suffix: ordinalSuffix(+parts[i].value, lang), after: text(parts.slice(i + 1)) };
+}
+const dailiesDate = (date, lang) => { const p = dailiesDateParts(date, lang); return p.before + p.day + p.suffix + p.after; };
+// The date's language: the page's own, and in English the system's English (US or British
+// order); a system language the page doesn't show falls back to British English, as monthLabel does.
+const dailiesLocale = system => L10N.dateLocale(/^en(-|$)/i.test(system || '') ? system : 'en-GB');
+function paintDailiesDate() {
+  const el = $('#dailies-date');
+  el.hidden = storyboard || dock !== 'resting';
+  const p = dailiesDateParts(new Date(), dailiesLocale(navigator.language));
+  el.innerHTML = esc(p.before + p.day) + (p.suffix ? `<sup>${esc(p.suffix)}</sup>` : '') + esc(p.after);
+}
+setInterval(() => { if (!$('#dailies-date').hidden) paintDailiesDate(); }, 60000);   // turns over at midnight
+
 // ---------- the timeline card ----------
 function takeCard(t) {
   // Links are live, as on the card on iOS; with two or more the lines open up so each is easy
@@ -140,6 +190,7 @@ const reorderHandle = t => !t.obie && !isHeld(t.id) && canReorder() ? `<button c
 
 function renderTakes() {
   $('#dailies-heading').textContent = storyboard ? t('Storyboard') : { resting: t('Dailies'), filtering: t('Sequence'), searching: t('Search') }[dock];
+  paintDailiesDate();
   $('#show-all').hidden = storyboard || (dock === 'resting' && !filterMonth);   // iOS offers it only away from resting
   $('#sb-close').hidden = !storyboard;
   sidebar.classList.toggle('storyboard', storyboard);
@@ -746,10 +797,11 @@ function matches(t) {
 }
 
 const ICON = {
-  add: '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
-  angle: '<svg viewBox="0 0 24 24"><path d="M5 18h14M5 18l9-11M10.5 18a6 6 0 0 0-1.9-4.4"/></svg>',
-  sequence: '<svg viewBox="0 0 24 24"><circle cx="6.5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="17.5" cy="12" r="2"/></svg>',
-  search: '<svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="5.5"/><path d="M15 15l4.5 4.5"/></svg>',
+  // The iPhone's toolbar glyphs (ToolbarGlyph), on its 24 grid.
+  add: '<svg viewBox="0 0 24 24"><path d="M12 6v12M6 12h12"/></svg>',
+  storyboard: '<svg viewBox="0 0 24 24"><path d="M4.5 4.5h6v6h-6zM13.5 4.5h6v6h-6zM4.5 13.5h6v6h-6zM13.5 13.5h6v6h-6z"/></svg>',
+  sequence: '<svg viewBox="0 0 24 24"><path d="M5 7h14M5 12h14M5 17h9"/></svg>',
+  search: '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M16 16l4 4"/></svg>',
   cancel: '<svg viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg>',
   note: '<svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="16" rx="2"/><path d="M8.5 9h7M8.5 12.5h7M8.5 16h4"/></svg>',
   task: '<svg viewBox="0 0 24 24"><rect x="4.5" y="4.5" width="15" height="15" rx="3"/><path d="M8.5 12.2l2.6 2.6 4.6-5.3"/></svg>',
@@ -764,10 +816,13 @@ function paintDock() {
   bar.hidden = storyboard;   // the Storyboard covers Dailies and carries only its ×
   bar.dataset.mode = dock;
   const btn = (act, icon, label, extra = '') => `<button class="dock-btn${extra}" type="button" data-act="${act}" aria-label="${esc(label)}" title="${esc(label)}">${icon}</button>`;
+  // A toolbar column: the icon over its name (DailiesToolbar's ToolbarColumn).
+  const col = (act, icon, label, name, extra = '') => `<button class="dock-btn${extra}" type="button" data-act="${act}" aria-label="${esc(label)}"><span class="icon">${icon}</span><span class="lbl">${esc(name)}</span></button>`;
   const tog = (act, icon, label, on, fill) => btn(act, icon, label, ` toggle${on ? ' on' : ''}" aria-pressed="${on}`);
   if (dock === 'resting') {
-    bar.innerHTML = btn('add', ICON.add, t('Add Take')) + btn('storyboard', ICON.angle, t('Storyboard'))
-      + btn('sequence', ICON.sequence, t('Sequence')) + btn('search', ICON.search, t('Search'));
+    bar.innerHTML = col('add', ICON.add, t('Add Take'), t('Add'), ' primary') + col('storyboard', ICON.storyboard, t('Storyboard'), t('Storyboard'))
+      + col('sequence', ICON.sequence, t('Sequence'), t('Sequence')) + col('search', ICON.search, t('Search'), t('Search'));
+    fitDockLabels(bar);
   } else if (dock === 'filtering') {
     bar.innerHTML = tog('important', ICON_IMPORTANT, t('Important filter'), seq.important, 'important')
       + tog('notes', ICON.note, t('Notes filter'), seq.notes, 'note')

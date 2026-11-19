@@ -40,7 +40,10 @@
 
   <!-- Sidebar: the iOS app, as if on a taller device. -->
   <aside class="pane sidebar" id="sidebar" data-i18n-attrs="aria-label" aria-label="Takes">
-    <h1 class="page-heading" id="dailies-heading" tabindex="-1">Dailies</h1>
+    <div class="heading-row">
+      <h1 class="page-heading" id="dailies-heading" tabindex="-1">Dailies</h1>
+      <p class="heading-date" id="dailies-date"></p>
+    </div>
     <button class="sr-only" id="show-all" type="button" data-i18n hidden>Show all Takes</button>
     <button class="sheet-close" id="sb-close" type="button" data-i18n-attrs="aria-label title" aria-label="Close Storyboard" title="Close Storyboard" hidden><svg viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg></button>
     <div class="pinned" id="pinned" hidden></div>
@@ -65,16 +68,16 @@
 
   <!-- Script list: mirrors Dailies. -->
   <section class="pane scriptlist" id="scriptlist" data-i18n-attrs="aria-label" aria-label="Scripts">
-    <h1 class="page-heading" data-i18n>Scripts</h1>
+    <div class="heading-row"><h1 class="page-heading" data-i18n>Scripts</h1></div>
     <div class="search-row" id="search-row" hidden>
       <input type="search" id="search" data-i18n-attrs="placeholder aria-label" placeholder="Search Scripts" aria-label="Search Scripts">
     </div>
     <div class="timeline" id="scripts"></div>
     <nav class="dock" data-i18n-attrs="aria-label" aria-label="Scripts dock">
-      <button class="dock-btn" id="new-script" data-i18n-attrs="aria-label" aria-label="New Script"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
-      <button class="dock-btn" id="scripts-angle" data-i18n-attrs="aria-label title" aria-label="Angle (not built yet)" title="Angle (not built yet)"><svg viewBox="0 0 24 24"><path d="M5 18h14M5 18l9-11M10.5 18a6 6 0 0 0-1.9-4.4"/></svg></button>
-      <button class="dock-btn" id="view-opts" data-i18n-attrs="aria-label title" aria-label="Script timeline settings" title="Script timeline settings"><svg viewBox="0 0 24 24"><path d="M4 8h10M18 8h2M4 16h2M10 16h10"/><circle cx="16" cy="8" r="2"/><circle cx="8" cy="16" r="2"/></svg></button>
-      <button class="dock-btn" id="search-btn" data-i18n-attrs="aria-label" aria-label="Search Scripts"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="5.5"/><path d="M15 15l4.5 4.5"/></svg></button>
+      <button class="dock-btn primary" id="new-script" data-i18n-attrs="aria-label" aria-label="New Script"><span class="icon"><svg viewBox="0 0 24 24"><path d="M12 6v12M6 12h12"/></svg></span><span class="lbl" data-i18n>New</span></button>
+      <button class="dock-btn" id="scripts-angle" data-i18n-attrs="aria-label title" aria-label="Angle (not built yet)" title="Angle (not built yet)"><span class="icon"><svg viewBox="0 0 24 24"><path d="M5 18h14M5 18l9-11M10.5 18a6 6 0 0 0-1.9-4.4"/></svg></span><span class="lbl" data-i18n>Angle</span></button>
+      <button class="dock-btn" id="view-opts" data-i18n-attrs="aria-label title" aria-label="Script timeline settings" title="Script timeline settings"><span class="icon"><svg viewBox="0 0 24 24"><path d="M4 8h10M18 8h2M4 16h2M10 16h10"/><circle cx="16" cy="8" r="2"/><circle cx="8" cy="16" r="2"/></svg></span><span class="lbl" data-i18n>View</span></button>
+      <button class="dock-btn" id="search-btn" data-i18n-attrs="aria-label" aria-label="Search Scripts"><span class="icon"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="5.5"/><path d="M15 15l4.5 4.5"/></svg></span><span class="lbl" data-i18n>Search</span></button>
     </nav>
   </section>
 
