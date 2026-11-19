@@ -68,7 +68,16 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 
 /* ---------- Dailies-style timeline (sidebar and Script list) ---------- */
 .sidebar, .scriptlist { container-type: inline-size; --iris-x: max(4px, calc((100cqw - 34px) / 8 - 22px)); }
-.page-heading { margin: 14px 0 0; padding: 0 24px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-height: 24px; font-size: 34px; line-height: 1.05; text-align: center; flex: none; }
+.page-heading { margin: 14px 0 0; padding: 0 24px; min-height: 24px; font-size: 34px; line-height: 1.05; text-align: center; flex: none; overflow-wrap: break-word; hyphens: manual; }
+/* Dailies and Scripts: the heading on the left, in from the cards' edge by its share of their
+   width, as on the website; Dailies' date on the right of the same line, dropping under it when
+   the two don't fit. A heading wraps between words before anything shrinks (DailiesHeading). */
+.heading-row { flex: none; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; column-gap: 12px; row-gap: 4px;
+  margin: 14px 0 0; padding: 0 calc(17px + (100cqw - 34px) * 5.16 / 220.16); }
+.heading-row .page-heading { margin: 0; padding: 0; text-align: left; min-width: 0; }
+.heading-date { margin: 0; font-size: 14px; color: var(--muted); white-space: nowrap; }
+.heading-date[hidden] { display: none; }
+.heading-date sup { font-size: .7em; vertical-align: .35em; line-height: 0; }
 /* Cards sit 17 in from each side, as wide as the toolbar. Each Iris sits inside its card's
    top-left, centred under the toolbar's first column, (width - 34) / 8 + 17, and the text starts
    as far right of it as it sits in (CatchlightLayout: irisLeadingInset, cardTextLeadingPad).
@@ -94,7 +103,7 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 .pinned .card { margin-bottom: 0; }
 .timeline.under-obie > :first-child { margin-top: var(--card-gap); }
 
-.month { margin: 0 0 calc(var(--card-gap) + 16px) calc(17px + var(--iris-x) * 2 + 44px); font-size: 14px; letter-spacing: .5px; text-transform: uppercase; color: var(--muted); position: relative; }
+.month { margin: 0 0 calc(var(--card-gap) + 16px) calc(17px + var(--iris-x) * 2 + 44px); font-size: 13px; color: var(--muted); position: relative; }
 
 .card {
   position: relative; display: block; width: auto; text-align: left;
@@ -114,7 +123,7 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 .card.overdue .meta { color: var(--overdue-text); font-style: italic; font-weight: 500; }
 .card.overdue::before { content: "OVERDUE"; position: absolute; left: 6px; top: 50%; transform: translateY(-50%) rotate(180deg); writing-mode: vertical-rl; font-size: 9px; letter-spacing: 1px; color: var(--overdue-text); }
 .card.done .body { color: var(--faint); }
-.card.selected { border-color: var(--accent-text); box-shadow: inset 0 0 0 1px var(--accent-text); }
+.card.selected { border-color: var(--accent-text); background: color-mix(in srgb, var(--accent) 9%, var(--card)); }
 /* The Iris: 44 square, 14 down from the card's outer top edge (13.25 inside its border). */
 .iris-wrap { position: absolute; z-index: 2; left: calc(var(--iris-x) - .75px); top: 13.25px; width: 44px; height: 44px; }
 .iris { display: block; width: 44px; height: 44px; overflow: visible; stroke-linecap: round; }
@@ -128,15 +137,27 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 .scriptlist .card { cursor: default; }
 .scriptlist .card .pages { margin-top: 4px; font-size: 11px; color: var(--muted); }
 
-/* ---------- dock ---------- */
+/* ---------- the toolbar at each column's foot (DailiesToolbar on iOS) ----------
+   One flat panel in the surface colour with a line edge, 17 in from the column's sides and
+   bottom, as wide as the cards. Takes dissolve through a 16px fade above it. Each button is its
+   icon over its name; Add and New are the one filled control. The iPhone has no hover: here a
+   7% text tint, concentric with the panel, stands in as the Mac's pressed state. */
 .dock {
-  position: absolute; z-index: 3; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: repeat(4, 1fr); justify-items: center;
-  padding: 18px 12px 16px;
-  background: linear-gradient(to bottom, transparent, var(--ground) 22px);
+  position: absolute; z-index: 3; left: 17px; right: 17px; bottom: 17px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: stretch;
+  gap: 4px; padding: 8px; border-radius: 14px;
 }
-.dock-btn { width: 44px; height: 44px; border-radius: 14px; border: 1.5px solid color-mix(in srgb, var(--accent-text) 55%, transparent); color: var(--accent-text); display: grid; place-items: center; }
-.dock-btn svg { width: 24px; height: 24px; stroke-width: 1.4; }
-.dock-btn:hover, .dock-btn.on { background: color-mix(in srgb, var(--accent-text) 14%, transparent); }
+.dock::before { content: ""; position: absolute; z-index: -2; left: -17px; right: -17px; top: -16px; bottom: -17px; pointer-events: none;
+  background: linear-gradient(to bottom, transparent, var(--ground) 16px); }
+.dock::after { content: ""; position: absolute; z-index: -1; inset: 0; pointer-events: none; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; }
+.dock-btn { min-width: 0; min-height: 44px; padding: 4px 2px; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; color: var(--muted); }
+.dock-btn .icon { width: 40px; height: 40px; flex: none; display: grid; place-items: center; }
+.dock-btn svg { width: 26px; height: 26px; stroke-width: 1.9; }
+.dock-btn .lbl { max-width: 100%; font: 500 13px/1.15 var(--sys); text-align: center; overflow-wrap: break-word; }   /* fitDockLabels() shrinks a long word first */
+.dock-btn.primary { color: var(--text); }
+.dock-btn.primary .icon { background: var(--accent); color: var(--on-accent); border-radius: 13px; }
+.dock-btn:hover, .dock-btn.on { background: color-mix(in srgb, var(--text) 7%, transparent); }
+.dock-btn.toggle { border: 1px solid var(--line); border-radius: 14px; color: var(--text); }
+.dock-btn.toggle svg { width: 20px; height: 20px; }
 
 .search-row { padding: 14px 12px 0; flex: none; }
 .search-row input { width: 100%; min-height: 44px; padding: 8px 16px; border-radius: 14px; border: 1.5px solid color-mix(in srgb, var(--accent-text) 55%, transparent); background: var(--card); color: var(--text); font: inherit; outline: none; }
@@ -273,15 +294,16 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
    Done-only and Expired-only change the glyph, not the fill. */
 .dock-btn.toggle.on, .dock-btn.toggle.on:hover { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .dock-btn.filled { background: var(--card); }
+.dock[data-mode="searching"] .dock-btn { min-height: 44px; }
 .dock-search {
   grid-column: span 2; align-self: center; width: 100%; height: 44px; min-width: 0; padding: 0 16px; border-radius: 14px;
-  border: 1.5px solid color-mix(in srgb, var(--accent-text) 55%, transparent); background: var(--card);
-  color: var(--text); font: 14px var(--sys); outline: none;
+  border: 1px solid var(--outline); background: var(--card);
+  color: var(--text); font: 15px var(--sys); outline: none;
 }
 .dock-search::placeholder { color: var(--muted); }
 .sidebar .month-label { cursor: pointer; padding: 0; text-transform: inherit; letter-spacing: inherit; text-align: left; }   /* a button since it filters (UIKitTimeline) */
 .sidebar .month-label:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 3px; border-radius: 3px; }
-.month.on .month-label { color: var(--lit); display: inline-flex; gap: 6px; align-items: center; }
+.month.on .month-label { color: var(--accent-text); display: inline-flex; gap: 6px; align-items: center; }
 .month .xmark { width: 14px; height: 14px; stroke-width: 1.6; }
 .sheet-close { position: absolute; z-index: 4; top: 6px; right: 12px; width: 32px; height: 32px; border-radius: 11px; display: grid; place-items: center; color: var(--accent-text); }
 .sheet-close::after { content: ""; position: absolute; inset: -6px; }   /* a 44 × 44 hit area */
