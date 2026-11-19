@@ -235,4 +235,24 @@ final class IrisLookTests: XCTestCase {
         XCTAssertEqual(r["marks"] as? Int, 4)
         XCTAssertEqual(r["lifted"] as? Int, 1)
     }
+
+    /// A Take longer than its preview lifts at its preview's height: the lifted picture is the
+    /// card as drawn plus the growth, and the marks straddle its bottom edge, not the text
+    /// (FocusRowView draws it at the real card's frame).
+    func testALongTakeLiftsAtItsPreviewHeight() throws {
+        let harness = page()
+        let r = try json(harness, """
+            const card = [...document.querySelectorAll('#takes .card')].find(c => { const b = c.querySelector('.body'); return !c.classList.contains('obie') && b.scrollHeight > b.clientHeight + 1; });
+            card.scrollIntoView({ block: 'center' });   // clear of the window's foot, where the row lifts to stay in view
+            const before = card.getBoundingClientRect();
+            card.querySelector('.iris-wrap').click();
+            document.getAnimations().forEach(a => a.finish());
+            const lifted = document.querySelector('#focus-ring .lifted').getBoundingClientRect();
+            const marks = [...document.querySelectorAll('#focus-ring .mark')].map(m => { const b = m.getBoundingClientRect(); return b.top + b.height / 2; });
+            return { found: !!card, cardH: before.height, liftedH: lifted.height, liftedBottom: lifted.bottom, marks };
+            """)
+        XCTAssertEqual(r["found"] as? Bool, true, "a Take longer than its preview")
+        XCTAssertEqual(r["liftedH"] as! Double, (r["cardH"] as! Double) + 22, accuracy: 0.6, "the preview's height plus the growth")
+        for y in try XCTUnwrap(r["marks"] as? [Double]) { XCTAssertEqual(y, r["liftedBottom"] as! Double, accuracy: 0.6, "on the lifted card's edge") }
+    }
 }
