@@ -152,10 +152,13 @@ function dailiesDateParts(date, lang) {
   return { before: text(parts.slice(0, i)), day: parts[i].value, suffix: ordinalSuffix(+parts[i].value, lang), after: text(parts.slice(i + 1)) };
 }
 const dailiesDate = (date, lang) => { const p = dailiesDateParts(date, lang); return p.before + p.day + p.suffix + p.after; };
+// The date's language: the page's own, and in English the system's English (US or British
+// order); a system language the page doesn't show falls back to British English, as monthLabel does.
+const dailiesLocale = system => L10N.dateLocale(/^en(-|$)/i.test(system || '') ? system : 'en-GB');
 function paintDailiesDate() {
   const el = $('#dailies-date');
   el.hidden = storyboard || dock !== 'resting';
-  const p = dailiesDateParts(new Date(), L10N.dateLocale(navigator.language || 'en-GB'));
+  const p = dailiesDateParts(new Date(), dailiesLocale(navigator.language));
   el.innerHTML = esc(p.before + p.day) + (p.suffix ? `<sup>${esc(p.suffix)}</sup>` : '') + esc(p.after);
 }
 setInterval(() => { if (!$('#dailies-date').hidden) paintDailiesDate(); }, 60000);   // turns over at midnight

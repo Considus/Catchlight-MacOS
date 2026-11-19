@@ -150,4 +150,19 @@ final class DailiesLookTests: XCTestCase {
         XCTAssertEqual(r["lines"] as? Int, 1)
         XCTAssertNotEqual(r["dailiesWrap"] as? String, "nowrap", "the Dailies heading row may wrap")
     }
+
+    /// With the page in English, the date follows an English system's own style (US or British)
+    /// and is never written in a language the page isn't showing: an unsupported system language
+    /// falls back to British English, as the month labels do.
+    func testTheDateIsInThePagesLanguage() throws {
+        let harness = page()
+        let r = try json(harness, """
+            return { lang: L10N.lang, us: dailiesLocale('en-US'), gb: dailiesLocale('en-GB'), ru: dailiesLocale('ru-RU'), none: dailiesLocale('') };
+            """)
+        XCTAssertEqual(r["lang"] as? String, "en")
+        XCTAssertEqual(r["us"] as? String, "en-US")
+        XCTAssertEqual(r["gb"] as? String, "en-GB")
+        XCTAssertEqual(r["ru"] as? String, "en-GB", "not Russian under an English page")
+        XCTAssertEqual(r["none"] as? String, "en-GB")
+    }
 }
