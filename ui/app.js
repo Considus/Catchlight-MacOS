@@ -3,30 +3,40 @@
 // step, no platform-only APIs) so the same files run in WKWebView, WebView2 and
 // WebKitGTK. Data is placeholder and in-page; nothing syncs.
 
-// ---------- Iris: the six-blade shutter ----------
-const BLADES = ["M28.39 15.16C27.15 14.22 25.79 13.32 24.34 12.48C22.89 11.65 21.43 10.92 20.0 10.31C17.62 9.29 15.31 8.59 13.19 8.21C8.6 7.39 4.93 8.12 3.55 10.5C3.55 10.5 3.55 10.5 3.55 10.5C6.83 4.82 12.97 1.01 20.0 1.01C22.76 1.01 25.22 3.82 26.81 8.21C27.54 10.23 28.09 12.58 28.39 15.16Z", "M33.61 20.0C32.23 21.64 30.47 23.3 28.39 24.85C28.58 23.3 28.68 21.68 28.68 20.0C28.68 18.32 28.58 16.7 28.39 15.15C28.09 12.58 27.54 10.22 26.81 8.21C25.22 3.82 22.76 1.01 20.0 1.01C27.03 1.01 33.17 4.82 36.45 10.5C36.45 10.5 36.45 10.5 36.45 10.5C37.83 12.89 36.62 16.43 33.61 20.0Z", "M38.99 20.0C38.99 23.46 38.07 26.7 36.45 29.5C36.45 29.5 36.45 29.5 36.45 29.5C35.07 31.89 31.41 32.61 26.81 31.79C24.7 31.42 22.38 30.71 20.01 29.69C21.44 29.08 22.89 28.35 24.35 27.52C25.8 26.68 27.16 25.78 28.4 24.84C30.47 23.29 32.23 21.64 33.62 19.99C36.62 16.42 37.84 12.88 36.45 10.5C36.45 10.5 36.45 10.5 36.45 10.5C38.07 13.3 38.99 16.54 38.99 20.0Z", "M36.45 29.5C33.17 35.18 27.03 38.99 20.0 38.99C17.24 38.99 14.78 36.18 13.19 31.79C12.46 29.77 11.91 27.42 11.61 24.85C12.85 25.79 14.21 26.69 15.66 27.52C17.11 28.36 18.57 29.09 20.0 29.7C22.38 30.72 24.69 31.42 26.81 31.8C31.4 32.61 35.07 31.88 36.45 29.5C36.45 29.5 36.45 29.5 36.45 29.5Z", "M20.0 38.99C12.97 38.99 6.83 35.18 3.55 29.5C3.55 29.5 3.55 29.5 3.55 29.5C2.17 27.11 3.38 23.58 6.39 20.01C7.77 18.37 9.53 16.71 11.61 15.16C11.42 16.7 11.32 18.32 11.32 20.01C11.32 21.69 11.42 23.31 11.61 24.86C11.91 27.42 12.46 29.78 13.19 31.8C14.79 36.18 17.24 38.99 20.0 38.99Z", "M20.0 10.31C18.57 10.92 17.11 11.65 15.66 12.48C14.21 13.32 12.85 14.22 11.61 15.16C9.53 16.71 7.77 18.36 6.39 20.01C3.38 23.58 2.17 27.12 3.55 29.5C3.55 29.5 3.55 29.5 3.55 29.5C1.94 26.71 1.01 23.46 1.01 20.0C1.01 16.54 1.94 13.3 3.55 10.5C3.55 10.5 3.55 10.5 3.55 10.5C4.93 8.11 8.6 7.39 13.19 8.21C15.31 8.59 17.62 9.29 20.0 10.31Z"];
-const SEG = ['important', 'task', 'image', 'note', 'voice', 'remind'];
-
+// ---------- Iris: a rounded square of six lights (IrisGeometry.swift, IrisView.swift) ----------
+// In the iPhone's 44-unit space. The outline runs clockwise from the top centre; each light is
+// 78 of its 600 parts, centred on part i * 100, so light 0 straddles the start. Lit lights are
+// the lit colour at 3, unlit ones the unlit colour at 1.5 (app.css). Inside sits one shape: the
+// Take's one type, four dots for two or more, Note when nothing else is on. Important lights its
+// edge but is never a type. An Obie adds an inner rounded square.
+const LIGHTS = [['important', 'important'], ['task', 'task'], ['audio', 'voice'], ['note', 'note'], ['image', 'image'], ['reminder', 'remind']];
+const IRIS_SHAPES = {   // [x1, y1, x2, y2] on a 24 grid
+  note: [[7.5, 9, 16.5, 9], [7.5, 12, 16.5, 12], [7.5, 15, 13, 15]],
+  task: [[7.2, 12.4, 10.4, 15.6], [10.4, 15.6, 16.8, 8.6]],
+  reminder: [[12, 12.6, 12, 6.2], [12, 12.6, 16.6, 15]],
+  audio: [[7, 10.6, 7, 13.4], [9.5, 8.2, 9.5, 15.8], [12, 6.2, 12, 17.8], [14.5, 8.6, 14.5, 15.4], [17, 10.6, 17, 13.4]],
+  image: [[5.6, 17, 10, 12], [10, 12, 13.2, 15.6], [12.2, 14.6, 14.8, 11.6], [14.8, 11.6, 18.4, 17], [16.2, 7.2, 17.4, 7.2]],
+  fourDots: [[9, 9, 9, 9], [15, 9, 15, 9], [9, 15, 9, 15], [15, 15, 15, 15]],
+};
+const IRIS_OUTLINE = 'M22 1.5H31.5A11 11 0 0 1 42.5 12.5V31.5A11 11 0 0 1 31.5 42.5H12.5A11 11 0 0 1 1.5 31.5V12.5A11 11 0 0 1 12.5 1.5Z';
+function irisShape(on) {
+  const types = [['task', 'task'], ['remind', 'reminder'], ['voice', 'audio'], ['image', 'image']].filter(([k]) => on.has(k));
+  return types.length === 0 ? 'note' : types.length === 1 ? types[0][1] : 'fourDots';
+}
 function iris(active = [], obie = false) {
   const on = new Set(obie ? [...active, 'important'] : active);
-  const edge = obie ? 'var(--iris-obie)' : 'var(--iris-ring)';
-  let s = '<svg class="iris" viewBox="0.85 0.85 38.3 38.3" aria-hidden="true" style="stroke:none;overflow:visible">';
-  BLADES.forEach((d, i) => { s += `<path d="${d}" fill="${on.has(SEG[i]) ? `var(--iris-${SEG[i]})` : 'var(--iris-off)'}"/>`; });
-  BLADES.forEach(d => { s += `<path d="${d}" fill="url(#iris-sheen)"/>`; }); // metal sheen, lit from the top-left
-  BLADES.forEach(d => { s += `<path d="${d}" fill="none" stroke="${edge}" stroke-width="0.7"/>`; });
-  s += `<circle cx="20" cy="20" r="18.7" fill="none" stroke="${edge}" stroke-width="0.9"/>`;
-  if (obie) s += '<circle cx="20" cy="20" r="21.76" fill="none" stroke="var(--iris-obie)" stroke-width="1.74"/>';
-  // The rim catchlight: hot core and bloom at ten o'clock, dim bounce opposite
-  // (TakeCircleView.glint). An Obie catches it on both rings. turnGlints() swings it.
-  s += '<g class="glints">' + glint(0.976, 0.052, 0.235, 0.150) + (obie ? glint(1.109, 0.040, 0.180, 0.115) : '') + '</g>';
+  const shape = irisShape(on);
+  // The inner shape is mapped by translate(22,22) scale(1.3) translate(-12,-12), its stroke unscaled.
+  const p = v => (22 + (v - 12) * 1.3).toFixed(2);
+  const inner = IRIS_SHAPES[shape].map(([x1, y1, x2, y2]) => `M${p(x1)} ${p(y1)}L${p(x2)} ${p(y2)}`).join('');
+  let s = `<svg class="iris${obie ? ' obie' : ''}" viewBox="0 0 44 44" data-shape="${shape}" aria-hidden="true">`;
+  s += `<rect class="outline" x="1.5" y="1.5" width="41" height="41" rx="11"/>`;
+  LIGHTS.forEach(([light, key], i) => {
+    s += `<path class="light${on.has(key) ? ' lit' : ''}" data-light="${light}" d="${IRIS_OUTLINE}" pathLength="600" stroke-dasharray="78 522" stroke-dashoffset="${39 - i * 100}"/>`;
+  });
+  if (obie) s += '<rect class="obie-square" x="5.2" y="5.2" width="33.6" height="33.6" rx="7.3"/>';
+  s += `<path class="inner${shape === 'fourDots' ? ' dots' : ''}" d="${inner}"/>`;
   return s + '</svg>';
-}
-function glint(unit, core, bloom, bounce) {
-  const R = 19.15; // the shutter's outer radius in blade units: iOS's diameter / 2
-  const d = unit * R * Math.SQRT1_2, near = 20 - d, far = 20 + d; // 225°: up and left of centre
-  return `<circle cx="${far}" cy="${far}" r="${bounce * R}" fill="url(#glint-bounce)"/>`
-    + `<circle cx="${near}" cy="${near}" r="${bloom * R}" fill="url(#glint-bloom)"/>`
-    + `<circle cx="${near}" cy="${near}" r="${core * R}" fill="#FFFEF8"/>`;
 }
 
 // ---------- small helpers ----------
@@ -1028,72 +1038,7 @@ function applyScene() {
 mq.addEventListener('change', applyScene);
 $('#tb-scene').addEventListener('click', () => { scene = scenes[(scenes.indexOf(scene) + 1) % 3]; store.set('scene', scene); applyScene(); });
 
-// ---------- the light is fixed in the world ----------
-// Each Iris's catchlight turns with where it sits on screen: lit from the side (west)
-// at the top, from above (north) at the bottom, 26° either way of ten o'clock
-// (IrisDepth.specularTravelDegrees). Reduce Motion parks every light at ten o'clock.
 const still = matchMedia('(prefers-reduced-motion: reduce)');
-let glintFrame = 0;
-function turnGlints() {
-  glintFrame = 0;
-  const h = innerHeight;
-  if (!h) return;   // a window with no height yet (a hidden pane) has nowhere to place the light
-  // Only an Iris on screen is turned, and only when its angle changes: rewriting every Iris in
-  // a long list on each scroll frame cost a third of the frame (300 Takes: 25 ms a frame
-  // against 17 ms). One that scrolls into view is turned in the frame it appears.
-  document.querySelectorAll('.iris-wrap').forEach(w => {
-    const r = w.getBoundingClientRect();
-    if (r.bottom < 0 || r.top > h) return;
-    const t = Math.min(1, Math.max(0, (r.top + r.height / 2) / h));
-    const deg = still.matches ? 0 : (t - 0.5) * 2 * 26;
-    const g = w.querySelector('.glints'), turn = `rotate(${deg.toFixed(1)} 20 20)`;
-    if (g && g.getAttribute('transform') !== turn) g.setAttribute('transform', turn);
-  });
-}
-const queueGlints = () => { if (!glintFrame) glintFrame = requestAnimationFrame(turnGlints); };
-document.querySelectorAll('.timeline').forEach(t => t.addEventListener('scroll', queueGlints, { passive: true }));
-addEventListener('resize', queueGlints);
-still.addEventListener('change', queueGlints);
-new MutationObserver(queueGlints).observe(document.querySelector('#app'), { childList: true, subtree: true });
-
-// ---------- the beam's last stretch, into the + ----------
-// The dock draws the beam's last 18px over its own fade, undimmed, into the + ring
-// (.dock::before). The dock sits above the list, so that stretch is cut away wherever a card
-// or an Iris passes under it: there the card covers the beam, as it does on the timeline.
-let stubFrame = 0;
-function cutBeamStubs() {
-  stubFrame = 0;
-  document.querySelectorAll('.pane').forEach(pane => {
-    const dock = pane.querySelector('.dock:not(.editor-bar)'), list = pane.querySelector('.timeline');
-    if (!dock || !list) return;
-    const d = dock.getBoundingClientRect(), s = getComputedStyle(dock, '::before');
-    const h = parseFloat(s.height), left = d.left + parseFloat(s.left), right = left + parseFloat(s.width);
-    if (!(h > 0)) return;
-    const holes = [];
-    list.querySelectorAll('.card, .iris-wrap').forEach(el => {
-      const r = el.getBoundingClientRect();
-      if (!r.height || r.right <= left || r.left >= right || r.bottom <= d.top || r.top >= d.top + h) return;
-      holes.push([Math.max(0, r.top - d.top), Math.min(h, r.bottom - d.top)]);
-    });
-    holes.sort((a, b) => a[0] - b[0]);
-    const stops = ['#000 0px'];
-    let end = 0;
-    for (const [a, b] of holes) {
-      if (b <= end) continue;
-      stops.push(`#000 ${Math.max(a, end).toFixed(2)}px`, `transparent ${Math.max(a, end).toFixed(2)}px`, `transparent ${b.toFixed(2)}px`, `#000 ${b.toFixed(2)}px`);
-      end = b;
-    }
-    dock.style.setProperty('--stub-mask', holes.length ? `linear-gradient(to bottom, ${stops.join(', ')}, #000 100%)` : 'none');
-  });
-}
-const queueStubs = () => { if (!stubFrame) stubFrame = requestAnimationFrame(cutBeamStubs); };
-document.querySelectorAll('.timeline').forEach(t => {
-  t.addEventListener('scroll', queueStubs, { passive: true });
-  // A swipe or a drag moves a card without scrolling the list.
-  for (const ev of ['pointermove', 'wheel', 'transitionend']) t.addEventListener(ev, queueStubs, { passive: true });
-});
-addEventListener('resize', queueStubs);
-new MutationObserver(queueStubs).observe(document.querySelector('#app'), { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'hidden'] });
 
 // ---------- start ----------
 applyScene(); applyLayout();

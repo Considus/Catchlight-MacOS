@@ -18,9 +18,6 @@
   color-scheme: dark;
 }
 :root[data-mode="light"] { --ruby: #B82E2E; --overdue-text: #B82E2E; color-scheme: light; }
-/* The Iris and the Focus row read these until they are redrawn as the redesign's square Iris. */
-:root { --iris-important: var(--lit); --iris-task: var(--lit); --iris-image: var(--lit); --iris-note: var(--lit); --iris-voice: var(--lit);
-  --iris-remind: var(--lit); --iris-off: var(--unlit); --iris-ring: var(--outline); --iris-obie: var(--lit); }
 
 /* Every heading: Archivo 34 for a page or a sheet, 22 for a lead line (app-headings-and-sheet-type.md). */
 .page-heading, .blk.h1, .blk.h2, .empty .empty-title, .fr-body h2, .fr-tagline, .ssub-heading, .sl-head h2, .reset-done h1 {
@@ -70,62 +67,39 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 .resizer:hover, .resizer.dragging { background: color-mix(in srgb, var(--accent-text) 60%, transparent); }
 
 /* ---------- Dailies-style timeline (sidebar and Script list) ---------- */
-.sidebar, .scriptlist { container-type: inline-size; }
+.sidebar, .scriptlist { container-type: inline-size; --iris-x: max(4px, calc((100cqw - 34px) / 8 - 22px)); }
 .page-heading { margin: 14px 0 0; padding: 0 24px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-height: 24px; font-size: 34px; line-height: 1.05; text-align: center; flex: none; }
-/* The pinned Obie zone takes the same spine and View settings as the list under it. */
-.timeline, .pinned { --spine: calc(12px + (100cqw - 24px) / 8); --gap: 44px; --lines: 3; }
+/* Cards sit 17 in from each side, as wide as the toolbar. Each Iris sits inside its card's
+   top-left, centred under the toolbar's first column, (width - 34) / 8 + 17, and the text starts
+   as far right of it as it sits in (CatchlightLayout: irisLeadingInset, cardTextLeadingPad).
+   The pinned Obie zone takes the same settings as the list under it. */
+.timeline, .pinned { --gap: 44px; --card-gap: max(10px, calc(var(--gap) - 22px)); --lines: 3; }
 .timeline {
   flex: 1; overflow-y: auto; position: relative; padding: 46px 0 120px;
-  scrollbar-width: thin;
+  scrollbar-width: none;   /* hidden, as the iPhone's; wheel, trackpad and keys still scroll */
 }
+.timeline::-webkit-scrollbar { display: none; }
 :is(.timeline, .pinned)[data-spacing="compact"] { --gap: 26px; }
 :is(.timeline, .pinned)[data-spacing="comfort"] { --gap: 62px; }
 :is(.timeline, .pinned)[data-preview="single"] { --lines: 1; }
 :is(.timeline, .pinned)[data-preview="all"] { --lines: 999; }
 
-/* The beam: a light along the spine. Painted as the timeline's own background with
-   background-attachment: local, so it runs the full scroll height instead of one screenful.
-   Cards cover it; each card then draws the stretch from its Iris's rim down into the open centre, over the blades. */
-.timeline, .pinned, .card::after {
-  --beam:
-    linear-gradient(90deg, transparent 17.2px, rgba(255,255,255,.9) 17.2px, rgba(255,255,255,.9) 18.8px, transparent 18.8px),
-    linear-gradient(90deg, transparent 14.5px, rgba(233,203,140,.45) 14.5px, rgba(233,203,140,.45) 21.5px, transparent 21.5px),
-    linear-gradient(90deg, rgba(201,169,110,0), rgba(201,169,110,.08) 35%, rgba(201,169,110,.08) 65%, rgba(201,169,110,0));
-}
-:root[data-mode="light"] .timeline, :root[data-mode="light"] .pinned, :root[data-mode="light"] .card::after {
-  --beam: linear-gradient(90deg, rgba(255,255,255,0) 12.5px, rgba(255,255,255,.95) 18px, rgba(255,255,255,0) 23.5px);
-}
-.timeline {
-  background: var(--beam);
-  background-size: 36px 100%; background-repeat: no-repeat;
-  background-position: calc(var(--spine) - 18px) 0;
-  background-attachment: local;
-}
 /* Under the heading (DailiesView): with no Obie, Takes dissolve through a 12px fade.
    With an Obie it is pinned and never scrolls, the zone is solid down to its card, and
    Takes slide out of sight behind it with no fade, which would let one peek through. */
 .timeline { -webkit-mask-image: linear-gradient(to bottom, transparent, #000 12px); mask-image: linear-gradient(to bottom, transparent, #000 12px); }
 .timeline.under-obie { -webkit-mask-image: none; mask-image: none; padding-top: 0; }
-.pinned {
-  flex: none; position: relative; z-index: 4; padding-top: 46px;
-  background: var(--beam); background-color: var(--ground);
-  background-size: 36px 100%; background-repeat: no-repeat; background-position: calc(var(--spine) - 18px) 0;
-}
+.pinned { flex: none; position: relative; z-index: 4; padding-top: 46px; background: var(--ground); }
 .pinned[hidden] { display: none; }
 .pinned .card { margin-bottom: 0; }
-.timeline.under-obie > :first-child { margin-top: var(--gap); }
-.card::after {
-  content: ""; position: absolute; z-index: 3; pointer-events: none;
-  left: 20px; width: 36px; top: -20px; height: 20px;   /* from the top of the LEANED Iris to the card edge, where the card takes over (TimelineBeam.swift) */
-  background: var(--beam);
-}
+.timeline.under-obie > :first-child { margin-top: var(--card-gap); }
 
-.month { margin: 0 0 calc(var(--gap) - 6px) calc(var(--spine) + 22px); font-size: 14px; letter-spacing: .5px; text-transform: uppercase; color: var(--muted); position: relative; }
+.month { margin: 0 0 calc(var(--card-gap) + 16px) calc(17px + var(--iris-x) * 2 + 44px); font-size: 14px; letter-spacing: .5px; text-transform: uppercase; color: var(--muted); position: relative; }
 
 .card {
   position: relative; display: block; width: auto; text-align: left;
-  margin: 0 12px var(--gap) calc(var(--spine) - 38px);
-  padding: 24px 14px 14px 60px;
+  margin: 0 17px var(--card-gap); min-height: 72px;
+  padding: 13.25px 13.25px 13.25px calc(var(--iris-x) * 2 + 44px - .75px);   /* 14 from the outer edge, inside the .75 border */
   background: var(--card); border: .75px solid var(--line); border-radius: 14px;
 }
 .card .body { white-space: pre-wrap; overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: var(--lines); overflow: hidden; }
@@ -141,12 +115,16 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 .card.overdue::before { content: "OVERDUE"; position: absolute; left: 6px; top: 50%; transform: translateY(-50%) rotate(180deg); writing-mode: vertical-rl; font-size: 9px; letter-spacing: 1px; color: var(--overdue-text); }
 .card.done .body { color: var(--faint); }
 .card.selected { border-color: var(--accent-text); box-shadow: inset 0 0 0 1px var(--accent-text); }
-/* The Iris leans back 24° at 200px perspective and casts a soft elliptical shadow on the
-   card (IrisDepth in CatchlightTheme.swift: foreshorten cos 24°, standoff 22·sin 24°). */
-/* Centred on the card's OUTER top edge: -22px, less the .75px border, less the .7px the lean
-   moves the rim's centre down. Measured in the browser, not derived. */
-.iris-wrap { position: absolute; z-index: 2; left: 15.25px; top: -23.45px; width: 44px; height: 44px; }
-.iris-wrap .iris { display: block; width: 44px; height: 44px; transform: perspective(200px) rotateX(24deg); }
+/* The Iris: 44 square, 14 down from the card's outer top edge (13.25 inside its border). */
+.iris-wrap { position: absolute; z-index: 2; left: calc(var(--iris-x) - .75px); top: 13.25px; width: 44px; height: 44px; }
+.iris { display: block; width: 44px; height: 44px; overflow: visible; stroke-linecap: round; }
+.iris .outline { fill: var(--card); stroke: none; }
+.card.obie .iris .outline, .iris.obie .outline { fill: var(--important); }
+.iris .light { fill: none; stroke: var(--unlit); stroke-width: 1.5; }
+.iris .light.lit { stroke: var(--lit); stroke-width: 3; }
+.iris .obie-square { fill: none; stroke: var(--lit); stroke-width: 1.5; }
+.iris .inner { fill: none; stroke: var(--text); stroke-width: 1.9; stroke-linejoin: round; }
+.iris .inner.dots { stroke-width: 3.4; }
 .scriptlist .card { cursor: default; }
 .scriptlist .card .pages { margin-top: 4px; font-size: 11px; color: var(--muted); }
 
@@ -156,19 +134,6 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
   padding: 18px 12px 16px;
   background: linear-gradient(to bottom, transparent, var(--ground) 22px);
 }
-/* The beam runs on, undimmed, through the dock's fade and ends at the + button's ring,
-   as on iOS: the + sits on the spine (slot one's centre is the spine). */
-.dock::before {
-  content: ""; position: absolute; top: 0; height: 18px; width: 36px; pointer-events: none;
-  left: calc(12px + (100cqw - 24px) / 8 - 18px);
-  background: var(--beam);
-  -webkit-mask-image: var(--stub-mask, none); mask-image: var(--stub-mask, none);   /* cut where a card passes under (app.js, cutBeamStubs) */
-}
-.dock { --beam:
-    linear-gradient(90deg, transparent 17.2px, rgba(255,255,255,.9) 17.2px, rgba(255,255,255,.9) 18.8px, transparent 18.8px),
-    linear-gradient(90deg, transparent 14.5px, rgba(233,203,140,.45) 14.5px, rgba(233,203,140,.45) 21.5px, transparent 21.5px),
-    linear-gradient(90deg, rgba(201,169,110,0), rgba(201,169,110,.08) 35%, rgba(201,169,110,.08) 65%, rgba(201,169,110,0)); }
-:root[data-mode="light"] .dock { --beam: linear-gradient(90deg, rgba(255,255,255,0) 12.5px, rgba(255,255,255,.95) 18px, rgba(255,255,255,0) 23.5px); }
 .dock-btn { width: 44px; height: 44px; border-radius: 14px; border: 1.5px solid color-mix(in srgb, var(--accent-text) 55%, transparent); color: var(--accent-text); display: grid; place-items: center; }
 .dock-btn svg { width: 24px; height: 24px; stroke-width: 1.4; }
 .dock-btn:hover, .dock-btn.on { background: color-mix(in srgb, var(--accent-text) 14%, transparent); }
@@ -234,14 +199,13 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 .sidebar.editing .dock:not(.editor-bar) { display: none; }
 .dock-btn:disabled { color: color-mix(in srgb, var(--muted) 40%, transparent); cursor: default; }
 .dock-btn:disabled:hover { background: none; }
-.dock-btn .bang, .mark .bang { font: 500 22px/1 var(--sys); }
+.dock-btn .bang { font: 500 22px/1 var(--sys); }
 
 .take-editor {
   position: absolute; z-index: 5; margin: 0; display: flex; flex-direction: column;
-  left: calc(12px + (100cqw - 24px) / 8 - 38px); right: 12px; bottom: 80px;
+  left: 17px; right: 17px; bottom: 80px;
   max-height: calc(100% - 80px - 120px);
 }
-.take-editor::after { display: none; }
 .take-editor[hidden], .focus-ring[hidden] { display: none; }
 .take-editor .iris-wrap { cursor: pointer; }
 .take-rows { overflow-y: auto; min-height: 30px; scrollbar-width: thin; }
@@ -256,32 +220,32 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 .ehandle { flex: none; width: 36px; height: 32px; background: linear-gradient(color-mix(in srgb, var(--muted) 55%, transparent), color-mix(in srgb, var(--muted) 55%, transparent)) center 11px / 14px 1.5px no-repeat, linear-gradient(color-mix(in srgb, var(--muted) 55%, transparent), color-mix(in srgb, var(--muted) 55%, transparent)) center 15.5px / 14px 1.5px no-repeat, linear-gradient(color-mix(in srgb, var(--muted) 55%, transparent), color-mix(in srgb, var(--muted) 55%, transparent)) center 20px / 14px 1.5px no-repeat; }
 .card .body .ticked { color: var(--faint); }
 
-/* ---------- the Focus row (FocusRingFanView on iOS) ---------- */
-.focus-ring { position: absolute; inset: 0; z-index: 8; background: transparent; transition: background .84s ease-in-out; }
-.focus-ring.open { background: var(--veil); }
+/* ---------- the Focus row (FocusRowView on iOS) ----------
+   The veil dims everything but the tapped card, lifted lit above it, or the editor, left lit
+   where it stands. Four 44 square marks drop from under the Iris to the card's grown bottom edge
+   and slide right into a row centred on the card; takes.js plays the motion. Off: the ground
+   with a half-strength lit edge and a lit glyph. On: the accent with an on-accent glyph. */
+.focus-ring { position: absolute; inset: 0; z-index: 8; }
+.focus-ring::before { content: ""; position: absolute; inset: 0; background: var(--veil); opacity: 0; transition: opacity .22s ease-out; }
+.focus-ring.open::before { opacity: 1; }
+.focus-ring.closing::before { transition-duration: var(--close, .3s); transition-timing-function: ease-in; }
+.focus-ring.windowed::before {   /* a window in the veil over the editor */
+  -webkit-mask: linear-gradient(#000 0 0), linear-gradient(#000 0 0) var(--wx) var(--wy) / var(--ww) var(--wh) no-repeat;
+  -webkit-mask-composite: xor; mask-composite: exclude;
+}
 .sidebar.ringed .dock { opacity: .18; transition: opacity .3s; }
 .focus-ring .lifted { position: absolute; z-index: 1; pointer-events: none; }
-.focus-ring .hub { position: absolute; z-index: 3; left: calc(var(--cx) - 22px); top: calc(var(--cy) - 22px); width: 44px; height: 44px; transition: transform .7s cubic-bezier(.34, 1.25, .64, 1); }
-.focus-ring .hub .iris { width: 44px; height: 44px; transform: perspective(200px) rotateX(24deg); }
-.focus-ring.open .hub { transform: rotate(90deg); }
-.focus-ring .hub .tick { position: absolute; left: 21.25px; top: -4px; width: 1.5px; height: 17px; background: color-mix(in srgb, var(--lit) 60%, transparent); opacity: 0; transition: opacity .5s .2s; }
-.focus-ring.open .hub .tick { opacity: 1; }
+.focus-ring .hub { position: absolute; z-index: 7; left: calc(var(--cx) - 22px); top: calc(var(--cy) - 22px); width: 44px; height: 44px; pointer-events: none; }
+.focus-ring .slot { position: absolute; z-index: 2; left: calc(var(--cx) - 22px); top: calc(var(--cy) - 22px); width: 44px; height: 44px; opacity: 0; }
 .focus-ring .mark {
-  --fill: var(--iris-note);
-  position: absolute; z-index: 2; left: calc(var(--cx) - 22px); top: calc(var(--cy) - 22px);
   width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center;
-  border: 1.5px solid color-mix(in srgb, var(--accent-text) 55%, transparent); background: var(--ground); color: var(--accent-text);
-  opacity: 0; transform: translate(0, -8px) scale(.6);
-  transition: transform .52s cubic-bezier(.34, 1.4, .64, 1), opacity .25s, background .3s, color .3s, border-color .3s;
+  border: 1.5px solid color-mix(in srgb, var(--lit) 50%, transparent); background: var(--ground); color: var(--lit);
 }
-.focus-ring .mark svg { width: 22px; height: 22px; stroke-width: 1.4; }
-.focus-ring.open .mark { opacity: 1; transform: translate(var(--dx), var(--dy)); }
-.focus-ring .mark[data-key="task"] { --fill: var(--iris-task); transition-delay: .25s, .25s, 0s, 0s, 0s; }
-.focus-ring .mark[data-key="remind"] { --fill: var(--iris-remind); transition-delay: .185s, .185s, 0s, 0s, 0s; }
-.focus-ring .mark[data-key="important"] { --fill: var(--iris-important); transition-delay: .12s, .12s, 0s, 0s, 0s; }
-.focus-ring .mark.on { background: var(--fill); border-color: var(--fill); color: var(--ground); }
+.focus-ring .mark svg { width: 24px; height: 24px; stroke-width: 1.9; }
+.focus-ring .mark svg .dot { fill: currentColor; stroke: none; }
+.focus-ring .mark.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .focus-ring .mark[aria-disabled="true"] { cursor: default; }   /* an Obie's Important Mark: on, and staying on */
-@media (prefers-reduced-motion: reduce) { .focus-ring, .focus-ring * { transition: none !important; } }
+@media (prefers-reduced-motion: reduce) { .focus-ring, .focus-ring *, .focus-ring::before { transition: none !important; } }
 
 .pop-actions { justify-content: flex-end; }
 .pop-btn { min-height: 44px; padding: 0 14px; border-radius: 14px; font-size: 13px; color: var(--muted); }
@@ -305,9 +269,9 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 
 /* ---------- the Dailies dock: Sequence, Search and the Storyboard (BottomDockView) ---------- */
 .dock[hidden] { display: none; }
-/* A filter toggle fills with its quadrant colour when on; Done-only and Expired-only change
-   the glyph, not the fill. */
-.dock-btn.toggle.on, .dock-btn.toggle.on:hover { background: var(--fill); border-color: var(--fill); color: var(--ground); }
+/* A filter toggle that is on takes the one action colour, as the chosen marks do (R13);
+   Done-only and Expired-only change the glyph, not the fill. */
+.dock-btn.toggle.on, .dock-btn.toggle.on:hover { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .dock-btn.filled { background: var(--card); }
 .dock-search {
   grid-column: span 2; align-self: center; width: 100%; height: 44px; min-width: 0; padding: 0 16px; border-radius: 14px;
@@ -516,11 +480,10 @@ body.first-running .app { visibility: hidden; }
 .rname { width: 50%; text-align: right; border: 0; background: none; color: var(--text); font: 400 15px var(--sys); outline: none; }
 .srow-icon svg { width: 22px; height: 22px; }
 
-/* The Storyboard: the same cards with no spine and no Iris, and the Iris's radius taken out of
-   every gap so the rhythm matches Dailies (StoryboardView.storyboardGap). */
-.timeline.storyboard { background: none; }
-.timeline.storyboard .iris-wrap, .timeline.storyboard .card::after { display: none; }   /* the Iris and its beam stub */
-.timeline.storyboard .card { margin-bottom: max(0px, calc(var(--gap) - 22px)); }
+/* The Storyboard: the same cards with no Iris, the text at the card's own padding
+   (StoryboardView), and the same gaps as Dailies. */
+.timeline.storyboard .iris-wrap { display: none; }
+.timeline.storyboard .card { padding-left: 13.25px; min-height: 0; }
 .empty.first-take { margin-top: 30vh; font: 400 17px var(--sys); }
 .sidebar.editing .first-take { visibility: hidden; }   /* not while the first Take is being written */
 
@@ -574,7 +537,7 @@ a.tlink { color: var(--accent-text); text-decoration: underline; text-underline-
 .card[data-take]:focus { outline: none; }
 .card[data-take]:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; }
 .iris-wrap[data-iris]:focus { outline: none; }
-.iris-wrap[data-iris]:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 1px; border-radius: 50%; }
+.iris-wrap[data-iris]:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 1px; border-radius: 12px; }
 
 .sversion { cursor: context-menu; }
 .sversion:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; border-radius: 4px; }

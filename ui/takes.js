@@ -427,40 +427,75 @@ function toggleDone(t) {
 
 // The reminder picker is in reminders.js.
 
-// ---------- the Focus row (FocusRingFanView on iOS) ----------
-// Four Marks fan out to the right of the Iris at R = 68: Note -80°, Task -26.7°,
-// Remind +26.7°, Important +80°. A Take is never "none": with Task and Remind both off,
-// Note comes back on. Clicking the veil applies the selection and closes.
+// ---------- the Focus row (FocusRowView on iOS) ----------
+// Four 44 square marks, Note, Task, Remind and Important, 16 apart as a group centred on the
+// pane, their centres on the tapped card's bottom edge once it has grown by half a mark. A Take
+// is never "none": with Task and Remind both off, Note comes back on. Clicking the veil applies
+// the selection and closes. The glyphs are the iPhone's MarkGlyph, on its 24 grid.
 const MARKS = [
-  { key: 'note', deg: -80, label: t('Note'), adds: t('Adds Note.'), removes: t('Removes Note.'), icon: '<svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="16" rx="2"/><path d="M8.5 9h7M8.5 12.5h7M8.5 16h4"/></svg>' },
-  { key: 'task', deg: -26.67, label: t('Task'), adds: t('Adds Task.'), removes: t('Removes Task.'), icon: '<svg viewBox="0 0 24 24"><rect x="4.5" y="4.5" width="15" height="15" rx="3"/><path d="M8.5 12.2l2.6 2.6 4.6-5.3"/></svg>' },
-  { key: 'remind', deg: 26.67, label: t('Remind'), adds: t('Adds Remind.'), removes: t('Removes Remind.'), icon: '<svg viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20.5h4"/></svg>' },
-  { key: 'important', deg: 80, label: t('Important'), adds: t('Adds Important.'), removes: t('Removes Important.'), icon: '<span class="bang">!</span>' },
+  { key: 'note', label: t('Note'), adds: t('Adds Note.'), removes: t('Removes Note.'), icon: '<svg viewBox="0 0 24 24"><path d="M7 8.5H17M7 12H17M7 15.5H13"/></svg>' },
+  { key: 'task', label: t('Task'), adds: t('Adds Task.'), removes: t('Removes Task.'), icon: '<svg viewBox="0 0 24 24"><path d="M7 12.4L10.4 15.8L17 8.6"/></svg>' },
+  { key: 'remind', label: t('Remind'), adds: t('Adds Remind.'), removes: t('Removes Remind.'), icon: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><path d="M12 12V8M12 12L15 13.6"/></svg>' },
+  { key: 'important', label: t('Important'), adds: t('Adds Important.'), removes: t('Removes Important.'), icon: '<svg viewBox="0 0 24 24"><path d="M12 6.5V13.5"/><circle class="dot" cx="12" cy="17.2" r="1.3"/></svg>' },
 ];
+// FocusRowView's layout and timing (markSize, markSpacing, screenMargin, cardGrowth, Timing).
+const ROW = { size: 44, spacing: 60, margin: 8, growth: 22, irisCentre: 36, drop: 220, fadeIn: 80, startScale: 0.85, farSlide: 560, closeSpeed: 1.25 };
+const EASE_OUT_CUBIC = 'cubic-bezier(.33, 1, .68, 1)', EASE_IN_CUBIC = 'cubic-bezier(.32, 0, .67, 0)';
+// The slide's settle: past the slot by about 5% of the travel, then back (Timing.easeOutBack).
+const EASE_OUT_BACK = 'linear(' + Array.from({ length: 41 }, (_, i) => { const p = i / 40 - 1; return (1 + 2.15 * p ** 3 + 1.15 * p ** 2).toFixed(4); }).join(', ') + ')';
+// x of each mark's centre from the Iris centre: centred on the pane, the gap shrinking evenly to
+// keep 8 each side only when the pane is too narrow, never closer than touching (slotX).
+function rowSlots(width, hubX) {
+  const spacing = Math.max(ROW.size, Math.min(ROW.spacing, (width - 2 * ROW.margin - ROW.size) / 3));
+  return MARKS.map((_, i) => width / 2 + (i - 1.5) * spacing - hubX);
+}
+// y of the row from the Iris centre: on the grown bottom edge, lifted to keep the marks above
+// `visibleBottom` (the toolbar or the editor bar), never above the Iris (rowY).
+function rowY(card, visibleBottom) {
+  const y = card.height + ROW.growth - ROW.irisCentre;
+  if (!(visibleBottom > 0)) return y;
+  return Math.max(0, Math.min(y, visibleBottom - ROW.size / 2 - (card.top + ROW.irisCentre)));
+}
+const slideTime = (dx, slots) => { const far = Math.max(...slots.map(Math.abs)); return far ? ROW.farSlide * Math.abs(dx) / far : 0; };
 
+let ringTidy = 0;   // the closing row's tidy-up, cancelled if a row opens first
 function openFocusRing(t, irisEl, fromEditor) {
   if (focusRing || (!fromEditor && refuseHeld(t.id))) return;
   closeReminder();   // a picker opened from the editor bar does not carry into the ring
   if (fromEditor) readRows();
-  const box = irisEl.getBoundingClientRect(), host = sidebar.getBoundingClientRect();
+  const host = sidebar.getBoundingClientRect();
+  const cardEl = irisEl.closest('.card'), r = cardEl.getBoundingClientRect();
+  const card = { left: r.left - host.left, top: r.top - host.top, width: r.width, height: r.height };
+  const box = irisEl.getBoundingClientRect();
   const cx = box.left + box.width / 2 - host.left, cy = box.top + box.height / 2 - host.top;
   const sel = new Set(typesOf(t).filter(k => k !== 'image' && k !== 'voice'));
   const ring = $('#focus-ring');
+  clearTimeout(ringTidy);   // a row opened while the last one closes keeps its place
   ring.innerHTML = '';
+  ring.classList.remove('closing', 'windowed');
   ring.style.setProperty('--cx', cx + 'px'); ring.style.setProperty('--cy', cy + 'px');
-  // From the timeline, the tapped card is lifted above the veil, lit.
+  // The lowest the row may reach: the top of the toolbar, or of the editor's bar.
+  const bar = [...sidebar.querySelectorAll('.dock')].find(d => d.offsetParent && !d.hidden);
+  const visibleBottom = bar ? bar.getBoundingClientRect().top - host.top : 0;
+  const lifts = [];
   if (!fromEditor) {
-    const card = irisEl.closest('.card'), r = card.getBoundingClientRect();
-    const lift = card.cloneNode(true);
+    // From the timeline, the tapped card is lifted lit above the veil and grows by half a mark,
+    // and the real one grows under it, so the cards below move down with it.
+    const lift = cardEl.cloneNode(true);
     lift.classList.add('lifted');
-    Object.assign(lift.style, { left: r.left - host.left + 'px', top: r.top - host.top + 'px', width: r.width + 'px', margin: 0 });
+    Object.assign(lift.style, { left: card.left + 'px', top: card.top + 'px', width: card.width + 'px', margin: 0 });
     lift.querySelector('.iris-wrap')?.remove();
     lift.inert = true; lift.removeAttribute('tabindex');   // a picture of the card, not a second one to Tab to
     ring.append(lift);
+    lifts.push(lift, cardEl);
+  } else {
+    // From the editor, the editor is the Take: the veil leaves a window over it.
+    ring.classList.add('windowed');
+    for (const [k, v] of [['--wx', card.left], ['--wy', card.top], ['--ww', card.width], ['--wh', card.height]]) ring.style.setProperty(k, v + 'px');
   }
   const hub = document.createElement('div');
   hub.className = 'hub';
-  hub.innerHTML = irisHtml([...sel], t.obie) + '<i class="tick"></i>';
+  hub.innerHTML = irisHtml([...sel], t.obie);
   hub.setAttribute('role', 'img');
   ring.append(hub);
   // The veil closes the ring; for the keyboard and a screen reader it is a button, first.
@@ -468,20 +503,24 @@ function openFocusRing(t, irisEl, fromEditor) {
   veil.type = 'button'; veil.className = 'sr-only ring-close';
   veil.textContent = L10N.t('Save and close'); veil.setAttribute('aria-description', L10N.t('Applies your selection and closes.'));
   ring.prepend(veil);
-  for (const m of MARKS) {
+  const slots = rowSlots(host.width, cx), y = rowY(card, visibleBottom);
+  const marks = MARKS.map((m, i) => {
+    const slot = document.createElement('div');
+    slot.className = 'slot';
     const b = document.createElement('button');
     b.className = 'mark' + (sel.has(m.key) ? ' on' : '');
     b.dataset.key = m.key; b.type = 'button';
     b.setAttribute('aria-label', m.label); b.setAttribute('aria-pressed', String(sel.has(m.key)));
-    const rad = m.deg * Math.PI / 180;
-    b.style.setProperty('--dx', (68 * Math.cos(rad)).toFixed(1) + 'px');
-    b.style.setProperty('--dy', (68 * Math.sin(rad)).toFixed(1) + 'px');
     b.innerHTML = m.icon;
     // An Obie is always Important, so its Mark stays on and does nothing, with the reason (as iOS).
     if (m.key === 'important' && t.obie) { b.setAttribute('aria-disabled', 'true'); b.title = L10N.t('An Obie is always Important.'); b.setAttribute('aria-description', b.title); }
-    ring.append(b);
-  }
-  focusRing = { t, sel, fromEditor };
+    slot.append(b);
+    return { slot, b, dx: slots[i] };
+  });
+  // In keyboard order, Note first; Note is drawn on top of the gathered marks, all under the Iris.
+  marks.forEach(({ slot }, i) => { slot.style.zIndex = 2 + MARKS.length - i; ring.append(slot); });
+  focusRing = { t, sel, fromEditor, marks, y, lifts, slots };
+  playRow(focusRing, true);
   ring.setAttribute('role', 'dialog'); ring.setAttribute('aria-label', L10N.t('Focus row'));
   ring.hidden = false;
   ringInert(true);
@@ -489,6 +528,45 @@ function openFocusRing(t, irisEl, fromEditor) {
   ring.querySelector('.mark')?.focus();
   sidebar.classList.add('ringed');
   requestAnimationFrame(() => requestAnimationFrame(() => ring.classList.add('open')));
+}
+
+// The open (FocusRowView.Timing): every mark takes the same L-shaped path. All four drop together
+// from under the Iris to the card's grown edge on an ease-out, growing from 85% and fading in over
+// the first 80ms, while the card grows; then all slide right at one speed with a small settle, so
+// Note settles first. The close plays it backwards 1.25 times faster: left, easing in with no
+// settle, then up. Reduce Motion goes straight to the end.
+function playRow(row, open) {
+  const now = still.matches, k = open ? 1 : 1 / ROW.closeSpeed;
+  const far = Math.max(0, ...row.slots.map(dx => slideTime(dx, row.slots)));
+  const opts = (duration, delay, easing) => ({ duration: now ? 0 : duration * k, delay: now ? 0 : delay * k, easing, fill: 'both' });
+  const down = `translate(0, ${row.y}px) scale(1)`, up = `translate(0, 0) scale(${ROW.startScale})`;
+  for (const { slot, b, dx } of row.marks) {
+    const d = slideTime(dx, row.slots);
+    if (open) {
+      slot.animate([{ transform: up }, { transform: down }], opts(ROW.drop, 0, EASE_OUT_CUBIC));
+      slot.animate([{ opacity: 0 }, { opacity: 1 }], opts(ROW.fadeIn, 0, 'linear'));
+      b.animate([{ transform: 'translateX(0)' }, { transform: `translateX(${dx}px)` }], opts(d, ROW.drop, EASE_OUT_BACK));
+    } else {
+      b.getAnimations().forEach(a => a.cancel()); slot.getAnimations().forEach(a => a.cancel());
+      b.animate([{ transform: `translateX(${dx}px)` }, { transform: 'translateX(0)' }], opts(d, far - d, EASE_IN_CUBIC));
+      slot.animate([{ transform: down }, { transform: up }], opts(ROW.drop, far, EASE_IN_CUBIC));
+      slot.animate([{ opacity: 1 }, { opacity: 0 }], opts(ROW.fadeIn, far + ROW.drop - ROW.fadeIn, 'linear'));
+    }
+  }
+  // The card grows on the drop's curve, and shrinks last on the close.
+  // The close starts from wherever the open had reached, read before the open's hold is dropped,
+  // and the resting size is read once that hold is gone.
+  for (const el of row.lifts) {
+    const from = getComputedStyle(el).paddingBottom;
+    el.getAnimations().forEach(a => a.cancel());
+    const base = parseFloat(getComputedStyle(el).paddingBottom), grown = base + ROW.growth;
+    if (open) { el.animate([{ paddingBottom: base + 'px' }, { paddingBottom: grown + 'px' }], opts(ROW.drop, 0, EASE_OUT_CUBIC)); continue; }
+    // Held grown through the wait for the marks, then let go at the end, so nothing snaps first.
+    const shrink = [[{ paddingBottom: from }, { paddingBottom: base + 'px' }], { ...opts(ROW.drop, far, EASE_IN_CUBIC), fill: 'backwards' }];
+    el.animate(...shrink);
+    if (!el.classList.contains('lifted')) row.cardShrink = shrink;   // the timeline repaints the real card: closeFocusRing carries this over
+  }
+  return now ? 0 : (far + ROW.drop) * k;
 }
 
 // What the Iris shows, in words (TakeCircleView.activityDescription).
@@ -506,7 +584,7 @@ function paintRing() {
     if (b.getAttribute('aria-disabled') !== 'true') b.setAttribute('aria-description', on ? mark.removes : mark.adds);
   });
   const hub = $('#focus-ring .hub');
-  hub.innerHTML = irisHtml([...sel], t.obie) + '<i class="tick"></i>';
+  hub.innerHTML = irisHtml([...sel], t.obie);
   hub.setAttribute('aria-label', L10N.t('Selected: %@', activityDescription(t, sel)));
 }
 // While the ring is up, nothing else in the window takes focus or reads out, as iOS's ring
@@ -560,10 +638,13 @@ function closeFocusRing(apply) {
     if (!fromEditor && JSON.stringify(target) !== before) { target.modifiedAt = Date.now(); saveTakes(); }
   }
   const ring = $('#focus-ring');
-  ring.classList.remove('open');
+  const row = focusRing, closing = playRow(row, false);
+  ring.style.setProperty('--close', closing + 'ms');
+  ring.classList.add('closing'); ring.classList.remove('open');
   focusRing = null;
   window.catchlightBridge?.afterEdit();   // a refresh that waited for the ring goes now
-  setTimeout(() => { ring.hidden = true; ring.innerHTML = ''; sidebar.classList.remove('ringed'); }, still.matches ? 0 : 840);
+  clearTimeout(ringTidy);
+  ringTidy = setTimeout(() => { ring.hidden = true; ring.innerHTML = ''; ring.classList.remove('closing', 'windowed'); sidebar.classList.remove('ringed'); }, closing);
   ringInert(false);
   if (fromEditor) {
     const grew = rows.children.length;
@@ -572,7 +653,11 @@ function closeFocusRing(apply) {
     if (rows.children.length > grew) focusRow(rows.children.length - 1, Infinity); else restoreCaret();
   }
   else {
+    const shrink = row.cardShrink;
     renderTakes();
+    // The repaint draws the card afresh at its resting size: it shrinks there, in step with the
+    // picture above the veil, so the cards below follow it rather than jump.
+    if (shrink) document.querySelector(`#takes [data-take="${t.id}"], #pinned [data-take="${t.id}"]`)?.animate(...shrink);
     // Turning Task on from the timeline opens the editor on the new empty item, as on iOS.
     const target = takes.find(x => x.id === t.id);
     if (apply && sel.has('task') && target && target.blocks.at(-1)?.k === 'check' && !target.blocks.at(-1).text) beginEdit(target);
@@ -676,7 +761,7 @@ function paintDock() {
   bar.hidden = storyboard;   // the Storyboard covers Dailies and carries only its ×
   bar.dataset.mode = dock;
   const btn = (act, icon, label, extra = '') => `<button class="dock-btn${extra}" type="button" data-act="${act}" aria-label="${esc(label)}" title="${esc(label)}">${icon}</button>`;
-  const tog = (act, icon, label, on, fill) => btn(act, icon, label, ` toggle${on ? ' on' : ''}" style="--fill: var(--iris-${fill})" aria-pressed="${on}`);
+  const tog = (act, icon, label, on, fill) => btn(act, icon, label, ` toggle${on ? ' on' : ''}" aria-pressed="${on}`);
   if (dock === 'resting') {
     bar.innerHTML = btn('add', ICON.add, t('Add Take')) + btn('storyboard', ICON.angle, t('Storyboard'))
       + btn('sequence', ICON.sequence, t('Sequence')) + btn('search', ICON.search, t('Search'));
