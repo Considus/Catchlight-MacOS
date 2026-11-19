@@ -211,10 +211,10 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 .blk .mk { color: var(--faint); font-weight: 400; font-style: normal; text-decoration: none; }
 
 /* ---------- editing a Take (KeyboardTakeEditor / EditorKeyboardBar on iOS) ---------- */
-.sidebar .timeline, .sidebar #pinned, .sidebar .page-heading { transition: opacity .22s ease-in-out; }
+.sidebar .timeline, .sidebar #pinned, .sidebar .page-heading, .sidebar .heading-date { transition: opacity .22s ease-in-out; }
 .sidebar.editing .timeline { opacity: .14; pointer-events: none; }
 .sidebar.editing #pinned { visibility: hidden; }   /* the Obie never shows twice: for itself the editor is the card */
-.sidebar.editing .page-heading { opacity: .12; }
+.sidebar.editing .page-heading, .sidebar.editing .heading-date { opacity: .12; }
 .editor-bar { display: none; }
 .sidebar.editing .editor-bar { display: grid; }
 .sidebar.editing .dock:not(.editor-bar) { display: none; }

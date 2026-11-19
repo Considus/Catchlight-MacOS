@@ -165,4 +165,18 @@ final class DailiesLookTests: XCTestCase {
         XCTAssertEqual(r["ru"] as? String, "en-GB", "not Russian under an English page")
         XCTAssertEqual(r["none"] as? String, "en-GB")
     }
+
+    /// While a Take is edited the heading fades to 12% (EditorFocusFade on the iPhone), and today's
+    /// date beside it fades with it rather than staying at full strength.
+    func testTheDateFadesWithTheHeadingWhileEditing() throws {
+        let harness = page()
+        let r = try json(harness, """
+            document.querySelector('#sidebar').classList.add('editing');
+            document.getAnimations().forEach(a => a.finish());   // the page isn't painted on screen here, so end the fade
+            const o = s => Number(getComputedStyle(document.querySelector(s)).opacity);
+            return { heading: o('#sidebar .page-heading'), date: o('#sidebar .heading-date') };
+            """)
+        XCTAssertEqual(r["heading"] as! Double, 0.12, accuracy: 0.005)
+        XCTAssertEqual(r["date"] as! Double, 0.12, accuracy: 0.005, "the date fades with the heading")
+    }
 }
