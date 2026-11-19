@@ -94,7 +94,8 @@ final class DailiesLookTests: XCTestCase {
         let r = try json(harness, """
             const d = (y, m, day, lang) => dailiesDate(new Date(y, m - 1, day), lang);
             return { gb: d(2026, 11, 12, 'en-GB'), us: d(2026, 11, 22, 'en-US'), first: d(2026, 11, 1, 'en-GB'), thirteenth: d(2026, 11, 13, 'en-GB'),
-              fr: d(2026, 11, 1, 'fr-FR'), fr2: d(2026, 11, 2, 'fr-FR'), de: d(2026, 11, 3, 'de-DE') };
+              fr: d(2026, 11, 1, 'fr-FR'), fr2: d(2026, 11, 2, 'fr-FR'), de: d(2026, 11, 3, 'de-DE'),
+              frMonth: sentenceCase('novembre 2026', 'fr-FR'), trMonth: sentenceCase('ilkbahar 2026', 'tr-TR') };
             """)
         XCTAssertEqual(r["gb"] as? String, "Thursday 12th November")
         XCTAssertEqual(r["us"] as? String, "Sunday, November 22nd")
@@ -103,9 +104,12 @@ final class DailiesLookTests: XCTestCase {
         XCTAssertEqual(r["fr"] as? String, "dimanche 1er novembre")
         XCTAssertEqual(r["fr2"] as? String, "lundi 2 novembre")
         XCTAssertEqual(r["de"] as? String, "Dienstag, 3. November")
+        // Month labels: the first letter capitalised in the language's own way (Turkish i to İ).
+        XCTAssertEqual(r["frMonth"] as? String, "Novembre 2026")
+        XCTAssertEqual(r["trMonth"] as? String, "İlkbahar 2026")
     }
 
-    /// Month labels are the iPhone's (UIKitTimeline): capitals at 14, tracked 0.5, muted. The timelines hide their
+    /// Month labels are the iPhone's (UIKitTimeline): sentence case at 14, tracked 0.2, muted. The timelines hide their
     /// scroll bars, as the iPhone does. A selected card is tinted with the accent.
     func testMonthLabelsScrollBarsAndTheSelectedCard() throws {
         let harness = page()
@@ -119,9 +123,10 @@ final class DailiesLookTests: XCTestCase {
               tint: colour('color-mix(in srgb, ' + root.getPropertyValue('--accent') + ' 9%, ' + root.getPropertyValue('--card') + ')') };
             """)
         XCTAssertEqual(r["size"] as? String, "14px")
-        XCTAssertEqual(r["tracking"] as? String, "0.5px")
+        XCTAssertEqual(r["tracking"] as? String, "0.2px")
         let text = try XCTUnwrap(r["text"] as? String)
-        XCTAssertEqual(text, text.uppercased(), "month labels are capitals, as on the iPhone")
+        XCTAssertNotEqual(text, text.uppercased(), "sentence case, not capitals (Mark 2026-11-19)")
+        XCTAssertEqual(String(text.prefix(1)), text.prefix(1).uppercased(), "the first letter is a capital")
         XCTAssertEqual(r["colour"] as? String, r["muted"] as? String)
         XCTAssertEqual(Set((r["bars"] as? [String]) ?? []), ["none"])
         XCTAssertEqual(r["selectedEdge"] as? String, r["accentText"] as? String)

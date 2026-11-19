@@ -103,7 +103,7 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 .pinned .card { margin-bottom: 0; }
 .timeline.under-obie > :first-child { margin-top: var(--card-gap); }
 
-.month { margin: 0 0 calc(var(--card-gap) + 16px) calc(17px + var(--iris-x) * 2 + 44px); font-size: 14px; letter-spacing: .5px; color: var(--muted); position: relative; }   /* UIKitTimeline month header: uppercase, 14, kerning 0.5 */
+.month { margin: 0 0 calc(var(--card-gap) + 16px) calc(17px + var(--iris-x) * 2 + 44px); font-size: 14px; letter-spacing: .2px; color: var(--muted); position: relative; }   /* UIKitTimeline month divider: sentence case, 14, kerning 0.2 */
 
 .card {
   position: relative; display: block; width: auto; text-align: left;

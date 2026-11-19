@@ -183,7 +183,10 @@ const newId = () => {
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
 };
 const monthKey = iso => { const d = new Date(iso.length === 10 ? iso + 'T00:00' : iso); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; };
-const monthLabel = iso => new Date(iso.length === 10 ? iso + 'T00:00' : iso).toLocaleDateString(L10N.dateLocale('en-GB'), { month: 'long', year: 'numeric' }).toLocaleUpperCase(L10N.dateLocale('en-GB'));
+// Sentence case, as the iPhone's month divider (Mark 2026-11-19): the first letter capitalised by
+// the language's own rules ("novembre 2026" reads "Novembre 2026"), the rest as the date reads.
+const sentenceCase = (text, locale) => text ? text[0].toLocaleUpperCase(locale) + text.slice(1) : text;
+const monthLabel = iso => sentenceCase(new Date(iso.length === 10 ? iso + 'T00:00' : iso).toLocaleDateString(L10N.dateLocale('en-GB'), { month: 'long', year: 'numeric' }), L10N.dateLocale('en-GB'));
 const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
 const ICON_CLOCK = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
 const ICON_BELL = '<svg viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20.5h4"/></svg>';
