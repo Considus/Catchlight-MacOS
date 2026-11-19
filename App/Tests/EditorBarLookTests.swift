@@ -113,6 +113,23 @@ final class EditorBarLookTests: XCTestCase {
         XCTAssertEqual(r["gap"] as! Double, 8, accuracy: 0.6)
     }
 
+    /// The bar's labels wrap when the column narrows mid-edit; the card moves up with the taller
+    /// bar and keeps its 8 rather than running under it.
+    func testTheEditingCardKeepsEightWhenTheBarGrowsMidEdit() throws {
+        let harness = page()
+        let r = try json(harness, """
+            widths.dailies = 640; applyLayout();
+            beginEdit(takes.find(t => !t.obie));
+            const before = document.querySelector('#editor-bar').offsetHeight;
+            widths.dailies = 300; applyLayout();
+            await new Promise(f => setTimeout(f, 200));
+            const card = document.querySelector('#take-editor').getBoundingClientRect(), panel = document.querySelector('#editor-bar').getBoundingClientRect();
+            return { before, after: panel.height, gap: panel.top - card.bottom };
+            """)
+        XCTAssertGreaterThan(r["after"] as! Double, r["before"] as! Double, "the narrow column wraps a label, so the bar grows: \(r)")
+        XCTAssertEqual(r["gap"] as! Double, 8, accuracy: 0.6, "\(r)")
+    }
+
     /// Notifications: Enabled is an 8 dot in the accent, Disabled an 8 ring at 1.5 in the muted
     /// colour (fill against ring, so they differ without colour). Start over is an ordinary row:
     /// its label is the text colour and its icon the accent's text colour, as on the iPhone.

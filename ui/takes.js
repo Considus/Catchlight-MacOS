@@ -131,6 +131,8 @@ function fitDockLabels(root = document) {
 }
 new ResizeObserver(() => fitDockLabels()).observe(document.querySelector('#sidebar'));
 new ResizeObserver(() => fitDockLabels()).observe(document.querySelector('#scriptlist'));
+// The editing card keeps 8 above the editor bar however tall its labels wrap (TakeEditCard).
+new ResizeObserver(([e]) => { if (e.target.offsetHeight) sidebar.style.setProperty('--bar-h', e.target.offsetHeight + 'px'); }).observe(document.querySelector('#editor-bar'));
 
 // ---------- the Dailies heading's date (DailiesHeading.dateParts) ----------
 // Today in the language's own order and words, the day number followed by its ordinal: "Thursday
