@@ -484,6 +484,9 @@ function openFocusRing(t, irisEl, fromEditor) {
     const lift = cardEl.cloneNode(true);
     lift.classList.add('lifted');
     Object.assign(lift.style, { left: card.left + 'px', top: card.top + 'px', width: card.width + 'px', margin: 0 });
+    // The copy sits outside the timeline, which sets the preview's line count: keep the card's,
+    // so it lifts at the preview's height, as FocusRowView draws it at the real card's frame.
+    lift.style.setProperty('--lines', getComputedStyle(cardEl).getPropertyValue('--lines'));
     lift.querySelector('.iris-wrap')?.remove();
     lift.inert = true; lift.removeAttribute('tabindex');   // a picture of the card, not a second one to Tab to
     ring.append(lift);
