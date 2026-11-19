@@ -181,4 +181,54 @@ final class IrisLookTests: XCTestCase {
             if key == "finished" { XCTAssertEqual(c["from"]!, c["rest"]! + 22, accuracy: 0.5, "starts from the grown size") }
         }
     }
+
+    /// As the Focus row starts to close from the timeline, the card and the picture of it lifted
+    /// above the veil both stay grown, and the cards below stay where they were: nothing snaps
+    /// before the shrink. Once it has run, the card is back to its resting size.
+    func testTheCardStaysGrownAsTheCloseBegins() throws {
+        let harness = page()
+        let r = try json(harness, """
+            const cards = () => [...document.querySelectorAll('#takes .card')];
+            const card = cards().find(c => !c.classList.contains('obie') && c.nextElementSibling?.classList.contains('card'));
+            const id = card.dataset.take, pad = el => parseFloat(getComputedStyle(el).paddingBottom);
+            const rest = pad(card);
+            card.querySelector('.iris-wrap').click();
+            document.getAnimations().forEach(a => a.finish());
+            const real = () => document.querySelector(`#takes .card[data-take="${id}"]`);
+            const below = () => real().nextElementSibling.getBoundingClientRect().top;
+            const open = { real: pad(real()), lifted: pad(document.querySelector('#focus-ring .lifted')), below: below() };
+            const lifted = document.querySelector('#focus-ring .lifted');
+            closeFocusRing(false);
+            const closing = { real: pad(real()), lifted: pad(lifted), below: below() };
+            document.getAnimations().forEach(a => a.finish());
+            const closed = { real: pad(real()) };
+            return { rest, open, closing, closed };
+            """)
+        let rest = try XCTUnwrap(r["rest"] as? Double)
+        let open = try XCTUnwrap(r["open"] as? [String: Double]), closing = try XCTUnwrap(r["closing"] as? [String: Double])
+        XCTAssertEqual(open["real"]!, rest + 22, accuracy: 0.5, "open: the card has grown")
+        XCTAssertEqual(closing["real"]!, rest + 22, accuracy: 0.5, "closing: the card is still grown")
+        XCTAssertEqual(closing["lifted"]!, rest + 22, accuracy: 0.5, "closing: the lifted picture is still grown")
+        XCTAssertEqual(closing["below"]!, open["below"]!, accuracy: 0.5, "closing: the cards below haven't jumped")
+        XCTAssertEqual((r["closed"] as? [String: Double])?["real"] ?? 0, rest, accuracy: 0.5, "closed: back to rest")
+    }
+
+    /// Opening the row again while it is still closing keeps the new row: the old close's tidy-up
+    /// doesn't clear it.
+    func testReopeningWhileClosingKeepsTheNewRow() throws {
+        let harness = page()
+        let r = try json(harness, """
+            const iris = () => [...document.querySelectorAll('#takes .card')].find(c => !c.classList.contains('obie')).querySelector('.iris-wrap');
+            iris().click(); document.getAnimations().forEach(a => a.finish());
+            closeFocusRing(false);
+            iris().click();
+            await new Promise(r => setTimeout(r, 1200));   // past the close's tidy-up
+            const ring = document.querySelector('#focus-ring');
+            return { open: !!focusRing, hidden: ring.hidden, marks: ring.querySelectorAll('.mark').length, lifted: ring.querySelectorAll('.lifted').length };
+            """)
+        XCTAssertEqual(r["open"] as? Bool, true)
+        XCTAssertEqual(r["hidden"] as? Bool, false)
+        XCTAssertEqual(r["marks"] as? Int, 4)
+        XCTAssertEqual(r["lifted"] as? Int, 1)
+    }
 }

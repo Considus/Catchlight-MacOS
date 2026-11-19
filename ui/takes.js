@@ -458,6 +458,7 @@ function rowY(card, visibleBottom) {
 }
 const slideTime = (dx, slots) => { const far = Math.max(...slots.map(Math.abs)); return far ? ROW.farSlide * Math.abs(dx) / far : 0; };
 
+let ringTidy = 0;   // the closing row's tidy-up, cancelled if a row opens first
 function openFocusRing(t, irisEl, fromEditor) {
   if (focusRing || (!fromEditor && refuseHeld(t.id))) return;
   closeReminder();   // a picker opened from the editor bar does not carry into the ring
@@ -469,6 +470,7 @@ function openFocusRing(t, irisEl, fromEditor) {
   const cx = box.left + box.width / 2 - host.left, cy = box.top + box.height / 2 - host.top;
   const sel = new Set(typesOf(t).filter(k => k !== 'image' && k !== 'voice'));
   const ring = $('#focus-ring');
+  clearTimeout(ringTidy);   // a row opened while the last one closes keeps its place
   ring.innerHTML = '';
   ring.classList.remove('closing', 'windowed');
   ring.style.setProperty('--cx', cx + 'px'); ring.style.setProperty('--cy', cy + 'px');
@@ -558,8 +560,11 @@ function playRow(row, open) {
     const from = getComputedStyle(el).paddingBottom;
     el.getAnimations().forEach(a => a.cancel());
     const base = parseFloat(getComputedStyle(el).paddingBottom), grown = base + ROW.growth;
-    if (open) el.animate([{ paddingBottom: base + 'px' }, { paddingBottom: grown + 'px' }], opts(ROW.drop, 0, EASE_OUT_CUBIC));
-    else el.animate([{ paddingBottom: from }, { paddingBottom: base + 'px' }], { ...opts(ROW.drop, far, EASE_IN_CUBIC), fill: 'none' });
+    if (open) { el.animate([{ paddingBottom: base + 'px' }, { paddingBottom: grown + 'px' }], opts(ROW.drop, 0, EASE_OUT_CUBIC)); continue; }
+    // Held grown through the wait for the marks, then let go at the end, so nothing snaps first.
+    const shrink = [[{ paddingBottom: from }, { paddingBottom: base + 'px' }], { ...opts(ROW.drop, far, EASE_IN_CUBIC), fill: 'backwards' }];
+    el.animate(...shrink);
+    if (!el.classList.contains('lifted')) row.cardShrink = shrink;   // the timeline repaints the real card: closeFocusRing carries this over
   }
   return now ? 0 : (far + ROW.drop) * k;
 }
@@ -633,12 +638,13 @@ function closeFocusRing(apply) {
     if (!fromEditor && JSON.stringify(target) !== before) { target.modifiedAt = Date.now(); saveTakes(); }
   }
   const ring = $('#focus-ring');
-  const closing = playRow(focusRing, false);
+  const row = focusRing, closing = playRow(row, false);
   ring.style.setProperty('--close', closing + 'ms');
   ring.classList.add('closing'); ring.classList.remove('open');
   focusRing = null;
   window.catchlightBridge?.afterEdit();   // a refresh that waited for the ring goes now
-  setTimeout(() => { ring.hidden = true; ring.innerHTML = ''; ring.classList.remove('closing', 'windowed'); sidebar.classList.remove('ringed'); }, closing);
+  clearTimeout(ringTidy);
+  ringTidy = setTimeout(() => { ring.hidden = true; ring.innerHTML = ''; ring.classList.remove('closing', 'windowed'); sidebar.classList.remove('ringed'); }, closing);
   ringInert(false);
   if (fromEditor) {
     const grew = rows.children.length;
@@ -647,7 +653,11 @@ function closeFocusRing(apply) {
     if (rows.children.length > grew) focusRow(rows.children.length - 1, Infinity); else restoreCaret();
   }
   else {
+    const shrink = row.cardShrink;
     renderTakes();
+    // The repaint draws the card afresh at its resting size: it shrinks there, in step with the
+    // picture above the veil, so the cards below follow it rather than jump.
+    if (shrink) document.querySelector(`#takes [data-take="${t.id}"], #pinned [data-take="${t.id}"]`)?.animate(...shrink);
     // Turning Task on from the timeline opens the editor on the new empty item, as on iOS.
     const target = takes.find(x => x.id === t.id);
     if (apply && sel.has('task') && target && target.blocks.at(-1)?.k === 'check' && !target.blocks.at(-1).text) beginEdit(target);
