@@ -105,20 +105,23 @@ final class DailiesLookTests: XCTestCase {
         XCTAssertEqual(r["de"] as? String, "Dienstag, 3. November")
     }
 
-    /// Month labels are quiet: 13, muted, never forced into capitals. The timelines hide their
+    /// Month labels are the iPhone's (UIKitTimeline): capitals at 14, tracked 0.5, muted. The timelines hide their
     /// scroll bars, as the iPhone does. A selected card is tinted with the accent.
     func testMonthLabelsScrollBarsAndTheSelectedCard() throws {
         let harness = page()
         let r = try json(harness, probe + """
             const m = getComputedStyle(document.querySelector('#takes .month'));
             const sel = getComputedStyle(document.querySelector('.scriptlist .card.selected'));
-            return { size: m.fontSize, transform: m.textTransform, colour: m.color, muted: role('muted'),
+            const label = document.querySelector('#takes .month .month-label') ?? document.querySelector('#takes .month');
+            return { size: m.fontSize, tracking: m.letterSpacing, text: label.textContent.trim(), colour: m.color, muted: role('muted'),
               bars: [...document.querySelectorAll('.timeline')].map(t => getComputedStyle(t).scrollbarWidth),
               selectedEdge: sel.borderTopColor, accentText: role('accent-text'), selectedFill: sel.backgroundColor,
               tint: colour('color-mix(in srgb, ' + root.getPropertyValue('--accent') + ' 9%, ' + root.getPropertyValue('--card') + ')') };
             """)
-        XCTAssertEqual(r["size"] as? String, "13px")
-        XCTAssertEqual(r["transform"] as? String, "none")
+        XCTAssertEqual(r["size"] as? String, "14px")
+        XCTAssertEqual(r["tracking"] as? String, "0.5px")
+        let text = try XCTUnwrap(r["text"] as? String)
+        XCTAssertEqual(text, text.uppercased(), "month labels are capitals, as on the iPhone")
         XCTAssertEqual(r["colour"] as? String, r["muted"] as? String)
         XCTAssertEqual(Set((r["bars"] as? [String]) ?? []), ["none"])
         XCTAssertEqual(r["selectedEdge"] as? String, r["accentText"] as? String)
