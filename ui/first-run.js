@@ -133,7 +133,7 @@ const SCREENS = {
     return `<div class="fr-error" id="fr-error" role="alert" tabindex="-1" hidden>${t("Those aren't quite right. Try again.")}</div>
     <h2>${t('Confirm three words')}</h2>
     <p>${t('Click words %1$lld, %2$lld and %3$lld from your phrase, in order.', a, b, c)}</p>
-    <div class="fr-slots">${fr.positions.map((p, i) => `<button class="fr-slot" type="button" data-slot="${i}"><span>${p + 1}</span>${fr.picked[i] != null ? fr.bank[fr.picked[i]] : '—'}</button>`).join('')}</div>
+    <div class="fr-slots">${fr.positions.map((p, i) => `<button class="fr-slot${fr.picked[i] != null ? ' filled' : ''}" type="button" data-slot="${i}"><span>${p + 1}</span>${fr.picked[i] != null ? fr.bank[fr.picked[i]] : '—'}</button>`).join('')}</div>
     <div class="fr-bank">${fr.bank.map((w, i) => `<button class="fr-tile" type="button" data-tile="${i}"${fr.picked.includes(i) ? ' disabled' : ''}>${w}</button>`).join('')}</div>
     <div class="fr-actions">${pill('show-again', t('Show my words once more'))}</div>`;
   },
@@ -168,7 +168,7 @@ const SCREENS = {
 function show(step) {
   fr.step = step;
   layer.dataset.step = step;
-  layer.innerHTML = `<div class="fr-column">${BRAND()}<div class="fr-body">${SCREENS[step]()}</div></div>`;
+  layer.innerHTML = `<div class="fr-column">${BRAND(step === 'welcome' || step === 'complete')}<div class="fr-body">${SCREENS[step]()}</div></div>`;
   if (step === 'restore') { paintRestoreStatus(); layer.querySelector('[data-word="0"]').focus(); }
   else layer.querySelector('.fr-pill.primary, .fr-card')?.focus();
 }
