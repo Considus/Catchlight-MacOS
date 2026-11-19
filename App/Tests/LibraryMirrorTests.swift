@@ -216,18 +216,31 @@ final class LibraryMirrorTests: XCTestCase {
         XCTAssertEqual(count, 1)
     }
 
-    func testTwoChangesTenthsApartRefreshOnceAfterTheSecond() {
+    func testTwoChangesTenthsApartRefreshOnceAfterTheSecond() throws {
         let bridge = ShellBridge()
         XCTAssertEqual(bridge.libraryChangeDelay, 0.5)
         var ranAt: Date?
         let ran = expectation(description: "the hook ran")
         bridge.libraryChanged = { XCTAssertNil(ranAt); ranAt = Date(); ran.fulfill() }
+        let first = Date()
         bridge.notifyLibraryChanged()
         RunLoop.main.run(until: Date().addingTimeInterval(0.1))
         let second = Date()
+        // A machine that stalled half a second here has rightly refreshed for the first change
+        // already: the run can't judge the restart, so it says so rather than fail or pass.
+        if second.timeIntervalSince(first) >= 0.45 {
+            if let ranAt { XCTAssertGreaterThanOrEqual(ranAt.timeIntervalSince(first), 0.49, "refreshed before the wait was up") }
+            throw XCTSkip("the machine stalled \(second.timeIntervalSince(first))s before the second change")
+        }
         bridge.notifyLibraryChanged()
         // 0.4 s after the second change, which is past 0.5 s after the first: still waiting.
         RunLoop.main.run(until: second.addingTimeInterval(0.4))
+        let checked = Date()
+        // A check that came half a second late may find the refresh rightly done: judge only its time.
+        if checked.timeIntervalSince(second) >= 0.45 {
+            if let ranAt { XCTAssertGreaterThanOrEqual(ranAt.timeIntervalSince(second), 0.49, "refreshed before the wait was up") }
+            throw XCTSkip("the machine stalled until \(checked.timeIntervalSince(second))s after the second change")
+        }
         XCTAssertNil(ranAt, "the second change restarts the wait")
         wait(for: [ran], timeout: 5)
         XCTAssertGreaterThanOrEqual(try! XCTUnwrap(ranAt).timeIntervalSince(second), 0.49)
