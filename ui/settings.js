@@ -91,7 +91,8 @@ const ORDER = [['oldest', t('Oldest first')], ['newest', t('Newest first')]];
 
 function settingsPage() {
   const folder = store.get('account', {})?.folder;
-  const notif = { enabled: `<i class="sdot ok"></i>${t('Enabled')}`, denied: `<i class="sdot warn"></i>${t('Disabled')}` }[settings.notifications] || t('Enable');
+  const dot = (cls, r) => `<svg class="sdot ${cls}" viewBox="0 0 8 8" aria-hidden="true"><circle cx="4" cy="4" r="${r}"/></svg>`;
+  const notif = { enabled: `${dot('ok', 4)}${t('Enabled')}`, denied: `${dot('warn', 3.25)}${t('Disabled')}` }[settings.notifications] || t('Enable');
   return `<h2 class="page-heading">${t('Settings')}</h2>
   ${group(t('Appearance'), [
     pick('mode', 'mode', t('Mode'), [['auto', t('System')], ['daylight', t('Light')], ['night', t('Dark')]], () => scene),
@@ -144,7 +145,7 @@ function settingsPage() {
     folder ? link('import-notes', 'import', t('Import notes'), '', false) : '',
     link('import-file', 'file', t('Import from a file'), '', false),
     link('about', 'info', t('About'), t('Catchlight %@', shell.version())),
-    link('start-over', 'restart', t('Start over'), '', false, ' danger'),
+    link('start-over', 'restart', t('Start over'), '', false),
   ], t('Erases every Take here and creates a new Privacy phrase. Cloud copies become unreadable too. Export first, it is the only way back.'))}
   ${group(t('Support'), [
     link('report', 'bug', t('Report an issue'), '', false),

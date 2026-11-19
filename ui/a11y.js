@@ -131,5 +131,6 @@ let dockWas = 'resting';
 function announceDock() {
   if (dock === dockWas) return;
   dockWas = dock;
-  dockSays.textContent = { resting: t('Dock returned to navigation.'), filtering: t('Dock showing timeline filters.'), searching: t('Dock showing search.') }[dock] || '';
+  // DailiesToolbar's words: the filters appear without moving focus, so say so.
+  dockSays.textContent = { resting: t('Showing all Takes.'), filtering: t('Filters shown above the toolbar.'), searching: t('Search your Takes') }[dock] || '';
 }

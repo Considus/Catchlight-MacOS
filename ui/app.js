@@ -191,7 +191,11 @@ const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = se
 const ICON_CLOCK = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
 const ICON_BELL = '<svg viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20.5h4"/></svg>';
 const ICON_CHECKLIST = '<svg viewBox="0 0 24 24"><path d="M4 7l1.6 1.6L8.5 5.5M4 15l1.6 1.6 2.9-3.1M11.5 7.5h8.5M11.5 15.5h8.5"/></svg>';
-const ICON_IMPORTANT = '<span class="bang">!</span>';
+// The iPhone's ToolbarGlyph, on its 24 grid (DailiesToolbar.swift): Important, the clock, the tick.
+const ICON_IMPORTANT = '<svg viewBox="0 0 24 24"><path d="M12 5v9.5M12 18.6v.4"/></svg>';
+const GLYPH_CLOCK = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><path d="M12 8.5V12l2.6 1.4"/></svg>';
+const GLYPH_TASK = '<svg viewBox="0 0 24 24"><path d="M5 12.6l4.4 4.4L19 7.4"/></svg>';
+const GLYPH_PLUS = '<svg viewBox="0 0 24 24"><path d="M12 6v12M6 12h12"/></svg>';
 const ICON_XMARK = '<svg class="xmark" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/></svg>';
 
 // ---------- placeholder data (Takes live in takes.js) ----------
