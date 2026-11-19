@@ -194,4 +194,22 @@ final class EditorBarLookTests: XCTestCase {
             """)
         XCTAssertEqual(r["bad"] as? [String], [], "\(r["widthsSeen"] ?? "")")
     }
+
+    /// Settings' group headings are sentence case, 13 medium in the muted colour, with no extra
+    /// tracking (SheetType.sheetSectionLabel; Mark 2026-11-19: "Sentence case").
+    func testSettingsGroupHeadingsAreSentenceCase() throws {
+        let harness = page()
+        let r = try json(harness, probe + """
+            openSettings(); await new Promise(r => setTimeout(r, 300));
+            const h = document.querySelector('.sgroup-head'), cs = getComputedStyle(h);
+            return { shown: h.innerText.trim(), text: h.textContent.trim(), transform: cs.textTransform, tracking: cs.letterSpacing, size: cs.fontSize, weight: cs.fontWeight, colour: cs.color, muted: roles.muted };
+            """)
+        XCTAssertEqual(r["shown"] as? String, r["text"] as? String, "drawn as written, not in capitals")
+        XCTAssertEqual(r["shown"] as? String, "Appearance")
+        XCTAssertEqual(r["transform"] as? String, "none")
+        XCTAssertEqual(r["tracking"] as? String, "normal")
+        XCTAssertEqual(r["size"] as? String, "13px")
+        XCTAssertEqual(r["weight"] as? String, "500")
+        XCTAssertEqual(r["colour"] as? String, r["muted"] as? String)
+    }
 }

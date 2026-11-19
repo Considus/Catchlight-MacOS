@@ -389,7 +389,7 @@ body.first-running .app { visibility: hidden; }
 .sheet-back svg { transform: scaleX(-1); }
 .sheet-scroll { flex: 1; overflow-y: auto; padding: 0 20px 32px; }
 .sheet-scroll > .page-heading { margin: 0 0 8px; padding: 0; }
-.sgroup-head { margin: 22px 4px 6px; font: 500 13px var(--sys); letter-spacing: .4px; text-transform: uppercase; color: var(--muted); }
+.sgroup-head { margin: 22px 4px 6px; font: 500 13px var(--sys); color: var(--muted); }   /* sheetSectionLabel: 13 medium, sentence case (Mark 2026-11-19) */
 .sgroup { background: var(--card); border-radius: 14px; overflow: hidden; }
 .sgroup-foot { margin: 8px 4px 0; font-size: 13px; color: var(--muted); line-height: 1.4; }
 .srow { position: relative; display: flex; align-items: center; gap: 14px; width: 100%; min-height: 44px; padding: 0 16px; text-align: left; color: var(--text); font: 400 17px var(--sys); }
