@@ -21,6 +21,13 @@ final class NotificationSettingsTests: XCTestCase {
     }
     private var bridgeKeepAlive: ShellBridge?
 
+    /// The shell opens System Settings from a block it queues on the main thread, after the page's
+    /// reply: give it up to a second to run before checking, rather than racing it.
+    private func waitForSystemSettings(count: Int = 1) {
+        let deadline = Date().addingTimeInterval(1)
+        while opened.count < count, Date() < deadline { RunLoop.main.run(until: Date().addingTimeInterval(0.01)) }
+    }
+
     private func ask(_ harness: WebViewHarness, _ call: String) throws -> String? {
         try harness.run("return await window.catchlightBridge.shell.\(call);", in: self) as? String
     }
@@ -48,6 +55,7 @@ final class NotificationSettingsTests: XCTestCase {
         XCTAssertEqual(try ask(harness, "enableNotifications()"), "denied")
         XCTAssertEqual(centre.authorizationAsked, 0)
         let id = try XCTUnwrap(Bundle.main.bundleIdentifier)
+        waitForSystemSettings()
         XCTAssertEqual(opened.map(\.absoluteString), ["x-apple.systempreferences:com.apple.Notifications-Settings.extension?id=\(id)"])
     }
 
@@ -78,6 +86,7 @@ final class NotificationSettingsTests: XCTestCase {
         let harness = page()
         XCTAssertTrue(try rowText(harness).hasSuffix("Disabled"))
         _ = try harness.run("document.querySelector('[data-open=\"notifications\"]').click(); await window.catchlightBridge.flush(); return true;", in: self)
+        waitForSystemSettings()
         XCTAssertEqual(opened.count, 1)
     }
 
