@@ -65,7 +65,7 @@ const textOf = t => t.blocks.map(b => b.k === 'check' ? `- [${b.done ? 'x' : ' '
 const isBlank = t => !t.blocks.some(b => b.text.trim()) && !isTask(t) && !t.reminder;
 // A Take is never "none": with no Task, no reminder and no Note, Note comes back on.
 const noteFloor = t => { if (!t.isNote && !isTask(t) && !t.reminder) t.isNote = true; };
-const irisHtml = (types, obie) => `<span class="iris-shadow"></span>${iris(types, obie)}`;
+const irisHtml = (types, obie) => iris(types, obie);
 
 
 // ---------- manual arrangement (ManualOrder.swift) ----------

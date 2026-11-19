@@ -9,6 +9,8 @@ The interface shared by every desktop build (Mac, Windows, Linux) and later iPad
 - No framework, no bundler, no build step. Files load as they are.
 - No platform-only web features. If something needs the OS (menus, drag to Finder, the folder picker, the keychain), it goes through the shell bridge (`bridge.js`, and on the Mac `App/Sources/ShellBridge.swift`).
 - Design tokens mirror `Catchlight-iOS/Catchlight/UI/Theme/CatchlightTheme.swift`. As-Built wins: if this file and the iOS code disagree, the iOS code is right.
+- **The Scene colours are generated, never typed.** `scenes.css` (one custom property per colour role, such as `--ground`, `--accent-text` and `--lit`, for each of the five Scenes in Dark and Light) and `scenes.js` (the Scenes in picker order) come from `design/tokens.json`, the iPhone's own file copied unchanged, so both apps carry the same colours. After the iPhone's file changes, run `python3 scripts/design/gen_scene_tokens.py <path to Catchlight-iOS>/design/tokens.json` and commit all three; the unit tests fail while the generated files are stale. `<html data-mode>` is the appearance (`dark` or `light`, from the Mode setting) and `data-scene` the Scene (none is Cobalt). `app.css` names only roles, plus the few colours that aren't Scene roles (ruby, the veil).
+- **The redesign's shapes:** one corner radius, 14, on every box and control, and a third of the height for anything under 42 tall, so nothing is a pill; an inner part is concentric with its box. Every surface is flat: no shadows or gradients. The unit tests scan the page for both.
 - `localStorage` here is a prototype convenience only. In the Mac app, Takes and Scripts live in an encrypted library through `CatchlightCore` and the account through the Keychain (The shell bridge, below), and localStorage keeps only view settings.
 - Touch-ready: every control has a hit area of at least 44 × 44, extended invisibly with `::after` where it should look smaller. A long press does what a right-click does, and checklist rows are 44 tall under a coarse pointer. A new control must pass the 44px hit probe before it merges.
 
@@ -165,4 +167,4 @@ The native code behind Lock after, Snooze, Follow-up reminders, Import and Expor
 
 ## Fonts
 
-Cormorant Garamond and DM Sans, both under the SIL Open Font License 1.1, copied from the Catchlight website. The licence text for each family is beside them (`fonts/OFL-*.txt`) and listed in the repo's `NOTICE`.
+Headings are Archivo, the iPhone's own variable font file (`fonts/Archivo.ttf`, from `Catchlight-iOS/Catchlight/Resources/Fonts`), set expanded at the iPhone's axes (weight 560, width 120). Everything else is the system font. Archivo is under the SIL Open Font License 1.1; its licence is beside it (`fonts/OFL-Archivo.txt`) and listed in the repo's `NOTICE`. It is bundled, never fetched: the app blocks every web address.

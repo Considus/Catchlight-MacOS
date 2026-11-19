@@ -18629,115 +18629,115 @@
         }
       }
     },
-    "Cormorant Garamond and DM Sans, under the SIL Open Font License 1.1. The licence text for each is beside the fonts and listed in NOTICE." : {
+    "Archivo, under the SIL Open Font License 1.1. The licence text is beside the font and listed in NOTICE." : {
       "extractionState" : "manual",
       "localizations" : {
         "da" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Cormorant Garamond og DM Sans under SIL Open Font License 1.1. Licensteksten for hver ligger ved siden af skrifterne og er anført i NOTICE."
+            "value" : "Archivo under SIL Open Font License 1.1. Licensteksten ligger ved siden af skriften og er anført i NOTICE."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Cormorant Garamond und DM Sans, unter der SIL Open Font License 1.1. Der Lizenztext liegt jeweils bei den Schriften und ist in NOTICE aufgeführt."
+            "value" : "Archivo, unter der SIL Open Font License 1.1. Der Lizenztext liegt bei der Schrift und ist in NOTICE aufgeführt."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Cormorant Garamond y DM Sans, bajo la SIL Open Font License 1.1. El texto de la licencia de cada una está junto a las fuentes y figura en NOTICE."
+            "value" : "Archivo, bajo la SIL Open Font License 1.1. El texto de la licencia está junto a la fuente y figura en NOTICE."
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Cormorant Garamond ja DM Sans, SIL Open Font License 1.1 -lisenssillä. Kunkin lisenssiteksti on fonttien vieressä ja lueteltu NOTICE-tiedostossa."
+            "value" : "Archivo, SIL Open Font License 1.1 -lisenssillä. Lisenssiteksti on fontin vieressä ja lueteltu NOTICE-tiedostossa."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Cormorant Garamond et DM Sans, sous SIL Open Font License 1.1. Le texte de la licence de chacune se trouve à côté des polices et figure dans NOTICE."
+            "value" : "Archivo, sous SIL Open Font License 1.1. Le texte de la licence se trouve à côté de la police et figure dans NOTICE."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Cormorant Garamond e DM Sans, con licenza SIL Open Font License 1.1. Il testo della licenza di ciascuno si trova accanto ai font ed è riportato in NOTICE."
+            "value" : "Archivo, con licenza SIL Open Font License 1.1. Il testo della licenza si trova accanto al font ed è riportato in NOTICE."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Cormorant GaramondとDM Sansは、SIL Open Font License 1.1のもとで使用しています。各ライセンス文はフォントと同じ場所にあり、NOTICEにも記載されています。"
+            "value" : "Archivoは、SIL Open Font License 1.1のもとで使用しています。ライセンス文はフォントと同じ場所にあり、NOTICEにも記載されています。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Cormorant Garamond와 DM Sans는 SIL Open Font License 1.1에 따라 사용됩니다. 각 라이선스 전문은 글꼴과 함께 들어 있으며 NOTICE에도 나와 있습니다."
+            "value" : "Archivo는 SIL Open Font License 1.1에 따라 사용됩니다. 라이선스 전문은 글꼴과 함께 들어 있으며 NOTICE에도 나와 있습니다."
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Cormorant Garamond og DM Sans, under SIL Open Font License 1.1. Lisensteksten for hver av dem ligger ved siden av skriftene og er oppført i NOTICE."
+            "value" : "Archivo, under SIL Open Font License 1.1. Lisensteksten ligger ved siden av skriften og er oppført i NOTICE."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Cormorant Garamond en DM Sans, onder de SIL Open Font License 1.1. De licentietekst van elk staat naast de lettertypen en in NOTICE."
+            "value" : "Archivo, onder de SIL Open Font License 1.1. De licentietekst staat naast het lettertype en in NOTICE."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Cormorant Garamond i DM Sans na licencji SIL Open Font License 1.1. Tekst licencji każdego z nich znajduje się obok czcionek i jest wymieniony w pliku NOTICE."
+            "value" : "Archivo na licencji SIL Open Font License 1.1. Tekst licencji znajduje się obok czcionki i jest wymieniony w pliku NOTICE."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Cormorant Garamond e DM Sans, sob a SIL Open Font License 1.1. O texto da licença de cada uma está junto às fontes e listado em NOTICE."
+            "value" : "Archivo, sob a SIL Open Font License 1.1. O texto da licença está junto à fonte e listado em NOTICE."
           }
         },
         "pt-PT" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Cormorant Garamond e DM Sans, ao abrigo da SIL Open Font License 1.1. O texto da licença de cada uma encontra-se junto aos tipos de letra e está indicado em NOTICE."
+            "value" : "Archivo, ao abrigo da SIL Open Font License 1.1. O texto da licença encontra-se junto ao tipo de letra e está indicado em NOTICE."
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Cormorant Garamond och DM Sans, under SIL Open Font License 1.1. Licenstexten för vart och ett finns bredvid typsnitten och listas i NOTICE."
+            "value" : "Archivo, under SIL Open Font License 1.1. Licenstexten finns bredvid typsnittet och listas i NOTICE."
           }
         },
         "th" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Cormorant Garamond และ DM Sans ใช้ภายใต้ SIL Open Font License 1.1 ข้อความใบอนุญาตของแต่ละแบบอักษรอยู่ข้างไฟล์แบบอักษรและระบุไว้ใน NOTICE"
+            "value" : "Archivo ใช้ภายใต้ SIL Open Font License 1.1 ข้อความใบอนุญาตอยู่ข้างไฟล์แบบอักษรและระบุไว้ใน NOTICE"
           }
         },
         "tr" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Cormorant Garamond ve DM Sans, SIL Open Font License 1.1 kapsamındadır. Her birinin lisans metni yazı tiplerinin yanında bulunur ve NOTICE dosyasında listelenir."
+            "value" : "Archivo, SIL Open Font License 1.1 kapsamındadır. Lisans metni yazı tipinin yanında bulunur ve NOTICE dosyasında listelenir."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Cormorant Garamond 和 DM Sans，依据 SIL Open Font License 1.1 授权。各字体的许可文本位于字体文件旁边，并列于 NOTICE 中。"
+            "value" : "Archivo，依据 SIL Open Font License 1.1 授权。许可文本位于字体文件旁边，并列于 NOTICE 中。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Cormorant Garamond 與 DM Sans，依 SIL Open Font License 1.1 授權。各字體的授權條款文字位於字體檔案旁，並列於 NOTICE 中。"
+            "value" : "Archivo，依 SIL Open Font License 1.1 授權。授權條款文字位於字體檔案旁，並列於 NOTICE 中。"
           }
         }
       }

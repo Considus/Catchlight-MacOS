@@ -272,7 +272,7 @@ function renderScripts() {
     const body = plain(s.blocks.join('\n')) || t('Untitled Script');
     const paper = s.mode === 'a4' ? 'A4' : t('US Letter');
     const pages = s.mode === 'continuous' ? t('Continuous') : s.pageCount ? t('%1$@ · %2$lld pages', paper, s.pageCount) : paper;
-    return `<div class="card${s.id === current ? ' selected' : ''}" data-script="${s.id}"><span class="iris-wrap"><span class="iris-shadow"></span>${iris(['note'])}</span><div class="body">${esc(body)}</div><div class="pages">${pages}</div></div>`;
+    return `<div class="card${s.id === current ? ' selected' : ''}" data-script="${s.id}"><span class="iris-wrap">${iris(['note'])}</span><div class="body">${esc(body)}</div><div class="pages">${pages}</div></div>`;
   });
   // No Scripts at all (not a search that matches none): the same quiet line Dailies shows.
   if (!scripts.length) tl.innerHTML = `<div class="empty first-take"><p>${t('Your first Script is waiting.')}</p></div>`;
@@ -1020,7 +1020,9 @@ const scenes = ['auto', 'night', 'daylight'];
 let scene = store.get('scene', 'auto');
 const mq = matchMedia('(prefers-color-scheme: light)');
 function applyScene() {
-  document.documentElement.dataset.scene = scene === 'auto' ? (mq.matches ? 'daylight' : 'night') : scene;
+  // The stored setting keeps its old values (auto, night, daylight); the page reads it as the
+  // appearance, data-mode, and scenes.css paints the default Scene in it.
+  document.documentElement.dataset.mode = (scene === 'auto' ? mq.matches : scene === 'daylight') ? 'light' : 'dark';
   $('#tb-scene').title = scene === 'auto' ? t('Scene: follows the system') : scene === 'night' ? t('Scene: Dark') : t('Scene: Light');
 }
 mq.addEventListener('change', applyScene);
