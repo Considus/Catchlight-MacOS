@@ -304,13 +304,16 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 .dock[data-mode="filtering"]::before { top: -68px; }
 .dock-btn.is-open { color: var(--accent-text); }
 .dock-btn.filled { background: var(--card); }
-.dock[data-mode="searching"] .dock-btn { min-height: 44px; }
+.dock[data-mode="searching"] { display: flex; align-items: center; gap: 10px; padding: 0 10px; min-height: 82px; }   /* DailiesToolbar searchRow: inset 10, gap 10; the panel keeps its resting height */
 .dock-search {
-  grid-column: span 2; align-self: center; width: 100%; height: 44px; min-width: 0; padding: 0 16px; border-radius: 14px;
-  border: 1px solid var(--outline); background: var(--surface);   /* flatField: surface, 1 outline */
-  color: var(--text); font: 15px var(--sys); outline: none;
+  flex: 1; min-width: 0; height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 12px; border-radius: 14px;
+  border: 1px solid var(--outline); background: var(--surface); cursor: text;   /* flatField: surface, 1 outline */
 }
-.dock-search::placeholder { color: var(--muted); }
+.dock-search svg { width: 17px; height: 17px; flex: none; stroke: var(--muted); stroke-width: 1.9; }
+.dock-search input { flex: 1; min-width: 0; height: 100%; padding: 0; border: 0; background: none; color: var(--text); font: 15px var(--sys); outline: none; }
+.dock-search:focus-within { outline: 2px solid var(--accent-text); outline-offset: 2px; }
+.dock-cancel { flex: none; min-width: 44px; min-height: 44px; padding: 0 2px; border: 0; background: none; color: var(--accent-text); font: 500 15px var(--sys); cursor: pointer; }
+.dock-search input::placeholder { color: var(--muted); }
 .sidebar .month-label { cursor: pointer; padding: 0; text-transform: inherit; letter-spacing: inherit; text-align: left; }   /* a button since it filters (UIKitTimeline) */
 .sidebar .month-label:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 3px; border-radius: 3px; }
 .month.on .month-label { color: var(--accent-text); display: inline-flex; gap: 6px; align-items: center; }

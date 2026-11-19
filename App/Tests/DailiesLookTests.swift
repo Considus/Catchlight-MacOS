@@ -179,4 +179,49 @@ final class DailiesLookTests: XCTestCase {
         XCTAssertEqual(r["heading"] as! Double, 0.12, accuracy: 0.005)
         XCTAssertEqual(r["date"] as! Double, 0.12, accuracy: 0.005, "the date fades with the heading")
     }
+
+    /// Search as the iPhone draws it (DailiesToolbar's searchRow): 10 in from the panel's sides,
+    /// the flat field first with the search glyph inside it, then a plain "Cancel" in the accent's
+    /// text colour at 15 medium. No filled icon button, no second search button.
+    func testTheSearchRowIsTheFieldThenCancel() throws {
+        let harness = page()
+        let r = try json(harness, probe + """
+            document.querySelector('#takes-dock [data-act="search"]').click();
+            await new Promise(f => setTimeout(f, 50));
+            const dock = document.querySelector('#takes-dock'), d = dock.getBoundingClientRect();
+            const input = document.querySelector('#take-search'), field = input.closest('.dock-search') ?? input;
+            const f = field.getBoundingClientRect(), fs = getComputedStyle(field);
+            const glyph = field.querySelector('svg')?.getBoundingClientRect();
+            const cancel = dock.querySelector('[data-act="cancel-search"]'), c = cancel.getBoundingClientRect(), cs = getComputedStyle(cancel);
+            return { fieldLeft: f.left - d.left, cancelRight: d.right - c.right, gap: c.left - f.right,
+              fieldBeforeCancel: f.right <= c.left, height: f.height, radius: fs.borderTopLeftRadius,
+              edge: fs.borderTopColor, edgeWidth: fs.borderTopWidth, fill: fs.backgroundColor,
+              glyphInside: !!glyph && glyph.left >= f.left && glyph.right <= f.right && glyph.width === 17,
+              cancelText: cancel.textContent.trim(), cancelName: cancel.getAttribute('aria-label'),
+              cancelColour: cs.color, cancelSize: cs.fontSize, cancelWeight: cs.fontWeight, cancelFill: cs.backgroundColor,
+              cancelW: c.width, cancelH: c.height,
+              others: dock.querySelectorAll('.dock-btn:not([data-act="cancel-search"])').length,
+              colours: { surface: role('surface'), outline: role('outline'), accentText: role('accent-text') } };
+            """)
+        let colours = try XCTUnwrap(r["colours"] as? [String: String])
+        XCTAssertEqual(r["fieldLeft"] as! Double, 10, accuracy: 0.6)
+        XCTAssertEqual(r["cancelRight"] as! Double, 10, accuracy: 0.6)
+        XCTAssertEqual(r["gap"] as! Double, 10, accuracy: 0.6)
+        XCTAssertEqual(r["fieldBeforeCancel"] as? Bool, true)
+        XCTAssertEqual(r["height"] as! Double, 44, accuracy: 0.6)
+        XCTAssertEqual(r["radius"] as? String, "14px")
+        XCTAssertEqual(r["edge"] as? String, colours["outline"])
+        XCTAssertEqual(r["edgeWidth"] as? String, "1px")
+        XCTAssertEqual(r["fill"] as? String, colours["surface"])
+        XCTAssertEqual(r["glyphInside"] as? Bool, true, "the search glyph, 17 wide, sits inside the field")
+        XCTAssertEqual(r["cancelText"] as? String, "Cancel")
+        XCTAssertEqual(r["cancelName"] as? String, "Cancel search")
+        XCTAssertEqual(r["cancelColour"] as? String, colours["accentText"])
+        XCTAssertEqual(r["cancelSize"] as? String, "15px")
+        XCTAssertEqual(r["cancelWeight"] as? String, "500")
+        XCTAssertEqual(r["cancelFill"] as? String, "rgba(0, 0, 0, 0)")
+        XCTAssertGreaterThanOrEqual(r["cancelW"] as! Double, 44)
+        XCTAssertGreaterThanOrEqual(r["cancelH"] as! Double, 44)
+        XCTAssertEqual(r["others"] as? Int, 0, "no other button in the search row")
+    }
 }
