@@ -156,17 +156,21 @@ final class IrisLookTests: XCTestCase {
     func testClosingShrinksTheCardFromItsGrownSize() throws {
         let harness = page()
         let r = try json(harness, """
+            // Record each padding animation as it starts: a zero-length one (Reduce Motion) is
+            // over before getAnimations() could list it.
+            const started = [], animate = Element.prototype.animate;
+            Element.prototype.animate = function (frames, opts) { if (frames[0]?.paddingBottom) started.push(frames); return animate.call(this, frames, opts); };
             const close = async finishOpen => {
               // Closing repaints the timeline, so find the card afresh each time.
               [...document.querySelectorAll('#takes .card')].find(c => !c.classList.contains('obie')).querySelector('.iris-wrap').click();
-              const lifted = document.querySelector('#focus-ring .lifted');
-              const rest = parseFloat(getComputedStyle(lifted).paddingBottom);
               if (finishOpen) document.getAnimations().forEach(a => a.finish());
+              const opened = started.at(-1);
               closeFocusRing(false);
-              const frames = lifted.getAnimations().map(a => a.effect.getKeyframes()).find(k => k[0].paddingBottom);
+              const frames = started.at(-1);
               document.getAnimations().forEach(a => a.finish());
-              await new Promise(r => setTimeout(r, 900));   // the row clears itself once the close has run
-              return { rest, from: parseFloat(frames[0].paddingBottom), to: parseFloat(frames[frames.length - 1].paddingBottom) };
+              // The row clears itself once the close has run.
+              for (let i = 0; i < 100 && !document.querySelector('#focus-ring').hidden; i++) await new Promise(r => setTimeout(r, 50));
+              return { rest: parseFloat(opened[0].paddingBottom), from: parseFloat(frames[0].paddingBottom), to: parseFloat(frames[frames.length - 1].paddingBottom) };
             };
             return { finished: await close(true), midway: await close(false) };
             """)
