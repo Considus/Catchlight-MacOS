@@ -848,9 +848,9 @@ function paintDock() {
     fitDockLabels(bar);
   } else if (!bar.querySelector('#take-search')) {
     // Built once per search, so typing never loses the caret to a repaint.
-    bar.innerHTML = btn('cancel-search', ICON.cancel, t('Cancel search'), ' filled')
-      + `<input class="dock-search" id="take-search" type="search" placeholder="${esc(t('Search your Takes'))}" aria-label="${esc(t('Search Takes'))}" autocomplete="off" spellcheck="false">`
-      + btn('focus-search', ICON.search, t('Search'));
+    // The iPhone's search row: the flat field with its glyph inside, then a plain Cancel.
+    bar.innerHTML = `<label class="dock-search">${ICON.search}<input id="take-search" type="search" placeholder="${esc(t('Search your Takes'))}" aria-label="${esc(t('Search Takes'))}" autocomplete="off" spellcheck="false"></label>`
+      + `<button class="dock-cancel" type="button" data-act="cancel-search" aria-label="${esc(t('Cancel search'))}">${esc(t('Cancel'))}</button>`;
   }
 }
 
@@ -928,7 +928,6 @@ takesDock.addEventListener('click', e => {
   else if (act === 'sequence') { if (dock === 'filtering') exitToResting(); else { dock = 'filtering'; renderTakes(); } }
   else if (act === 'search') { dock = 'searching'; searchText = ''; renderTakes(); $('#take-search').focus(); }
   else if (act === 'cancel-search') exitToResting();
-  else if (act === 'focus-search') $('#take-search').focus();
   else tapFilter(act);
 });
 takesDock.addEventListener('pointerdown', e => {
