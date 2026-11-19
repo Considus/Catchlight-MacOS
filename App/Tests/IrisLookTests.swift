@@ -202,14 +202,18 @@ final class IrisLookTests: XCTestCase {
             const closing = { real: pad(real()), lifted: pad(lifted), below: below() };
             document.getAnimations().forEach(a => a.finish());
             const closed = { real: pad(real()) };
-            return { rest, open, closing, closed };
+            return { rest, open, closing, closed, reduced: still.matches };
             """)
         let rest = try XCTUnwrap(r["rest"] as? Double)
         let open = try XCTUnwrap(r["open"] as? [String: Double]), closing = try XCTUnwrap(r["closing"] as? [String: Double])
         XCTAssertEqual(open["real"]!, rest + 22, accuracy: 0.5, "open: the card has grown")
-        XCTAssertEqual(closing["real"]!, rest + 22, accuracy: 0.5, "closing: the card is still grown")
-        XCTAssertEqual(closing["lifted"]!, rest + 22, accuracy: 0.5, "closing: the lifted picture is still grown")
-        XCTAssertEqual(closing["below"]!, open["below"]!, accuracy: 0.5, "closing: the cards below haven't jumped")
+        // With Reduce Motion the row goes straight to its end, as on the iPhone: no shrink to hold.
+        let reduced = try XCTUnwrap(r["reduced"] as? Bool)
+        print("IrisLookTests: Reduce Motion is \(reduced ? "on" : "off")")
+        let start = reduced ? rest : rest + 22
+        XCTAssertEqual(closing["real"]!, start, accuracy: 0.5, "closing: the card is still grown (Reduce Motion \(reduced))")
+        XCTAssertEqual(closing["lifted"]!, start, accuracy: 0.5, "closing: the lifted picture is still grown (Reduce Motion \(reduced))")
+        if !reduced { XCTAssertEqual(closing["below"]!, open["below"]!, accuracy: 0.5, "closing: the cards below haven't jumped") }
         XCTAssertEqual((r["closed"] as? [String: Double])?["real"] ?? 0, rest, accuracy: 0.5, "closed: back to rest")
     }
 
