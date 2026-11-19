@@ -166,9 +166,9 @@ final class EditorBarLookTests: XCTestCase {
         XCTAssertEqual(start["icon"], roles["accentText"])
     }
 
-    /// Every toolbar label in every language fits its column at the narrowest width the window
-    /// opens with (Dailies 320, Scripts 340): no word is cut, and none runs past three lines, the
-    /// iPhone label's limit (ToolbarColumn). Thai and Chinese have no spaces, so they break between
+    /// Every toolbar label in every language fits its column at the column's narrowest width
+    /// (Dailies 310, Scripts 295; Mark 2026-11-19: "Raise the minimum"): no word is cut, and none
+    /// runs past three lines, the iPhone label's limit (ToolbarColumn). Thai and Chinese have no spaces, so they break between
     /// characters, as on the iPhone; only their line count is checked.
     func testTranslatedToolbarLabelsFitTheNarrowestColumns() throws {
         let catalogURL = WebViewHarness.repoUI.appendingPathComponent("l10n/Localizable.xcstrings")
@@ -187,7 +187,7 @@ final class EditorBarLookTests: XCTestCase {
         let data = String(decoding: try JSONSerialization.data(withJSONObject: table), as: UTF8.self)
         let r = try json(harness, """
             const table = \(data);
-            widths.dailies = 320; widths.scripts = 340; applyLayout();
+            widths.dailies = LIMIT.dailies[0]; widths.scripts = LIMIT.scripts[0]; applyLayout();
             beginEdit(takes.find(t => !t.obie));
             const bars = { dailies: ['#takes-dock', ['Add', 'Storyboard', 'Sequence', 'Search']], editor: ['#editor-bar', ['Cancel', 'Remind', 'Shot List', 'Mark done']],
               editorNote: ['#editor-bar', ['Cancel', 'Remind', 'Important', 'Mark done']], scripts: ['.scriptlist .dock', ['New', 'Angle', 'View', 'Search']] };
@@ -214,6 +214,18 @@ final class EditorBarLookTests: XCTestCase {
             return { bad, widthsSeen };
             """)
         XCTAssertEqual(r["bad"] as? [String], [], "\(r["widthsSeen"] ?? "")")
+        XCTAssertEqual(try harness.run("return JSON.stringify([LIMIT.dailies[0], LIMIT.scripts[0]]);", in: self) as? String, "[310,295]")
+    }
+
+    /// A column saved narrower than the new minimum (dragged there before it rose) opens at the
+    /// minimum.
+    func testASavedNarrowerColumnOpensAtTheMinimum() throws {
+        let harness = WebViewHarness(root: WebViewHarness.repoUI, ruleList: nil)
+        let saved = "localStorage.clear(); localStorage.setItem('cl.widths', JSON.stringify({ dailies: 300, scripts: 260, editor: 760 }));"
+        harness.load("index.html", in: self, injecting: [WKUserScript(source: saved, injectionTime: .atDocumentStart, forMainFrameOnly: true)])
+        let r = try json(harness, "return { dailies: widths.dailies, scripts: widths.scripts, drawnD: document.querySelector('#sidebar').getBoundingClientRect().width, drawnS: document.querySelector('#scriptlist').getBoundingClientRect().width };")
+        XCTAssertEqual(r["dailies"] as? Double, 310, "\(r)")
+        XCTAssertEqual(r["scripts"] as? Double, 295, "\(r)")
     }
 
     /// Settings' group headings are sentence case, 13 medium in the muted colour, with no extra

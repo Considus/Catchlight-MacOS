@@ -945,11 +945,15 @@ $('#search').addEventListener('input', e => { query = e.target.value.trim().toLo
 const app = $('#app');
 const PANE = { dailies: $('#sidebar'), editor: $('#editor-pane'), scripts: $('#scriptlist') };
 const SLOTS = ['left', 'middle', 'right'];
-const LIMIT = { dailies: [300, 640], scripts: [260, 520], editor: [420, 1400] };
+// Narrowest Dailies and Scripts: wide enough for every toolbar label, in every language, to fit
+// whole after the iPhone's 80% shrink (Mark 2026-11-19: "Raise the minimum").
+const LIMIT = { dailies: [310, 640], scripts: [295, 520], editor: [420, 1400] };
 let layout = Object.assign({ dailies: 'left', editor: 'middle', scripts: 'right' }, store.get('layout', {}));
 const lastPos = Object.assign({ dailies: 'left', editor: 'middle', scripts: 'right' }, store.get('lastPos', {}));
 // Dailies opens at the iPhone's height-to-width proportion (393 x 852), clamped.
 const widths = Object.assign({ dailies: Math.round(Math.min(560, Math.max(320, (innerHeight - 44) * 393 / 852))), scripts: 340, editor: 760 }, store.get('widths', {}));
+// A width saved before a limit moved opens inside it.
+for (const k in LIMIT) if (k in widths) widths[k] = Math.min(LIMIT[k][1], Math.max(LIMIT[k][0], widths[k]));
 
 function applyLayout() {
   const order = SLOTS.map(p => Object.keys(layout).find(k => layout[k] === p)).filter(Boolean);
