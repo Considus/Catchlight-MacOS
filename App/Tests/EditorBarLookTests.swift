@@ -42,7 +42,7 @@ final class EditorBarLookTests: XCTestCase {
             const on = bar();
             const panel = getComputedStyle(document.querySelector('#editor-bar'), '::after');
             return { off, on, roles, cancel: { w: cancel.getBoundingClientRect().width, h: cancel.getBoundingClientRect().height,
-              edge: cs.borderTopColor, edgeWidth: cs.borderTopWidth, radius: cs.borderTopLeftRadius, fill: cs.backgroundColor, turn: glyph.transform },
+              edge: cs.borderTopColor, edgeWidth: cs.borderTopWidth, dpr: window.devicePixelRatio, radius: cs.borderTopLeftRadius, fill: cs.backgroundColor, turn: glyph.transform },
               panel: { fill: panel.backgroundColor, radius: panel.borderTopLeftRadius }, surface: role('surface') };
             """)
         let roles = try XCTUnwrap(r["roles"] as? [String: String])
@@ -58,7 +58,11 @@ final class EditorBarLookTests: XCTestCase {
         let cancel = try XCTUnwrap(r["cancel"] as? [String: Any])
         XCTAssertEqual(cancel["w"] as! Double, 40, accuracy: 0.1); XCTAssertEqual(cancel["h"] as! Double, 40, accuracy: 0.1)
         XCTAssertEqual(cancel["edge"] as? String, roles["outline"])
-        XCTAssertEqual(cancel["edgeWidth"] as? String, "1.5px")
+        // 1.5 as the iPhone draws it; WebKit snaps a border down to whole device pixels, so a 1x
+        // screen (the CI Mac) shows 1 px and a 2x screen 1.5.
+        let dpr = try XCTUnwrap(cancel["dpr"] as? Double)
+        let snapped = (1.5 * dpr).rounded(.down) / dpr
+        XCTAssertEqual(cancel["edgeWidth"] as? String, snapped == 1.5 ? "1.5px" : "\(Int(snapped))px", "at \(dpr)x")
         XCTAssertEqual(cancel["radius"] as? String, "13px", "a third of 40, rounded")
         XCTAssertEqual(cancel["fill"] as? String, "rgba(0, 0, 0, 0)")
         let turn = try XCTUnwrap(cancel["turn"] as? String)
