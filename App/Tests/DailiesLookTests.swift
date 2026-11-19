@@ -132,4 +132,22 @@ final class DailiesLookTests: XCTestCase {
         XCTAssertEqual(r["selectedEdge"] as? String, r["accentText"] as? String)
         XCTAssertEqual(r["selectedFill"] as? String, r["tint"] as? String)
     }
+
+    /// Only the Dailies and Scripts headings, in their heading rows, may wrap. Every other page
+    /// heading (the Script area's title, Settings) stays on one line and ends in an ellipsis when
+    /// too long, as before.
+    func testOtherPageHeadingsStayOnOneLine() throws {
+        let harness = page()
+        let r = try json(harness, """
+            const h = document.querySelector('#script-heading');
+            h.textContent = 'A very long first line that runs far past the width of the Script area so it would wrap';
+            const cs = getComputedStyle(h), lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.05;
+            return { wrap: cs.whiteSpace, overflow: cs.textOverflow, lines: Math.round(h.getBoundingClientRect().height / lh),
+              dailiesWrap: getComputedStyle(document.querySelector('#dailies-heading')).whiteSpace };
+            """)
+        XCTAssertEqual(r["wrap"] as? String, "nowrap")
+        XCTAssertEqual(r["overflow"] as? String, "ellipsis")
+        XCTAssertEqual(r["lines"] as? Int, 1)
+        XCTAssertNotEqual(r["dailiesWrap"] as? String, "nowrap", "the Dailies heading row may wrap")
+    }
 }

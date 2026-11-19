@@ -68,13 +68,13 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 
 /* ---------- Dailies-style timeline (sidebar and Script list) ---------- */
 .sidebar, .scriptlist { container-type: inline-size; --iris-x: max(4px, calc((100cqw - 34px) / 8 - 22px)); }
-.page-heading { margin: 14px 0 0; padding: 0 24px; min-height: 24px; font-size: 34px; line-height: 1.05; text-align: center; flex: none; overflow-wrap: break-word; hyphens: manual; }
+.page-heading { margin: 14px 0 0; padding: 0 24px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-height: 24px; font-size: 34px; line-height: 1.05; text-align: center; flex: none; }
 /* Dailies and Scripts: the heading on the left, in from the cards' edge by its share of their
    width, as on the website; Dailies' date on the right of the same line, dropping under it when
    the two don't fit. A heading wraps between words before anything shrinks (DailiesHeading). */
 .heading-row { flex: none; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; column-gap: 12px; row-gap: 4px;
   margin: 14px 0 0; padding: 0 calc(17px + (100cqw - 34px) * 5.16 / 220.16); }
-.heading-row .page-heading { margin: 0; padding: 0; text-align: left; min-width: 0; }
+.heading-row .page-heading { margin: 0; padding: 0; text-align: left; min-width: 0; white-space: normal; overflow: visible; overflow-wrap: break-word; hyphens: manual; }   /* only these may wrap: a long translated title */
 .heading-date { margin: 0; font-size: 14px; color: var(--muted); white-space: nowrap; }
 .heading-date[hidden] { display: none; }
 .heading-date sup { font-size: .7em; vertical-align: .35em; line-height: 0; }
