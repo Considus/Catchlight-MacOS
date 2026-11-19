@@ -147,7 +147,7 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
    moves the rim's centre down. Measured in the browser, not derived. */
 .iris-wrap { position: absolute; z-index: 2; left: 15.25px; top: -23.45px; width: 44px; height: 44px; }
 .iris-wrap .iris { display: block; width: 44px; height: 44px; transform: perspective(200px) rotateX(24deg); }
-:root[data-mode="light"] .scriptlist .card { cursor: default; }
+.scriptlist .card { cursor: default; }
 .scriptlist .card .pages { margin-top: 4px; font-size: 11px; color: var(--muted); }
 
 /* ---------- dock ---------- */
