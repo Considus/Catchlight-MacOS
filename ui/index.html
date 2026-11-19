@@ -55,11 +55,13 @@
       <div class="take-rows" id="take-rows" data-i18n-attrs="aria-label" aria-label="Take"></div>
       <div class="stamp" id="take-editor-stamp"></div>
     </div>
+    <!-- EditorKeyboardBar: the Dailies toolbar's panel, four columns of an icon over its name.
+         Icons are set by paintBar() in takes.js. -->
     <nav class="dock editor-bar" id="editor-bar" data-i18n-attrs="aria-label" aria-label="Editor">
-      <button class="dock-btn" id="eb-discard" data-i18n-attrs="aria-label title" aria-label="Discard changes" title="Discard changes"><svg viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg></button>
-      <button class="dock-btn" id="eb-remind" data-i18n-attrs="aria-label title" aria-label="Reminder" title="Reminder"><svg viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20.5h4"/></svg></button>
-      <button class="dock-btn" id="eb-third"></button>
-      <button class="dock-btn" id="eb-done" aria-label="Mark done" title="Mark done"><svg viewBox="0 0 24 24"><path d="M5.5 12.5l4.2 4.2 8.8-9.4"/></svg></button>
+      <button class="dock-btn" type="button" id="eb-discard" data-i18n-attrs="aria-label title" aria-label="Discard changes" title="Discard changes"><span class="icon cancel"></span><span class="lbl" data-i18n>Cancel</span></button>
+      <button class="dock-btn" type="button" id="eb-remind" data-i18n-attrs="aria-label" aria-label="Add reminder"><span class="icon"></span><span class="lbl" data-i18n>Remind</span></button>
+      <button class="dock-btn" type="button" id="eb-third"><span class="icon"></span><span class="lbl"></span></button>
+      <button class="dock-btn" type="button" id="eb-done" data-i18n-attrs="aria-label" aria-label="Mark done"><span class="icon"></span><span class="lbl" data-i18n>Mark done</span></button>
     </nav>
     <div class="focus-ring" id="focus-ring" hidden></div>
     <!-- Painted by paintDock() in takes.js: resting, Sequence filters, or search (BottomDockView). -->

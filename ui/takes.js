@@ -131,6 +131,8 @@ function fitDockLabels(root = document) {
 }
 new ResizeObserver(() => fitDockLabels()).observe(document.querySelector('#sidebar'));
 new ResizeObserver(() => fitDockLabels()).observe(document.querySelector('#scriptlist'));
+// The editing card keeps 8 above the editor bar however tall its labels wrap (TakeEditCard).
+new ResizeObserver(([e]) => { if (e.target.offsetHeight) sidebar.style.setProperty('--bar-h', e.target.offsetHeight + 'px'); }).observe(document.querySelector('#editor-bar'));
 
 // ---------- the Dailies heading's date (DailiesHeading.dateParts) ----------
 // Today in the language's own order and words, the day number followed by its ordinal: "Thursday
@@ -417,9 +419,17 @@ document.addEventListener('keydown', e => {
 });
 
 // ---------- the editor bar (EditorKeyboardBar on iOS) ----------
+// Four columns, each an icon over its name. A state that is on (a reminder set, Important, done)
+// takes the accent's text colour; a disabled column is faint (EditorKeyboardBar's tints).
 function paintBar() {
   const task = isTask(draft);
-  $('#eb-third').innerHTML = task ? ICON_CHECKLIST : ICON_IMPORTANT;
+  const icon = (id, svg) => { const el = $(id + ' .icon'); if (el.dataset.glyph !== svg) { el.innerHTML = svg; el.dataset.glyph = svg; } };
+  icon('#eb-discard', GLYPH_PLUS); icon('#eb-remind', GLYPH_CLOCK); icon('#eb-done', GLYPH_TASK);
+  icon('#eb-third', task ? ICON_CHECKLIST : ICON_IMPORTANT);
+  $('#eb-third .lbl').textContent = task ? t('Shot List') : t('Important');
+  $('#eb-remind').classList.toggle('is-on', !!draft.reminder);
+  $('#eb-third').classList.toggle('is-on', !task && !!draft.isImportant);
+  $('#eb-done').classList.toggle('is-on', !!isDone(draft));
   // Important is one label with an on/off state, and says why it's disabled on an Obie.
   const third = $('#eb-third'), locked = !task && !!draft.obie;
   third.setAttribute('aria-label', task ? t('Open Shot List') : t('Important'));
@@ -432,6 +442,9 @@ function paintBar() {
   $('#eb-done').disabled = !canBeMarkedDone(draft);
   const remind = draft.reminder ? t('Edit reminder') : t('Add reminder');   // EditorKeyboardBar's label
   $('#eb-remind').setAttribute('aria-label', remind); $('#eb-remind').title = remind;
+  // The editing card keeps 8 above the bar's panel, whose height follows its labels (TakeEditCard).
+  fitDockLabels($('#editor-bar'));
+  sidebar.style.setProperty('--bar-h', $('#editor-bar').offsetHeight + 'px');
   noteTicks();
 }
 
@@ -801,12 +814,12 @@ const ICON = {
   add: '<svg viewBox="0 0 24 24"><path d="M12 6v12M6 12h12"/></svg>',
   storyboard: '<svg viewBox="0 0 24 24"><path d="M4.5 4.5h6v6h-6zM13.5 4.5h6v6h-6zM4.5 13.5h6v6h-6zM13.5 13.5h6v6h-6z"/></svg>',
   sequence: '<svg viewBox="0 0 24 24"><path d="M5 7h14M5 12h14M5 17h9"/></svg>',
+  // SequenceIcon open: the three lines turned to a cross (its middle line shrinks to the centre).
+  sequenceOpen: '<svg viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M6.5 17.5l11-11"/></svg>',
+  lines: '<svg viewBox="0 0 24 24"><path d="M6 8h12M6 12h12M6 16h8"/></svg>',   // ToolbarGlyph.note
   search: '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M16 16l4 4"/></svg>',
   cancel: '<svg viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg>',
-  note: '<svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="16" rx="2"/><path d="M8.5 9h7M8.5 12.5h7M8.5 16h4"/></svg>',
-  task: '<svg viewBox="0 0 24 24"><rect x="4.5" y="4.5" width="15" height="15" rx="3"/><path d="M8.5 12.2l2.6 2.6 4.6-5.3"/></svg>',
   taskDone: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M8.5 12.2l2.6 2.6 4.6-5.3"/></svg>',
-  bell: ICON_BELL,
   expired: '<svg viewBox="0 0 24 24"><circle cx="11" cy="12" r="7"/><path d="M11 8.5V12l2.4 1.6M20 7v5M20 15.2v.3"/></svg>',
 };
 
@@ -818,16 +831,21 @@ function paintDock() {
   const btn = (act, icon, label, extra = '') => `<button class="dock-btn${extra}" type="button" data-act="${act}" aria-label="${esc(label)}" title="${esc(label)}">${icon}</button>`;
   // A toolbar column: the icon over its name (DailiesToolbar's ToolbarColumn).
   const col = (act, icon, label, name, extra = '') => `<button class="dock-btn${extra}" type="button" data-act="${act}" aria-label="${esc(label)}"><span class="icon">${icon}</span><span class="lbl">${esc(name)}</span></button>`;
-  const tog = (act, icon, label, on, fill) => btn(act, icon, label, ` toggle${on ? ' on' : ''}" aria-pressed="${on}`);
-  if (dock === 'resting') {
-    bar.innerHTML = col('add', ICON.add, t('Add Take'), t('Add'), ' primary') + col('storyboard', ICON.storyboard, t('Storyboard'), t('Storyboard'))
-      + col('sequence', ICON.sequence, t('Sequence'), t('Sequence')) + col('search', ICON.search, t('Search'), t('Search'));
+  // Resting and Sequence share the four columns. Sequence open turns its lines to a cross in the
+  // accent's text colour and shows the four filters in a row just above the panel (DailiesToolbar,
+  // Mark 2026-11-19: "iPhone way"); Sequence again, a click on empty space or Escape closes them.
+  if (dock === 'resting' || dock === 'filtering') {
+    const open = dock === 'filtering';
+    const chip = (act, icon, label, on) => `<button class="dock-btn chip${on ? ' on' : ''}" type="button" data-act="${act}" aria-label="${esc(label)}" title="${esc(label)}" aria-pressed="${on}">${icon}</button>`;
+    const chips = !open ? '' : '<div class="chips">'
+      + chip('important', ICON_IMPORTANT, t('Important filter'), seq.important)
+      + chip('notes', ICON.lines, t('Notes filter'), seq.notes)
+      + chip('tasks', seq.tasksDone ? ICON.taskDone : GLYPH_TASK, seq.tasksDone ? t('Tasks filter, done only') : t('Tasks filter'), seq.tasks)
+      + chip('reminders', seq.remindersExpired ? ICON.expired : GLYPH_CLOCK, seq.remindersExpired ? t('Reminders filter, expired only') : t('Reminders filter'), seq.reminders)
+      + '</div>';
+    bar.innerHTML = chips + col('add', ICON.add, t('Add Take'), t('Add'), ' primary') + col('storyboard', ICON.storyboard, t('Storyboard'), t('Storyboard'))
+      + col('sequence', open ? ICON.sequenceOpen : ICON.sequence, t('Sequence'), t('Sequence'), `${open ? ' is-open' : ''}" aria-expanded="${open}`) + col('search', ICON.search, t('Search'), t('Search'));
     fitDockLabels(bar);
-  } else if (dock === 'filtering') {
-    bar.innerHTML = tog('important', ICON_IMPORTANT, t('Important filter'), seq.important, 'important')
-      + tog('notes', ICON.note, t('Notes filter'), seq.notes, 'note')
-      + tog('tasks', seq.tasksDone ? ICON.taskDone : ICON.task, seq.tasksDone ? t('Tasks filter, done only') : t('Tasks filter'), seq.tasks, 'task')
-      + tog('reminders', seq.remindersExpired ? ICON.expired : ICON.bell, seq.remindersExpired ? t('Reminders filter, expired only') : t('Reminders filter'), seq.reminders, 'remind');
   } else if (!bar.querySelector('#take-search')) {
     // Built once per search, so typing never loses the caret to a repaint.
     bar.innerHTML = btn('cancel-search', ICON.cancel, t('Cancel search'), ' filled')
@@ -907,7 +925,7 @@ takesDock.addEventListener('click', e => {
   const act = b.dataset.act;
   if (act === 'add') newTake();
   else if (act === 'storyboard') { storyboard = true; renderTakes(); }
-  else if (act === 'sequence') { dock = 'filtering'; renderTakes(); }
+  else if (act === 'sequence') { if (dock === 'filtering') exitToResting(); else { dock = 'filtering'; renderTakes(); } }
   else if (act === 'search') { dock = 'searching'; searchText = ''; renderTakes(); $('#take-search').focus(); }
   else if (act === 'cancel-search') exitToResting();
   else if (act === 'focus-search') $('#take-search').focus();
