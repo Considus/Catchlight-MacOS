@@ -1,5 +1,6 @@
 import AppKit
 import WebKit
+import CatchlightAppleStorage
 import CatchlightCore
 import UserNotifications
 import os
@@ -24,18 +25,30 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
     private let defaults: UserDefaults
     private let uiRoot: URL?
     private(set) lazy var takeOpener = TakeOpener { [weak self] id, reply in self?.callPage("catchlightOpenTake", id, completion: reply) }
+    /// The away timer behind Settings ▸ Lock after. Nil in tests that don't lock, and then
+    /// nothing locks on its own.
+    private let lock: AppLock?
+    /// Who is waiting on the unlock that is running; empty when none is.
+    private var unlockReplies: [(String?) -> Void] = []
+    /// A Take clicked while locked, opened after the next unlock (the iPhone's pending reveal).
+    private var takeHeldWhileLocked: UUID?
+    /// Posted to every app as the Mac's screen locks.
+    static let screenLockedNotification = Notification.Name("com.apple.screenIsLocked")
 
     /// `vault` is nil only in tests that load the page without a library; the page then keeps
     /// the browser prototype's localStorage behaviour.
     /// `notifications`, `mirror`, `defaults` and `uiRoot` are the app's own except in tests, which
     /// have no notification centre to ask, and serve the repo's `ui/` rather than a bundle's.
+    /// `lock` is the app's away timer; tests pass one with their own clock.
     init(vault: Vault?,
          notifications: NotificationCentre = UNUserNotificationCenter.current(),
          mirror: LibraryMirror? = nil,
          defaults: UserDefaults = .standard,
-         uiRoot: URL? = nil) {
+         uiRoot: URL? = nil,
+         lock: AppLock? = nil) {
         self.defaults = defaults
         self.uiRoot = uiRoot
+        self.lock = lock
         bridge.defaults = defaults
         bridge.vault = vault
         var syncDefaults = UserDefaults.standard
@@ -82,7 +95,9 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
         bridge.window = window
         bridge.writingToolsChanged = { [weak self] in self?.rebuildWebView() }
         bridge.libraryChanged = { [weak self] in self?.mirrorLibrary(inBackground: true) }
+        bridge.unlock = { [weak self] reply in self?.unlock(reply) }
         wireMenu()
+        observeLockTriggers()
         #if DEBUG
         DebugLaunch.attach(to: self)
         #endif
@@ -156,6 +171,10 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
 
+    deinit {
+        DistributedNotificationCenter.default().removeObserver(self)
+    }
+
     override func showWindow(_ sender: Any?) {
         super.showWindow(sender)
         if UserDefaults.standard.bool(forKey: Self.fullScreenKey), let window, !window.styleMask.contains(.fullScreen) {
@@ -169,7 +188,115 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
         showWindow(nil)
         window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+        if case .locked = bridge.vault?.state {
+            takeHeldWhileLocked = id
+            return
+        }
         takeOpener.open(id)
+    }
+
+    // MARK: Lock
+
+    // As the iPhone's RootView: going away starts the timer; coming back relocks after Settings ▸
+    // Lock after and then asks for the user at once if the library is locked; the screen locking
+    // relocks straight away (AppModel's device-lock relock).
+    private func observeLockTriggers() {
+        guard lock != nil else { return }
+        let centre = NotificationCenter.default
+        centre.addObserver(self, selector: #selector(appWentAway(_:)), name: NSApplication.didResignActiveNotification, object: nil)
+        centre.addObserver(self, selector: #selector(appCameBack(_:)), name: NSApplication.didBecomeActiveNotification, object: nil)
+        DistributedNotificationCenter.default().addObserver(self, selector: #selector(screenDidLock(_:)), name: Self.screenLockedNotification, object: nil)
+    }
+
+    @objc private func appWentAway(_ notification: Notification) {
+        lock?.noteWentAway()
+    }
+
+    @objc private func appCameBack(_ notification: Notification) {
+        guard let lock else { return }
+        if lock.shouldLockOnReturn() {
+            relock { [weak self] in self?.unlockOnReturn() }
+        } else {
+            unlockOnReturn()
+        }
+    }
+
+    @objc func screenDidLock(_ notification: Notification) {
+        relock()
+    }
+
+    /// The iPhone asks on return whenever the library is locked, unless a failure is showing
+    /// (then Try Again asks) or an unlock is already running. A failure reloads the page so it
+    /// opens on Try Again; a success has reloaded it already.
+    private func unlockOnReturn() {
+        guard case .locked = bridge.vault?.state, bridge.lockFailure == nil, unlockReplies.isEmpty else { return }
+        unlock { [weak self] failure in
+            if failure != nil { self?.reloadPage() }
+        }
+    }
+
+    /// Closes the library, as the iPhone's `relock`: the page saves what is open first, while the
+    /// library still is, then the library closes and the page loads again as the lock screen.
+    /// Does nothing unless the library is open.
+    func relock(completion: (() -> Void)? = nil) {
+        guard bridge.vault?.library != nil else { completion?(); return }
+        flushPage { [weak self] in
+            guard let self, let vault = self.bridge.vault else { completion?(); return }
+            self.bridge.sync?.cancel()
+            vault.lock()
+            self.bridge.lockFailure = nil
+            self.reloadPage()
+            completion?()
+        }
+    }
+
+    /// The lock screen's Unlock and Try Again, and the ask on return: opens the library with
+    /// `Vault.start()` and answers nil, else `"cancelled"` (the prompt was cancelled or refused)
+    /// or `"unopenable"`. The prompt blocks, so it runs off the main thread, as the iPhone's runs
+    /// off the main actor. A second ask while one runs waits for the same answer.
+    func unlock(_ reply: @escaping (String?) -> Void) {
+        guard let vault = bridge.vault, case .locked = vault.state else { return reply(nil) }
+        unlockReplies.append(reply)
+        guard unlockReplies.count == 1 else { return }
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            let outcome = Result { try vault.start() }
+            DispatchQueue.main.async { self?.finishUnlock(outcome) }
+        }
+    }
+
+    private func finishUnlock(_ outcome: Result<Vault.State, Error>) {
+        let failure: String?
+        switch outcome {
+        case .success(.open):
+            failure = nil
+        case .success:
+            Self.log.error("start failed: no account")
+            failure = "unopenable"
+        case .failure(let error):
+            Self.log.error("start failed: \(String(describing: error), privacy: .public)")
+            failure = error is KeychainError ? "cancelled" : "unopenable"
+        }
+        bridge.lockFailure = failure
+        if failure == nil {
+            bridge.justUnlocked = true
+            reloadPage()
+            mirrorLibrary(inBackground: true)
+            if let id = takeHeldWhileLocked {
+                takeHeldWhileLocked = nil
+                takeOpener.open(id)
+            }
+        }
+        let replies = unlockReplies
+        unlockReplies = []
+        replies.forEach { $0(failure) }
+    }
+
+    /// Loads the page again on the library as it is now (locked or open): the scripts are
+    /// rebuilt first, and a Take waiting to open waits for the new page.
+    private func reloadPage() {
+        takeOpener.pageDidUnload()
+        bridge.refreshUserScripts(in: webView.configuration.userContentController)
+        webView.reload()
     }
 
     // MARK: Menu
