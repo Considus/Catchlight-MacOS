@@ -3,8 +3,9 @@ import XCTest
 
 /// Settings rows with a second line, as the iPhone builds them (SettingsView): a picker with a
 /// description is one row, the setting's line laid out like any row with the description 6 below
-/// it across the full width; a switch with a sub-line stacks it 2 under the title. Either way the
-/// space under the last line matches the space above an ordinary row's title.
+/// it across the full width; a switch with a sub-line stacks it 2 under the title. As on the
+/// iPhone's list (measured on iOS 27), the description row has 15 above its line and 15 under the
+/// description, and the switch row's text is centred in its 82 row (Mark, 2026-11-20).
 final class SettingsSublineTests: XCTestCase {
     private func page() -> WebViewHarness {
         let harness = WebViewHarness(root: WebViewHarness.repoUI, ruleList: nil)
@@ -34,18 +35,20 @@ final class SettingsSublineTests: XCTestCase {
             const row = rowOf('[data-set="spotlight"]'), b = row.getBoundingClientRect(), cs = getComputedStyle(row);
             const note = row.querySelector('small'), n = note.getBoundingClientRect(), ns = getComputedStyle(note), noteLines = lines(note);
             const t = title(row), icon = row.querySelector('.srow-icon').getBoundingClientRect(), value = row.querySelector('.srow-value').getBoundingClientRect();
-            return { titleTop, rowTitleTop: t[0].top - b.top, titleLines: t.length,
-              gap: noteLines[0].top - (b.top + 44), noteLeft: n.left - icon.left, noteWidth: n.width, content: b.width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight),
+            const line = row.querySelector('.srow-line').getBoundingClientRect();
+            return { titleTop, rowTitleTop: t[0].top - b.top, titleLines: t.length, lineTop: line.top - b.top,
+              gap: noteLines[0].top - line.bottom, noteLeft: n.left - icon.left, noteWidth: n.width, content: b.width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight),
               valueMid: (value.top + value.bottom) / 2 - (t[0].top + t[0].bottom) / 2,
               below: b.bottom - noteLines[noteLines.length - 1].bottom,
               size: ns.fontSize, weight: ns.fontWeight, colour: ns.color, muted };
             """)
         XCTAssertEqual(r["rowTitleTop"] as! Double, r["titleTop"] as! Double, accuracy: 0.6, "the setting's line sits as in an ordinary row: \(r)")
+        XCTAssertEqual(r["lineTop"] as! Double, 15, accuracy: 0.6, "15 above the setting's line, as on the iPhone: \(r)")
         XCTAssertEqual(r["gap"] as! Double, 6, accuracy: 0.6, "6 under the setting's line: \(r)")
         XCTAssertEqual(r["noteLeft"] as! Double, 0, accuracy: 0.6, "the description starts under the icon: \(r)")
         XCTAssertEqual(r["noteWidth"] as! Double, r["content"] as! Double, accuracy: 0.6, "full width: \(r)")
         XCTAssertEqual(r["valueMid"] as! Double, 0, accuracy: 1, "the value stays on the setting's line: \(r)")
-        XCTAssertEqual(r["below"] as! Double, r["titleTop"] as! Double, accuracy: 0.6, "balanced top and bottom: \(r)")
+        XCTAssertEqual(r["below"] as! Double, 15, accuracy: 0.6, "15 under the description, as on the iPhone: \(r)")
         XCTAssertEqual(r["size"] as? String, "13px")
         XCTAssertEqual(r["weight"] as? String, "400")
         XCTAssertEqual(r["colour"] as? String, r["muted"] as? String)
@@ -56,10 +59,10 @@ final class SettingsSublineTests: XCTestCase {
         let r = try json(harness, probe + """
             const row = rowOf('[data-set="followUp"]'), b = row.getBoundingClientRect();
             const t = title(row), sub = lines(row.querySelector('small'));
-            return { titleTop, rowTitleTop: t[0].top - b.top, gap: sub[0].top - t[t.length - 1].bottom, below: b.bottom - sub[sub.length - 1].bottom };
+            return { height: b.height, rowTitleTop: t[0].top - b.top, gap: sub[0].top - t[t.length - 1].bottom, below: b.bottom - sub[sub.length - 1].bottom };
             """)
         XCTAssertEqual(r["gap"] as! Double, 2, accuracy: 0.6, "\(r)")
-        XCTAssertEqual(r["rowTitleTop"] as! Double, r["titleTop"] as! Double, accuracy: 0.6, "as much room above as an ordinary row: \(r)")
-        XCTAssertEqual(r["below"] as! Double, r["titleTop"] as! Double, accuracy: 0.6, "and the same below: \(r)")
+        XCTAssertEqual(r["height"] as! Double, 82, accuracy: 0.6, "the iPhone's 82 switch row: \(r)")
+        XCTAssertEqual(r["rowTitleTop"] as! Double, r["below"] as! Double, accuracy: 1, "the text is centred in it: \(r)")
     }
 }

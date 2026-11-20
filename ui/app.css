@@ -437,13 +437,20 @@ body.locked .app { visibility: hidden; }
 .sgroup { background: var(--card); border-radius: 14px; overflow: hidden; }
 .sgroup-foot { margin: 8px 4px 0; font-size: 13px; color: var(--muted); line-height: 1.4; }
 .srow { position: relative; display: flex; align-items: center; gap: 14px; width: 100%; min-height: 44px; padding: 0 16px; text-align: left; color: var(--text); font: 400 17px var(--sys); }
-.srow + .srow, .srow + label.srow, label.srow + .srow { box-shadow: inset 56px 0.5px 0 0 var(--card), inset 0 0.5px 0 0 var(--line); }
+/* The hairline between rows, from the title's left edge (16 + icon 22 + 14) to the right edge, as the
+   iPhone's list draws it. Not two stacked inset shadows: the card-coloured cut-out painted over the line. */
+.srow + .srow::before { content: ""; position: absolute; top: 0; left: 52px; right: 0; height: .5px; background: var(--line); pointer-events: none; }
 .srow.tall { min-height: 52px; }
 /* A second line (SettingsView): an ordinary row's room above the first line, the same under the last. */
 .srow.sub { padding-top: 12px; padding-bottom: 12px; }
 .srow.sub .srow-label { gap: 2px; }   /* the switch's sub-line, 2 under its title */
 .srow.noted { flex-direction: column; align-items: stretch; gap: 6px; padding-bottom: 12px; }   /* a picker's description, 6 under its line */
 .srow-line { display: flex; align-items: center; gap: 14px; min-height: 44px; }
+/* Settings rows are the iPhone's height (Mark 2026-11-20): its list puts 15 above and below each row's
+   content, so a 44 line makes a 74 row and a switch with a sub-line (52) an 82 row. The Reminder sheet
+   and the notice list keep their own. */
+#settings .srow:not(.tall) { min-height: 74px; padding-top: 15px; padding-bottom: 15px; }
+#settings .srow.sub { min-height: 82px; }
 .srow-note { font-size: 13px; color: var(--muted); }
 .srow-icon { flex: none; width: 22px; height: 22px; color: var(--accent-text); stroke-width: 1.5; }
 .srow-label { flex: 1; min-width: 0; display: flex; flex-direction: column; }
