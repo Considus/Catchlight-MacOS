@@ -31,8 +31,10 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
     private let lock: AppLock?
     /// Who is waiting on the unlock that is running; empty when none is.
     private var unlockReplies: [(String?) -> Void] = []
-    /// A Take clicked while locked, opened after the next unlock (the iPhone's pending reveal).
+    /// A Take clicked while locked or relocking, opened after the next unlock (the iPhone's pending reveal).
     private var takeHeldWhileLocked: UUID?
+    /// From the start of a relock until the library has closed: a click then is held too.
+    private var relocking = false
     /// Posted to every app as the Mac's screen locks.
     static let screenLockedNotification = Notification.Name("com.apple.screenIsLocked")
 
@@ -193,6 +195,10 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
             takeHeldWhileLocked = id
             return
         }
+        if relocking {
+            takeHeldWhileLocked = id
+            return
+        }
         takeOpener.open(id)
     }
 
@@ -242,21 +248,38 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
 
     /// Closes the library, as the iPhone's `relock`: the page saves what is open first, while the
     /// library still is, then the library closes and the page loads again as the lock screen.
-    /// Does nothing unless the library is open.
+    /// A sync pass started after the save (the old page can still start one) is stopped and waited
+    /// for, so none runs on with the closed library's keys. A Take clicked on the way, or waiting
+    /// for the page to load, is held for the next unlock. Does nothing unless the library is open.
     func relock(completion: (() -> Void)? = nil) {
         guard bridge.vault?.library != nil else { completion?(); return }
+        relocking = true
         flushPage { [weak self] in
             guard let self, let vault = self.bridge.vault else { completion?(); return }
-            self.bridge.sync?.cancel()
-            vault.lock()
-            self.bridge.lockFailure = nil
-            self.reloadPage()
-            completion?()
+            let close = { [weak self] in
+                guard let self else { completion?(); return }
+                vault.lock()
+                self.relocking = false
+                self.bridge.lockFailure = nil
+                // A click held during the relock is newer than one still waiting for the page.
+                let waiting = self.takeOpener.withdrawWaiting()
+                if self.takeHeldWhileLocked == nil { self.takeHeldWhileLocked = waiting }
+                self.reloadPage()
+                completion?()
+            }
+            if let sync = self.bridge.sync {
+                sync.cancel()
+                sync.whenIdle(close)
+            } else {
+                close()
+            }
         }
     }
 
     /// The lock screen's Unlock and Try Again, and the ask on return: opens the library and
-    /// answers nil, else `"cancelled"` (the prompt was cancelled or refused) or `"unopenable"`.
+    /// answers nil, else `"cancelled"` for any key error (a cancelled or refused prompt, or a key
+    /// gone: the iPhone says "Couldn't unlock" for all of them, and the vault stays locked rather
+    /// than offer first run) or `"unopenable"` when the key reads but the library won't open.
     /// Only the prompt (`Vault.readKey`, which blocks) runs off the main thread, as the iPhone's
     /// runs off the main actor; the library opens on main, where the vault is only ever changed.
     /// A second ask while one runs waits for the same answer.
@@ -275,10 +298,6 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
         do {
             try vault.open(with: key.get())
             failure = nil
-        } catch KeychainError.notFound {
-            // The key went while locked; the vault stays locked rather than offer first run.
-            Self.log.error("start failed: no account")
-            failure = "unopenable"
         } catch {
             Self.log.error("start failed: \(String(describing: error), privacy: .public)")
             failure = error is KeychainError ? "cancelled" : "unopenable"

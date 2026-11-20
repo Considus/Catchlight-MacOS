@@ -3,6 +3,7 @@ import CatchlightAppleStorage
 import CryptoKit
 import Security
 import WebKit
+import UserNotifications
 import XCTest
 
 /// The lock in the running window, as the iPhone's RootView and AppModel drive it: relock saves the
@@ -18,19 +19,29 @@ final class LockWiringTests: XCTestCase {
         private let memory = MemorySecrets()
         private let guarded = NSLock()
         private var refusing = false, count = 0
+        private var refusalError: Error = KeychainError.retrieveFailed(errSecUserCanceled)
+        private var held: DispatchSemaphore?
         var refuse: Bool {
             get { guarded.withLock { refusing } }
             set { guarded.withLock { refusing = newValue } }
         }
+        /// What a refusal throws: a cancelled prompt unless the test says otherwise.
+        var refusal: Error {
+            get { guarded.withLock { refusalError } }
+            set { guarded.withLock { refusalError = newValue } }
+        }
         var asked: Int { guarded.withLock { count } }
-        var gate: DispatchSemaphore?
+        var gate: DispatchSemaphore? {
+            get { guarded.withLock { held } }
+            set { guarded.withLock { held = newValue } }
+        }
         var hasAccount: Bool { memory.hasAccount }
         func storePhrase(_ words: [String]) throws { try memory.storePhrase(words) }
         func storeMasterKey(_ raw: Data) throws { try memory.storeMasterKey(raw) }
         func masterKey(reason: String) throws -> SymmetricKey {
             guarded.withLock { count += 1 }
             gate?.wait()
-            if refuse { throw KeychainError.retrieveFailed(errSecUserCanceled) }
+            if refuse { throw refusal }
             return try memory.masterKey(reason: reason)
         }
         func phrase(reason: String) -> [String]? { memory.phrase(reason: reason) }
@@ -66,8 +77,28 @@ final class LockWiringTests: XCTestCase {
         try? FileManager.default.removeItem(at: dir.deletingLastPathComponent())
     }
 
+    /// A notification centre that runs `onAsk` once, the first time the reminders are reconciled
+    /// after it is set: the moment a relock's flush has saved and is mirroring, before it locks.
+    private final class HookedCentre: NotificationCentre {
+        var onAsk: (() -> Void)?
+        func add(_ request: UNNotificationRequest) {}
+        func removePending(_ ids: [String]) {}
+        func removeDelivered(_ ids: [String]) {}
+        func removeAll() {}
+        func pendingIdentifiers(_ done: @escaping ([String]) -> Void) {
+            let ask = onAsk
+            onAsk = nil
+            ask?()
+            done([])
+        }
+        func deliveredIdentifiers(_ done: @escaping ([String]) -> Void) { done([]) }
+        func authorizationStatus(_ done: @escaping (UNAuthorizationStatus) -> Void) { done(.authorized) }
+        func requestAuthorization(_ done: @escaping (Bool) -> Void) { done(true) }
+    }
+    private var centre = HookedCentre()
+
     private func controller() -> MainWindowController {
-        let mirror = LibraryMirror(reminders: MacReminders(centre: FakeCentre()), spotlight: RecordingSpotlightIndexer(), defaults: defaults)
+        let mirror = LibraryMirror(reminders: MacReminders(centre: centre), spotlight: RecordingSpotlightIndexer(), defaults: defaults)
         let lock = AppLock(defaults: defaults, now: { [unowned self] in self.now })
         let made = MainWindowController(vault: vault, notifications: FakeCentre(), mirror: mirror, defaults: defaults,
                                         uiRoot: WebViewHarness.repoUI, lock: lock)
@@ -338,5 +369,125 @@ final class LockWiringTests: XCTestCase {
             """, "the lock screen does not show Authenticating while the shell asks")
         gate.signal()
         pageBecomes(live, "catchlightLibrary.unlocked === true && !document.querySelector('#lock')", "the unlock did not finish")
+    }
+
+    // MARK: Unlock answers
+
+    /// Any key error is a cancel, as on the iPhone ("Couldn't unlock..."): a missing key too, which
+    /// must not tell the user to restart, where a launch with no key would offer first run.
+    func testAMissingKeyAnswersCancelledAndStaysLocked() throws {
+        let live = controller()
+        secrets.refuse = true
+        relock(live)
+        secrets.refusal = KeychainError.notFound
+
+        var answer: String?? = .none
+        live.unlock { answer = .some($0) }
+        spin(until: { answer != nil }, "the unlock did not answer")
+        XCTAssertEqual(answer, .some("cancelled"))
+        XCTAssertTrue(isLocked, "a missing key left the vault \(vault.state)")
+    }
+
+    /// A key that reads but a library that doesn't open: the restart message.
+    func testALibraryThatWontOpenAnswersUnopenable() throws {
+        let live = controller()
+        secrets.refuse = true
+        relock(live)
+        secrets.refuse = false
+        // A file where the library folder should be: opening it can't make the folder.
+        try FileManager.default.moveItem(at: dir, to: dir.deletingLastPathComponent().appendingPathComponent("aside"))
+        try Data().write(to: dir)
+
+        var answer: String?? = .none
+        live.unlock { answer = .some($0) }
+        spin(until: { answer != nil }, "the unlock did not answer")
+        XCTAssertEqual(answer, .some("unopenable"))
+        XCTAssertTrue(isLocked, "a library that won't open left the vault \(vault.state)")
+    }
+
+    /// A second ask while the prompt is up waits for the same answer: one prompt, two replies.
+    func testASecondUnlockWhileOneRunsSharesItsAnswer() throws {
+        let live = controller()
+        secrets.refuse = true
+        relock(live)
+        secrets.refuse = false
+        let gate = DispatchSemaphore(value: 0)
+        secrets.gate = gate
+        let askedBefore = secrets.asked
+
+        var answers: [String?] = []
+        live.unlock { answers.append($0) }
+        spin(until: { self.secrets.asked == askedBefore + 1 }, "the prompt did not come up")
+        live.unlock { answers.append($0) }
+        gate.signal()
+        spin(until: { answers.count == 2 }, "both asks were not answered")
+
+        XCTAssertEqual(answers, [nil, nil])
+        XCTAssertEqual(secrets.asked, askedBefore + 1, "the second ask prompted again")
+        XCTAssertNotNil(vault.library)
+    }
+
+    // MARK: Takes on their way during a relock
+
+    /// A click whose Take was waiting for the page to load is held over the lock, not spent on the
+    /// lock screen, where the Take isn't.
+    func testATakeWaitingForThePageOpensAfterTheUnlock() throws {
+        let live = controller()
+        secrets.refuse = true
+        live.takeOpener.pageDidUnload()   // as while the page reloads
+        live.openTake(takeID)
+        relock(live)
+
+        secrets.refuse = false
+        _ = runInPage(live, "document.querySelector('#lock .lock-button').click(); return true;")
+        pageBecomes(live, "document.activeElement?.closest?.('[data-take]')?.dataset.take?.toLowerCase() === '\(takeID.uuidString.lowercased())'",
+                    "the Take waiting for the page did not open after the unlock")
+    }
+
+    /// A click while the relock saves the page is held too: the page it would open in is going.
+    func testATakeOpenedDuringTheRelockOpensAfterTheUnlock() throws {
+        let live = controller()
+        secrets.refuse = true
+        var done = false
+        live.relock { done = true }
+        live.openTake(takeID)
+        spin(until: { done }, "relock did not finish")
+        pageBecomes(live, "document.querySelector('#lock')", "the page does not show the lock screen")
+
+        secrets.refuse = false
+        _ = runInPage(live, "document.querySelector('#lock .lock-button').click(); return true;")
+        pageBecomes(live, "document.activeElement?.closest?.('[data-take]')?.dataset.take?.toLowerCase() === '\(takeID.uuidString.lowercased())'",
+                    "the Take opened during the relock did not open after the unlock")
+    }
+
+    // MARK: Sync during a relock
+
+    /// A pass the old page starts after the flush has saved still runs with the open library's
+    /// keys: the library closes only once it has ended.
+    func testARelockWaitsForASyncPassStartedDuringItsFlush() throws {
+        let live = controller()
+        secrets.refuse = true
+        let folder = SyncFolder(defaults: defaults)
+        let cloud = dir.deletingLastPathComponent().appendingPathComponent("Cloud", isDirectory: true)
+        try FileManager.default.createDirectory(at: cloud, withIntermediateDirectories: true)
+        folder.pick = { _, done in done(cloud) }
+        folder.choose(in: nil) { _ in }
+        let sync = SyncService(vault: vault, folder: folder, defaults: defaults)
+        live.bridge.sync = sync
+
+        var ran = false, openAtEnd: Bool?
+        centre.onAsk = {
+            sync.run { outcome in
+                // The relock cancels it at its next Take, so it may end cancelled: it still ran.
+                if case .skipped = outcome {} else { ran = true }
+                openAtEnd = self.vault.library != nil
+            }
+        }
+        relock(live)
+
+        spin(until: { openAtEnd != nil }, "the sync pass did not end")
+        XCTAssertTrue(ran, "the pass did not run, so the test proves nothing")
+        XCTAssertEqual(openAtEnd, true, "the library closed under a running sync pass")
+        XCTAssertTrue(isLocked)
     }
 }

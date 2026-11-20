@@ -47,4 +47,11 @@ final class TakeOpener {
 
     /// The page's process ended: until it loads again there is nothing to call.
     func pageDidUnload() { pageLoaded = false }
+
+    /// Hands back the click waiting for the page to load, if any, and forgets it: the lock is about
+    /// to replace the page with one that has no Takes.
+    func withdrawWaiting() -> UUID? {
+        defer { waiting = nil }
+        return waiting
+    }
 }
