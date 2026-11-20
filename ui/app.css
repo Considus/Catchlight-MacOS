@@ -10,14 +10,17 @@
 :root {
   --sys: -apple-system, system-ui, sans-serif;
   --heading: "Archivo", var(--sys);
-  --ruby: #DB5252; --overdue-text: #E17070;   /* CatchlightTheme ckRuby, ckTextOverdue */
+  /* CatchlightTheme ckRuby, ckTextOverdue. Words on a solid ruby fill take --on-ruby: in Dark the
+     Scene's on-accent, as white on the Dark ruby is below 4.5:1 (the iPhone's SwipeActionRow), in
+     Light white (owner 2026-11-20: ruby nudged so every strip word reaches 4.5:1). */
+  --ruby: #E06767; --overdue-text: #E17070; --on-ruby: var(--on-accent);
   --veil: color-mix(in srgb, var(--ground) 90%, transparent);   /* ckDim: the one obscuring overlay */
   --code-bg: color-mix(in srgb, var(--text) 6%, transparent);
   /* A tick cut out of a filled box, so the card shows through (checkmark.square.fill). */
   --tick: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.4l2.6 2.6L12 5.4' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   color-scheme: dark;
 }
-:root[data-mode="light"] { --ruby: #B82E2E; --overdue-text: #B82E2E; color-scheme: light; }
+:root[data-mode="light"] { --ruby: #A72A2A; --overdue-text: #A72A2A; --on-ruby: #fff; color-scheme: light; }
 
 /* Every heading: Archivo 34 for a page or a sheet, 22 for a lead line (app-headings-and-sheet-type.md). */
 .page-heading, .blk.h1, .blk.h2, .empty .empty-title, .fr-body h2, .fr-tagline, .ssub-heading, .sl-head h2, .reset-done h1 {
@@ -281,7 +284,7 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 .ctx button { display: block; width: 100%; min-height: 44px; text-align: left; padding: 5px 14px; border-radius: 9px; font-size: 13px; }
 .ctx button:hover { background: var(--accent); color: var(--on-accent); }
 .ctx button.danger { color: var(--ruby); }
-.ctx button.danger:hover { background: var(--ruby); color: #fff; }
+.ctx button.danger:hover { background: var(--ruby); color: var(--on-ruby); }
 /* The alert a repeating reminder's Delete raises (NSAlert on the Mac). */
 .alert { width: min(320px, calc(100vw - 32px)); padding: 20px 18px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); color: var(--text); text-align: center; }
 .alert::backdrop { background: var(--veil); }
@@ -289,7 +292,7 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 .alert p { margin: 0 0 16px; font-size: 13px; line-height: 1.4; }
 .alert-actions { display: grid; gap: 6px; }
 .alert-actions button { min-height: 44px; border-radius: 14px; background: var(--accent); color: var(--on-accent); font: 500 14px var(--sys); }
-.alert-actions .danger { background: var(--ruby); color: #fff; }
+.alert-actions .danger { background: var(--ruby); color: var(--on-ruby); }
 .alert-actions .cancel { background: transparent; color: var(--text); border: 1px solid var(--line); }
 
 /* ---------- the Dailies dock: Sequence, Search and the Storyboard (BottomDockView) ---------- */
@@ -507,7 +510,7 @@ body.locked .app { visibility: hidden; }
 @media (prefers-reduced-motion: reduce) { .card.swipe-settle, .card.swipe-off { transition: none; } }
 .swipe-fill { position: absolute; z-index: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; border-radius: 14px; font: 500 11px var(--sys); }
 .swipe-fill.leading { background: var(--accent); color: var(--on-accent); }
-.swipe-fill.trailing { background: var(--ruby); color: #fff; }
+.swipe-fill.trailing { background: var(--ruby); color: var(--on-ruby); }
 :root:not([data-mode="light"]) .swipe-fill.trailing { color: var(--on-accent); }
 .swipe-fill svg { width: 17px; height: 17px; stroke-width: 2.2; }
 #takes .card, #pinned .card { z-index: 1; }
@@ -673,7 +676,7 @@ body.with-menu-bar .app { height: calc(100vh - 26px); }
 .strip-add .strip-icon { color: var(--lit); }
 .strip-ruby .strip-icon { color: var(--ruby); }
 .strip-text { flex: 1; min-width: 0; font: inherit; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
-.strip-act { flex: none; min-width: 44px; min-height: 44px; padding: 0 4px; font: 500 14px var(--sys); color: var(--lit); }
+.strip-act { flex: none; min-width: 44px; min-height: 44px; padding: 0 4px; font: 500 14px var(--sys); color: var(--accent-text); }
 .strip-ruby .strip-act { color: var(--ruby); }
 /* No Privacy phrase: 8 above and below, ruby at 16% in the dark, and its action in the accent
    (DailiesView's missingPhraseBanner). Its sentence is never cut, the way the iPhone lifts its
@@ -682,7 +685,7 @@ body.with-menu-bar .app { height: calc(100vh - 26px); }
 .strip-phrase { padding-top: 8px; padding-bottom: 8px; }
 .strip-phrase .strip-text { display: block; -webkit-line-clamp: none; overflow: visible; }
 :root:not([data-mode="light"]) .strip-phrase { background: color-mix(in srgb, var(--ruby) 16%, transparent); }
-.strip-ruby.strip-phrase .strip-act { color: var(--lit); }
+.strip-ruby.strip-phrase .strip-act { color: var(--accent-text); }
 /* The ×: a 44 hit area hanging into the band's trailing padding, so the glyph sits where the
    padding would end (DailiesView: .padding(.trailing, -14)). */
 .strip-x { flex: none; display: grid; place-items: center; width: 44px; height: 44px; margin-right: -14px; color: var(--muted); }
