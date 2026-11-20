@@ -309,6 +309,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
             self.settlePage(fade: fade) { ended in
                 faded = ended && fade
                 if let sync = self.bridge.sync {
+                    // Again: a pass the old page started during the fade resets the stop at its start.
+                    sync.cancel()
                     sync.whenIdle(close)
                 } else {
                     close()
