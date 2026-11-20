@@ -13,6 +13,9 @@ final class TakeOpener {
     private let schedule: (TimeInterval, @escaping () -> Void) -> Void
     private var pageLoaded = false
     private var waiting: UUID?
+    /// The latest click until the page has answered it with anything but "busy": through its
+    /// retries too, so a relock can withdraw it.
+    private var pending: UUID?
     private var generation = 0   // each click gets one; a retry of an older click does nothing
 
     /// `callPage` runs `catchlightOpenTake` in the page with the id it is given and passes on its answer.
@@ -26,13 +29,15 @@ final class TakeOpener {
 
     func open(_ id: UUID) {
         generation += 1
+        pending = id
         attempt(id, generation: generation, retriesLeft: Self.retryLimit)
     }
 
     private func attempt(_ id: UUID, generation: Int, retriesLeft: Int) {
         guard pageLoaded else { waiting = id; return }
         callPage(id.uuidString.lowercased()) { [weak self] answer in
-            guard let self, answer as? String == "busy", retriesLeft > 0 else { return }
+            guard let self, self.generation == generation else { return }
+            guard answer as? String == "busy", retriesLeft > 0 else { self.pending = nil; return }
             self.schedule(Self.retryDelay) { [weak self] in
                 guard let self, self.generation == generation else { return }
                 self.attempt(id, generation: generation, retriesLeft: retriesLeft - 1)
@@ -48,10 +53,14 @@ final class TakeOpener {
     /// The page's process ended: until it loads again there is nothing to call.
     func pageDidUnload() { pageLoaded = false }
 
-    /// Hands back the click waiting for the page to load, if any, and forgets it: the lock is about
-    /// to replace the page with one that has no Takes.
+    /// Hands back the click still on its way, if any (waiting for the page to load, or for a busy
+    /// page's retry), and forgets it: the lock is about to replace the page with one that has no Takes.
     func withdrawWaiting() -> UUID? {
-        defer { waiting = nil }
-        return waiting
+        defer {
+            waiting = nil
+            pending = nil
+            generation += 1   // a retry already scheduled does nothing
+        }
+        return waiting ?? pending
     }
 }

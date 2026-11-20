@@ -31,6 +31,9 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
     private let lock: AppLock?
     /// Who is waiting on the unlock that is running; empty when none is.
     private var unlockReplies: [(String?) -> Void] = []
+    /// Moved on by every relock (the screen lock's too): an unlock whose prompt was up across one
+    /// answers for a lock that has been overtaken, so its key is not used.
+    private var unlockGeneration = 0
     /// A Take clicked while locked or relocking, opened after the next unlock (the iPhone's pending reveal).
     private var takeHeldWhileLocked: UUID?
     /// From the start of a relock until the library has closed: a click then is held too.
@@ -271,6 +274,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
     /// for, so none runs on with the closed library's keys. A Take clicked on the way, or waiting
     /// for the page to load, is held for the next unlock. Does nothing unless the library is open.
     func relock(fade: Bool = true, completion: (() -> Void)? = nil) {
+        unlockGeneration += 1   // an unlock still asking, even of a library already locked, is overtaken
         // A second relock while one runs is that one: it only waits for its end.
         if relocking {
             if let completion { relockWaiters.append(completion) }
@@ -292,6 +296,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
                 guard let self else { finished(); return }
                 self.beforeRelockClose?()
                 vault.lock()
+                self.libraryMirror?.forgetTakes()
                 self.bridge.justLocked = faded
                 self.bridge.sync?.forgetLibrary()
                 self.relocking = false
@@ -352,13 +357,26 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
         guard let vault = bridge.vault, case .locked = vault.state else { return reply(nil) }
         unlockReplies.append(reply)
         guard unlockReplies.count == 1 else { return }
+        let generation = unlockGeneration
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             let key = Result { try vault.readKey() }
-            DispatchQueue.main.async { self?.finishUnlock(vault, key) }
+            DispatchQueue.main.async { self?.finishUnlock(vault, key, generation: generation) }
         }
     }
 
-    private func finishUnlock(_ vault: Vault, _ key: Result<SymmetricKey, Error>) {
+    private func finishUnlock(_ vault: Vault, _ key: Result<SymmetricKey, Error>, generation: Int) {
+        // The screen locked (or a relock ran) while the prompt was up: that answer is not for the
+        // lock showing now. The library stays locked and the page shows the plain lock screen, as
+        // a lock that nobody has tried to open yet.
+        guard generation == unlockGeneration else {
+            Self.log.info("an unlock overtaken by a lock was set aside")
+            bridge.lockFailure = nil
+            reloadPage()
+            let replies = unlockReplies
+            unlockReplies = []
+            replies.forEach { $0("cancelled") }
+            return
+        }
         let failure: String?
         do {
             try vault.open(with: key.get())
