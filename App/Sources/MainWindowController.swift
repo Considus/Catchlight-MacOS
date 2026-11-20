@@ -42,6 +42,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
     static let screenUnlockedNotification = Notification.Name("com.apple.screenIsUnlocked")
     /// Whether the app is the active one; tests say.
     var isAppActive: () -> Bool = { NSApp.isActive }
+    /// How long a relock waits for the page's lock fade before carrying on (a hung page must not keep the library open).
+    var fadeTimeout: TimeInterval = 1
     /// Tests only: runs in a relock after the page has saved, just before the library closes.
     var beforeRelockClose: (() -> Void)?
 
@@ -239,7 +241,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
     }
 
     @objc func screenDidLock(_ notification: Notification) {
-        relock()
+        relock(fade: false)   // nobody can see a fade now
     }
 
     /// The Mac's screen unlocking with Catchlight in front: ask for the user as the iPhone does when
@@ -266,15 +268,17 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
     /// A sync pass started after the save (the old page can still start one) is stopped and waited
     /// for, so none runs on with the closed library's keys. A Take clicked on the way, or waiting
     /// for the page to load, is held for the next unlock. Does nothing unless the library is open.
-    func relock(completion: (() -> Void)? = nil) {
+    func relock(fade: Bool = true, completion: (() -> Void)? = nil) {
         guard bridge.vault?.library != nil else { completion?(); return }
         relocking = true
+        var faded = false
         flushPage { [weak self] in
             guard let self, let vault = self.bridge.vault else { completion?(); return }
             let close = { [weak self] in
                 guard let self else { completion?(); return }
                 self.beforeRelockClose?()
                 vault.lock()
+                self.bridge.justLocked = faded
                 self.bridge.sync?.forgetLibrary()
                 self.relocking = false
                 self.bridge.lockFailure = nil
@@ -286,7 +290,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
             }
             // The page has saved: from here it takes no input, so nothing typed is lost to the
             // closing library, and no save is refused as "locked" (`catchlightRelocking`, ui/lock.js).
-            self.webView.evaluateJavaScript("window.catchlightRelocking?.()") { _, _ in
+            let closeAfterSync = {
                 if let sync = self.bridge.sync {
                     sync.cancel()
                     sync.whenIdle(close)
@@ -294,6 +298,31 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
                     close()
                 }
             }
+            self.webView.evaluateJavaScript("window.catchlightRelocking?.()") { _, _ in
+                guard fade else { return closeAfterSync() }
+                // The lock screen fades in over the notes (RootView, 0.4 s); the library stays open
+                // for the fade only, and a page that never answers can't hold it open longer.
+                self.fadeLockScreen { faded = $0; closeAfterSync() }
+            }
+        }
+    }
+
+    /// Has the page fade the lock screen in over what is shown (`catchlightLockFade`, ui/lock.js) and
+    /// answers `true` when the fade ended, or `false` when the page did not answer within `fadeTimeout`.
+    private func fadeLockScreen(_ done: @escaping (Bool) -> Void) {
+        var answered = false
+        let answer = { (ended: Bool) in
+            guard !answered else { return }
+            answered = true
+            done(ended)
+        }
+        webView.callAsyncJavaScript("return (await window.catchlightLockFade?.()) === true;", arguments: [:], in: nil, in: .page) { result in
+            if case .failure(let error) = result { Self.log.error("lock fade failed: \(String(describing: error), privacy: .public)") }
+            answer((try? result.get()) as? Bool == true)
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + fadeTimeout) {
+            if !answered { Self.log.error("lock fade timed out; closing anyway") }
+            answer(false)
         }
     }
 

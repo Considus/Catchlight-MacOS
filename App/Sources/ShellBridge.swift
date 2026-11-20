@@ -82,6 +82,9 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
     var lockFailure: String?
     /// True for the one page load that follows an unlock; the page fades in rather than starts.
     var justUnlocked = false
+    /// Set for the one load after a relock whose fade the page showed: the lock screen is then already
+    /// what the user sees, so the page draws it without fading it in again.
+    var justLocked = false
     /// Set by the window: asks for the user and answers `nil` once the library is open, else
     /// `"cancelled"` or `"unopenable"`.
     var unlock: ((@escaping (String?) -> Void) -> Void)?
@@ -190,6 +193,10 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                 // never offered (a locked vault is not an empty one).
                 value = ["account": true, "locked": true, "takes": [Any](), "scripts": [Any]()]
                 if let lockFailure { value["lockFailure"] = lockFailure }
+                if justLocked {
+                    value["justLocked"] = true
+                    justLocked = false
+                }
             } else if let library = vault.library {
                 value["account"] = true
                 do {

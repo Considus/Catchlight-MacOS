@@ -70,6 +70,18 @@ window.catchlightRelocking = () => {
   appRoot.inert = true; appRoot.setAttribute('aria-hidden', 'true');
 };
 
+// The shell calls this next, on a relock: the lock screen fades in over the notes still shown
+// (RootView, easeInOut 0.4, opacity only, so Reduce Motion keeps it) and this answers true when the
+// fade ends. The shell closes the library after that and reloads the page, so the notes leave the
+// page only then. The reload shows the lock screen at once (`catchlightLibrary.justLocked`).
+window.catchlightLockFade = () => {
+  const layer = lockLayer('locked');
+  layer.id = 'lock';
+  layer.setAttribute('aria-hidden', 'true'); layer.inert = true;
+  document.body.append(layer);
+  return layer.animate([{ opacity: 0 }, { opacity: 1 }], { ...MOTION.root, fill: 'forwards' }).finished.then(() => true, () => false);
+};
+
 const lockLibrary = window.catchlightLibrary;
 if (lockLibrary?.locked) {
   const appRoot = document.getElementById('app');
@@ -84,7 +96,8 @@ if (lockLibrary?.locked) {
   if (failed) lock.layer.querySelector('.lock-announce').textContent = lockMessage('failed', lock.failure);
   lock.layer.querySelector('.lock-button').focus();
   // The first thing painted, so it fades in from the plain ground (RootView, easeInOut 0.4).
-  lock.layer.animate([{ opacity: 0 }, { opacity: 1 }], MOTION.root);
+  // After a faded relock it is already what the user sees: no second fade.
+  if (!lockLibrary.justLocked) lock.layer.animate([{ opacity: 0 }, { opacity: 1 }], MOTION.root);
 } else if (lockLibrary?.unlocked) {
   // The page is the app, just unlocked: the lock screen, unlocking, fades away over it. A picture
   // only, so hidden from the screen reader with nothing to press.
