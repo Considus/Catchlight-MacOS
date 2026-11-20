@@ -47,6 +47,33 @@
   // save names the snapshot its list came from (`generation`), and the shell diffs against that
   // snapshot, so a Take sync added since is never read as one the page deleted (Library.swift).
   const library = window.catchlightLibrary;
+  // Edits whose save failed as the app locked, handed back by the unlock (ShellBridge, HeldEdits,
+  // ISSUE-292): each goes back over its stored version, or in as new, and is saved again once
+  // the page is up. If that save is refused too, the page keeps them and says so, as any refused save.
+  const heldBack = library && typeof library.heldEdits === 'object' && library.heldEdits ? library.heldEdits : null;
+  // A refused edit that couldn't be held, or opened again: say a save failed, with the usual words,
+  // rather than let it vanish without a word.
+  if (library?.heldEditsLost) addEventListener('load', () => whenNoDialog(() => {
+    ask(t("That change wasn't saved"),
+      t("Catchlight couldn't save it. Quit and open Catchlight again, and if this keeps happening, report it with this detail: %@", 'held across the lock'),
+      [[t('OK'), null, 'cancel']]);
+    post('heldSaved', { lost: true }).catch(e => console.error('Reporting the lost edit failed', e));
+  }), { once: true });
+  // The shell keeps what it gave back until a save of that list succeeds (heldSaved), so a page
+  // that ends before saving gets it again.
+  const heldPending = { takes: !!heldBack?.takes?.length, scripts: !!heldBack?.scripts?.length };
+  if (heldBack) {
+    for (const kind of ['takes', 'scripts']) {
+      for (const item of heldBack[kind] ?? []) {
+        const at = (library[kind] ?? []).findIndex(x => String(x.id).toLowerCase() === String(item.id).toLowerCase());
+        if (at >= 0) library[kind][at] = item; else (library[kind] ??= []).push(item);
+      }
+    }
+    addEventListener('load', () => {
+      if (heldBack.takes?.length) saveList('takes', library.takes);
+      if (heldBack.scripts?.length) saveList('scripts', library.scripts);
+    }, { once: true });
+  }
   let saves = 0, refreshWaiting = false;
   // A Scripts save that failed or was refused leaves an edit only the page holds, so a refresh
   // keeps the page's Scripts rather than replace them with the stored ones (Greptile on #55).
@@ -60,9 +87,18 @@
   // whole-library export, which the shell writes from the store, would miss it (takes.js,
   // exportLibrary). A later save of the same list sends the whole list, so its success clears it.
   const saveFailed = { takes: false, scripts: false };
-  const sendList = (kind, list) => (saves++, (kind === 'takes' || library.syncScripts) && syncSoon(), post('save', { kind, list, generation: kind === 'scripts' ? scriptsGeneration ?? library.generation : library.generation }))
+  // The list each refused save sent, so the lock can hold what it changed (failedLists).
+  // With it, the snapshot it was sent against, so only what the page changed since is held.
+  const lastFailed = { takes: null, scripts: null };
+  const sendList = (kind, list, generation = kind === 'scripts' ? scriptsGeneration ?? library.generation : library.generation) =>
+    (saves++, (kind === 'takes' || library.syncScripts) && syncSoon(), post('save', { kind, list, generation }))
     .then(r => {
       saveFailed[kind] = false;
+      lastFailed[kind] = null;
+      if (heldPending[kind]) {
+        heldPending[kind] = false;
+        post('heldSaved', { kind }).catch(e => console.error('Reporting the held edits saved failed', e));
+      }
       if (kind === 'scripts') scriptsUnsaved = !!r?.rejected?.length;
       // Kept Scripts saved at last: take the library again now, so their snapshot is let go
       // before the Library drops it (it keeps eight) and refuses every save after (Claude review).
@@ -108,6 +144,7 @@
     })
     .catch(e => {
       saveFailed[kind] = true;
+      lastFailed[kind] = { list, generation };
       if (kind === 'scripts') scriptsUnsaved = true;
       console.error(`Saving ${kind} failed`, e);
       // A refused save must never look saved: say so, with what to do. If another dialog is
@@ -245,6 +282,12 @@
     // now. It answers once the shell has written everything sent before it.
     // An edit the page holds that the store doesn't, because its save failed.
     unsaved: () => saveFailed.takes || saveFailed.scripts,
+    // The lists whose last save was refused, as sent, for the shell to hold across a lock
+    // (MainWindowController.relock). Null for a list that saved.
+    failedLists: () => ({
+      takes: saveFailed.takes ? lastFailed.takes?.list ?? null : null, takesGeneration: saveFailed.takes ? lastFailed.takes?.generation ?? null : null,
+      scripts: saveFailed.scripts ? lastFailed.scripts?.list ?? null : null, scriptsGeneration: saveFailed.scripts ? lastFailed.scripts?.generation ?? null : null,
+    }),
     async flush() {
       if (typeof draft !== 'undefined' && draft) commitEdit();
       if (typeof script === 'function' && script()) save();

@@ -226,6 +226,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
         let centre = NotificationCenter.default
         centre.addObserver(self, selector: #selector(appWentAway(_:)), name: NSApplication.didResignActiveNotification, object: nil)
         centre.addObserver(self, selector: #selector(appCameBack(_:)), name: NSApplication.didBecomeActiveNotification, object: nil)
+        // Quitting wipes edits held across a lock: they are kept in memory only (HeldEdits).
+        centre.addObserver(self, selector: #selector(appWillQuit(_:)), name: NSApplication.willTerminateNotification, object: nil)
         DistributedNotificationCenter.default().addObserver(self, selector: #selector(screenDidLock(_:)), name: Self.screenLockedNotification, object: nil)
         DistributedNotificationCenter.default().addObserver(self, selector: #selector(screenDidUnlock(_:)), name: Self.screenUnlockedNotification, object: nil)
     }
@@ -290,7 +292,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
             self.relockWaiters = []
             waiters.forEach { $0() }
         }
-        flushPage { [weak self] in
+        flushPage { [weak self] in self?.holdRefusedEdits { [weak self] in
             guard let self, let vault = self.bridge.vault else { self?.relocking = false; finished(); return }
             let close = { [weak self] in
                 guard let self else { finished(); return }
@@ -321,6 +323,28 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
                     close()
                 }
             }
+        } }
+    }
+
+    @objc private func appWillQuit(_ note: Notification) { bridge.heldEdits.wipe() }
+
+    /// Before the library closes, the edits whose save the store refused are sealed and held in
+    /// memory (HeldEdits, owner 2026-11-20: "Hold it, give it back"), so the unlock can give them
+    /// back. A page that doesn't answer in time holds nothing and the lock goes on.
+    func holdRefusedEdits(timeout: TimeInterval = 2, completion: @escaping () -> Void) {
+        var done = false
+        let finish = { guard !done else { return }; done = true; completion() }
+        DispatchQueue.main.asyncAfter(deadline: .now() + timeout, execute: finish)
+        webView.callAsyncJavaScript("return window.catchlightBridge?.failedLists?.() ?? null", arguments: [:], in: nil, in: .page) { [weak self] result in
+            defer { finish() }
+            guard !done, let self, let vault = self.bridge.vault, let library = vault.library, let keys = vault.keys,
+                  case .success(let value) = result, let lists = value as? [String: Any] else { return }
+            let held = HeldEdits.seal(takes: lists["takes"] as? [[String: Any]], takesGeneration: lists["takesGeneration"] as? Int,
+                                      scripts: lists["scripts"] as? [[String: Any]], scriptsGeneration: lists["scriptsGeneration"] as? Int,
+                                      library: library, keys: keys)
+            guard !held.isEmpty else { return }
+            // Any still held from an earlier lock and not yet saved stays, unless held again here.
+            self.bridge.heldEdits.merge(held)
         }
     }
 

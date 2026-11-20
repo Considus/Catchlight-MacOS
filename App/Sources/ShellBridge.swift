@@ -85,6 +85,13 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
     /// Set for the one load after a relock whose fade the page showed: the lock screen is then already
     /// what the user sees, so the page draws it without fading it in again.
     var justLocked = false
+    /// Edits whose save failed as the app locked, sealed and held in memory until the next unlock
+    /// hands them back to the page (HeldEdits, ISSUE-292).
+    var heldEdits = HeldEdits()
+    /// Scripts the tests add to every page load, after the shell's own (a reload rebuilds the page's
+    /// scripts, so one added to the web view directly is gone after a relock or an unlock). Empty
+    /// in the app.
+    var testScripts: [WKUserScript] = []
     /// Set by the window: asks for the user and answers `nil` once the library is open, else
     /// `"cancelled"` or `"unopenable"`.
     var unlock: ((@escaping (String?) -> Void) -> Void)?
@@ -193,6 +200,8 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                 // never offered (a locked vault is not an empty one).
                 value = ["account": true, "locked": true, "takes": [Any](), "scripts": [Any]()]
                 if let lockFailure { value["lockFailure"] = lockFailure }
+                // Only that something waits: its words stay sealed until the unlock.
+                if !heldEdits.sealedData.isEmpty { value["heldEdits"] = true }
                 if justLocked {
                     value["justLocked"] = true
                     justLocked = false
@@ -200,7 +209,18 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
             } else if let library = vault.library {
                 value["account"] = true
                 do {
-                    let snapshot = try library.snapshot()
+                    // Edits refused as the app locked: back to the page, which saves them again
+                    // against the versions it read before (`bases`), so a change sync made
+                    // meanwhile is found. They stay held until the page's save of them succeeds
+                    // (`heldSaved`), so a page that ends first gets them again. Anything that
+                    // won't open stays out rather than shows wrong, and is reported as lost.
+                    var back: (takes: [[String: Any]], scripts: [[String: Any]], bases: [UUID: Take?], saved: [UUID], lost: Int)?
+                    if !heldEdits.isEmpty, let keys = vault.keys {
+                        let opened = heldEdits.open(keys: keys, library: library)
+                        heldEdits.forget(opened.saved)
+                        back = opened
+                    }
+                    let snapshot = try library.snapshot(bases: back?.bases ?? [:])
                     value["takes"] = snapshot.takes
                     value["generation"] = snapshot.generation
                     value["scripts"] = snapshot.scripts
@@ -211,6 +231,12 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                     if !library.scripts.unreadable.isEmpty { value["unreadableScripts"] = library.scripts.unreadable.count }
                     // The key opened the library but no Privacy phrase is stored: the page says so.
                     if vault.secrets.phraseMissing { value["phraseMissing"] = true }
+                    if let back {
+                        if !back.takes.isEmpty || !back.scripts.isEmpty {
+                            value["heldEdits"] = ["takes": back.takes, "scripts": back.scripts]
+                        }
+                        if back.lost > 0 { value["heldEditsLost"] = back.lost }
+                    }
                 } catch {
                     Self.log.fault("the library did not load: \(String(describing: error), privacy: .public)")
                     value = ["account": true, "takes": [Any](), "scripts": [Any](), "loadError": String(describing: error)]
@@ -251,6 +277,7 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
     private func addUserScripts(to controller: WKUserContentController) {
         controller.addUserScript(Self.injectedValues(folder: syncFolder?.displayPath, language: language))
         if vault != nil { controller.addUserScript(injectedLibrary()) }
+        testScripts.forEach(controller.addUserScript)
     }
 
     func userContentController(_ userContentController: WKUserContentController,
@@ -522,6 +549,11 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
             replyHandler(NSNull(), nil)
         case "ping":
             // A round trip: messages are handled in order, so everything sent before it is done.
+            replyHandler(true, nil)
+        case "heldSaved":
+            // The page saved a list that had held edits in it, or showed that some were lost.
+            if let kind = body["kind"] as? String { heldEdits.saved(scripts: kind == "scripts") }
+            if body["lost"] as? Bool == true { heldEdits.lossReported() }
             replyHandler(true, nil)
         case "save", "changeKind", "reload", "validatePhrase", "createAccount", "replaceAccount", "revealPhrase", "eraseEverything":
             handleLibrary(cmd, body, replyHandler)

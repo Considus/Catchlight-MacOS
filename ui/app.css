@@ -422,7 +422,7 @@ body.first-running .app { visibility: hidden; }
 body.locked .app { visibility: hidden; }
 .lock-screen .fr-body { animation: none; }
 .lock-screen .fr-body h2 { margin-bottom: 0; }   /* the message is 14 below, the body's own gap */
-.lock-message { box-sizing: border-box; padding: 0 32px; }
+.lock-message, .lock-held { box-sizing: border-box; padding: 0 32px; }
 .lock-dock { margin-top: auto; padding: 0 0 32px; display: flex; justify-content: center; }
 .lock-leaving { pointer-events: none; }
 
