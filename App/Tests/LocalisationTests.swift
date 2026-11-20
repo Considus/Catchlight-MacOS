@@ -169,4 +169,23 @@ final class LocalisationTests: XCTestCase {
         XCTAssertEqual(process.terminationStatus, 0, text)
         XCTAssertTrue(text.contains("0 problems"), text)
     }
+
+    /// The Settings heading names the licences; "Open" is not the verb (reviewed wording,
+    /// 2026-11-20, as the iPhone's MarkLookAnswersTests).
+    func testTheLicencesHeadingNamesTheLicencesNotTheVerbOpen() throws {
+        let expected: [String: String] = [
+            "es": "Licencias de código abierto",
+            "fi": "Avoimen lähdekoodin lisenssit",
+            "fr": "Licences open source",
+            "it": "Licenze open source",
+            "nb": "Lisenser for åpen kildekode",
+            "nl": "Opensourcelicenties",
+            "sv": "Licenser för öppen källkod",
+            "zh-Hans": "开源许可证",
+            "zh-Hant": "開源授權",
+        ]
+        for (lang, value) in expected.sorted(by: { $0.key < $1.key }) {
+            XCTAssertEqual(try catalog("Open source licences", lang), value, lang)
+        }
+    }
 }
