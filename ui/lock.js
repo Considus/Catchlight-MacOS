@@ -9,7 +9,10 @@
 //   failed     the reason                          [Try Again]
 // `catchlightLibrary.lockFailure` ('cancelled' or 'unopenable') opens the page in the failed state,
 // and `catchlightLibrary.unlocked` marks the load right after an unlock: the lock screen is drawn
-// once more, unlocking, and fades away over the app (RootView, 0.4 s). Loaded after first-run.js,
+// once more, unlocking, and fades away over the app (RootView, 0.4 s).
+// `catchlightLibrary.heldEdits` (true) says an edit whose save failed at the lock is held, sealed,
+// for the unlock to give back (ShellBridge, HeldEdits): one line says so, and that it lasts only
+// until Catchlight closes, as it is kept in memory only (owner 2026-11-20). Loaded after first-run.js,
 // and uses the first run's column, mark, heading and pill so the two read as one surface.
 
 const lock = { phase: 'locked', failure: null, layer: null };
@@ -24,7 +27,8 @@ function lockLayer(phase, failure) {
   layer.className = 'lock-screen';
   layer.innerHTML = `<div class="fr-column">${brandMark()}<div class="fr-body">
       <h2>${t('Catchlight is locked')}</h2>
-      <p class="lock-message">${lockMessage(phase, failure)}</p></div></div>
+      <p class="lock-message">${lockMessage(phase, failure)}</p>${window.catchlightLibrary?.heldEdits === true ? `
+      <p class="lock-held">${t('An unsaved edit is held until Catchlight closes. Unlock to restore it.')}</p>` : ''}</div></div>
     <div class="lock-dock"><button class="fr-pill primary lock-button" type="button"${phase === 'unlocking' ? ' disabled' : ''}>${lockButtonTitle(phase)}</button></div>
     <div class="sr-only lock-announce" aria-live="assertive"></div>`;
   return layer;

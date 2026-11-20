@@ -189,38 +189,98 @@ final class LockWiringTests: XCTestCase {
         XCTAssertEqual(try savedTexts(), ["Typed, not saved"], "the open edit was not saved before the lock")
     }
 
-    /// ISSUE-292: a relock whose last save fails (here refused, as a full disk refuses it) must
-    /// not lose what was typed. The control checks the save really failed;
-    /// the last assertion is what the owner's "never lose user data" asks for.
-    func testAnEditWhoseSaveFailsAtTheLockSurvivesTheUnlock() throws {
-        let live = controller()
+    // MARK: An edit whose save fails at the lock (ISSUE-292)
+
+    /// Every save the page sends is refused, as the shell answers when the disk is full. The library
+    /// keeps its file open, so folder permissions can't force this: the refusal is made where the
+    /// page hears it. `lasting` adds it as a user script, so the page after the unlock is refused too.
+    private let refuseSaves = """
+        const h = window.webkit.messageHandlers.catchlight, real = h.postMessage.bind(h);
+        h.postMessage = m => m.cmd === 'save' ? Promise.reject(new Error('The disk is full.')) : real(m);
+        """
+
+    /// The open edit, typed and not yet saved, then a relock whose save of it is refused.
+    private func lockWithARefusedEdit(_ live: MainWindowController) {
         XCTAssertEqual(runInPage(live, """
             beginEdit(takes[0]);
             rows.children[0].querySelector('.etext').textContent = 'Typed, not saved';
             return takes[0].blocks[0].text;
             """) as? String, savedText, "the edit is already saved, so the test proves nothing")
-
-        // Every save the page sends is refused, as the shell answers when the disk is full. The
-        // library keeps its file open, so folder permissions can't force this: the refusal is
-        // made where the page hears it. The reload at the lock drops this override.
-        XCTAssertEqual(runInPage(live, """
-            const h = window.webkit.messageHandlers.catchlight, real = h.postMessage.bind(h);
-            h.postMessage = m => m.cmd === 'save' ? Promise.reject(new Error('The disk is full.')) : real(m);
-            return h.postMessage !== real;
-            """) as? Bool, true, "the save refusal is not in place")
-
+        XCTAssertEqual(runInPage(live, refuseSaves + "return true;") as? Bool, true, "the save refusal is not in place")
         secrets.refuse = true
         relock(live)
         XCTAssertTrue(isLocked, "the vault is not locked")
+        XCTAssertEqual(live.bridge.heldEdits.count, 1, "the refused edit is not held across the lock")
+    }
 
+    private func unlock(_ live: MainWindowController) {
         secrets.refuse = false
         _ = runInPage(live, "document.querySelector('#lock .lock-button').click(); return true;")
         pageBecomes(live, "catchlightLibrary.unlocked === true && !catchlightLibrary.locked && !document.querySelector('#lock')",
                     "the page did not reload unlocked")
+    }
 
-        XCTAssertEqual(try savedTexts(), [savedText], "the forced failure didn't stop the save, so the test proves nothing")
+    /// Owner, 2026-11-20: "Hold it, give it back". The typing comes back after the unlock and is
+    /// saved, and what was held is wiped.
+    func testAnEditWhoseSaveFailsAtTheLockSurvivesTheUnlock() throws {
+        let live = controller()
+        lockWithARefusedEdit(live)
+        unlock(live)
+
+        XCTAssertTrue(live.bridge.heldEdits.isEmpty, "what was held is wiped once given back")
         let shown = runInPage(live, "return document.body.innerText;") as? String ?? ""
         XCTAssertTrue(shown.contains("Typed, not saved"), "the typing is gone after the unlock (ISSUE-292)")
+        spin(until: { (try? self.savedTexts()) == ["Typed, not saved"] }, "the typing given back was not saved again")
+    }
+
+    /// While locked, nothing of the typing is readable: not on the lock screen, which says only
+    /// that an edit is waiting, and not in what is held, which is sealed.
+    func testWhileLockedTheHeldEditIsSealedAndTheLockScreenSaysOneWaits() throws {
+        let live = controller()
+        lockWithARefusedEdit(live)
+
+        let page = runInPage(live, "return JSON.stringify({ held: catchlightLibrary.heldEdits, text: document.body.innerText });") as? String
+        let shown = try XCTUnwrap(page.flatMap { try? JSONSerialization.jsonObject(with: Data($0.utf8)) as? [String: Any] })
+        XCTAssertEqual(shown["held"] as? Bool, true, "the locked page gets only that an edit waits")
+        let text = try XCTUnwrap(shown["text"] as? String)
+        XCTAssertTrue(text.contains("An unsaved edit is held until Catchlight closes. Unlock to restore it."), text)
+        XCTAssertFalse(text.contains("Typed, not saved"), "the locked page shows the typing")
+        for data in live.bridge.heldEdits.sealedData {
+            XCTAssertNil(data.range(of: Data("Typed, not saved".utf8)), "the held edit is readable")
+        }
+    }
+
+    /// The save after the unlock is refused too: the typing stays on the page and the usual
+    /// refused-save message says so; nothing is held any more.
+    func testAHeldEditWhoseSaveIsRefusedAgainStaysOnThePage() throws {
+        let live = controller()
+        lockWithARefusedEdit(live)
+        live.bridge.testScripts = [WKUserScript(source: refuseSaves, injectionTime: .atDocumentStart, forMainFrameOnly: true, in: .page)]
+        unlock(live)
+
+        XCTAssertTrue(live.bridge.heldEdits.isEmpty)
+        pageBecomes(live, "alertBox.open && alertBox.querySelector('h2').textContent === \"That change wasn't saved\"",
+                    "the refused save is not reported")
+        let shown = runInPage(live, "return document.body.innerText;") as? String ?? ""
+        XCTAssertTrue(shown.contains("Typed, not saved"), "the typing left the page")
+        XCTAssertEqual(try savedTexts(), [savedText])
+    }
+
+    /// Quitting while locked wipes what is held: it is kept in memory only.
+    func testQuittingWipesTheHeldEdit() throws {
+        let live = controller()
+        lockWithARefusedEdit(live)
+        post(NSApplication.willTerminateNotification)
+        XCTAssertTrue(live.bridge.heldEdits.isEmpty, "quitting did not wipe the held edit")
+    }
+
+    /// A lock with nothing refused holds nothing and the lock screen says nothing extra.
+    func testALockWithNothingRefusedHoldsNothing() throws {
+        let live = controller()
+        secrets.refuse = true
+        relock(live)
+        XCTAssertTrue(live.bridge.heldEdits.isEmpty)
+        XCTAssertEqual(runInPage(live, "return !!document.querySelector('.lock-held');") as? Bool, false)
     }
 
     // MARK: Unlock
