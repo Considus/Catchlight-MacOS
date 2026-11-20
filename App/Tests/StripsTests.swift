@@ -347,4 +347,28 @@ final class StripsTests: XCTestCase {
         let kept = try harness.run("paintStrips(); return JSON.stringify([localStorage.getItem('cl.onset.phraseMissing'), localStorage.getItem('cl.onset.remindersSilenced')]);", in: self) as? String
         XCTAssertEqual(kept, #"["true","true"]"#)
     }
+
+    /// The one strip a person most needs to read in full is never cut: at the narrowest Dailies
+    /// column every language's sentence shows whole (the iPhone lifts its line limit when the
+    /// strip stacks; Art Director, 2026-11-20).
+    func testThePhraseStripShowsItsWholeSentenceInEveryLanguageAtTheNarrowestColumn() throws {
+        let harness = page(library: ", phraseMissing: true")
+        try settle(harness)
+        let cut = try harness.run("""
+            const cat = JSON.parse(await (await fetch('l10n/Localizable.xcstrings')).text()).strings;
+            const key = 'No Privacy phrase on this device. Export now, then Settings > Start over.';
+            stripsBox.style.width = '310px';
+            const out = [];
+            for (const lang of ['en', ...Object.keys(cat[key].localizations)]) {
+              const text = lang === 'en' ? key : cat[key].localizations[lang].stringUnit.value;
+              const action = lang === 'en' ? 'Export now' : cat['Export now'].localizations[lang].stringUnit.value;
+              setStrip(phraseStrip, stripInner('phrase', text, `<button class="strip-act" type="button">${action}</button>`));
+              document.getAnimations().forEach(a => a.finish());
+              const s = phraseStrip.querySelector('.strip-text');
+              if (s.scrollHeight > s.clientHeight + 1) out.push(lang);
+            }
+            return JSON.stringify(out);
+            """, in: self) as? String
+        XCTAssertEqual(cut, "[]", "languages whose sentence is cut")
+    }
 }
