@@ -38,6 +38,13 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
     /// Posted to every app as the Mac's screen locks.
     static let screenLockedNotification = Notification.Name("com.apple.screenIsLocked")
 
+    /// Posted to every app as the Mac's screen unlocks.
+    static let screenUnlockedNotification = Notification.Name("com.apple.screenIsUnlocked")
+    /// Whether the app is the active one; tests say.
+    var isAppActive: () -> Bool = { NSApp.isActive }
+    /// Tests only: runs in a relock after the page has saved, just before the library closes.
+    var beforeRelockClose: (() -> Void)?
+
     /// `vault` is nil only in tests that load the page without a library; the page then keeps
     /// the browser prototype's localStorage behaviour.
     /// `notifications`, `mirror`, `defaults` and `uiRoot` are the app's own except in tests, which
@@ -213,6 +220,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
         centre.addObserver(self, selector: #selector(appWentAway(_:)), name: NSApplication.didResignActiveNotification, object: nil)
         centre.addObserver(self, selector: #selector(appCameBack(_:)), name: NSApplication.didBecomeActiveNotification, object: nil)
         DistributedNotificationCenter.default().addObserver(self, selector: #selector(screenDidLock(_:)), name: Self.screenLockedNotification, object: nil)
+        DistributedNotificationCenter.default().addObserver(self, selector: #selector(screenDidUnlock(_:)), name: Self.screenUnlockedNotification, object: nil)
     }
 
     /// The login prompt makes the app inactive while it is up: that is not time away.
@@ -232,6 +240,13 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
 
     @objc func screenDidLock(_ notification: Notification) {
         relock()
+    }
+
+    /// The Mac's screen unlocking with Catchlight in front: ask for the user as the iPhone does when
+    /// it comes back, unless the library is open, a failure is showing or an unlock is running.
+    @objc func screenDidUnlock(_ notification: Notification) {
+        guard isAppActive() else { return }
+        unlockOnReturn()
     }
 
     /// The iPhone asks on return whenever the library is locked, unless a failure is showing
@@ -258,7 +273,9 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
             guard let self, let vault = self.bridge.vault else { completion?(); return }
             let close = { [weak self] in
                 guard let self else { completion?(); return }
+                self.beforeRelockClose?()
                 vault.lock()
+                self.bridge.sync?.forgetLibrary()
                 self.relocking = false
                 self.bridge.lockFailure = nil
                 // A click held during the relock is newer than one still waiting for the page.
@@ -267,11 +284,15 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
                 self.reloadPage()
                 completion?()
             }
-            if let sync = self.bridge.sync {
-                sync.cancel()
-                sync.whenIdle(close)
-            } else {
-                close()
+            // The page has saved: from here it takes no input, so nothing typed is lost to the
+            // closing library, and no save is refused as "locked" (`catchlightRelocking`, ui/lock.js).
+            self.webView.evaluateJavaScript("window.catchlightRelocking?.()") { _, _ in
+                if let sync = self.bridge.sync {
+                    sync.cancel()
+                    sync.whenIdle(close)
+                } else {
+                    close()
+                }
             }
         }
     }

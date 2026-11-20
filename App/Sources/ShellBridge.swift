@@ -566,6 +566,10 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
 
     private func handleLibrary(_ cmd: String, _ body: [String: Any], _ reply: @escaping (Any?, String?) -> Void) {
         guard let vault else { return reply(nil, "no library in this build") }
+        // The account is not touched while the library is locked: a locked vault is not an empty one.
+        if ["createAccount", "replaceAccount", "eraseEverything", "revealPhrase"].contains(cmd), case .locked = vault.state {
+            return reply(nil, "locked")
+        }
         let words = (body["words"] as? [String]) ?? []
         do {
             switch cmd {

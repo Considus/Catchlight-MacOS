@@ -63,6 +63,13 @@ window.catchlightLockUnlocking = () => {
   if (lock.layer && lock.phase === 'locked') setLock('unlocking');
 };
 
+// The shell calls this once a relock has saved what was open: the page takes no more input, so
+// nothing typed is lost to the closing library and no save is refused as locked.
+window.catchlightRelocking = () => {
+  const appRoot = document.getElementById('app');
+  appRoot.inert = true; appRoot.setAttribute('aria-hidden', 'true');
+};
+
 const lockLibrary = window.catchlightLibrary;
 if (lockLibrary?.locked) {
   const appRoot = document.getElementById('app');
