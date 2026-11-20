@@ -189,6 +189,40 @@ final class LockWiringTests: XCTestCase {
         XCTAssertEqual(try savedTexts(), ["Typed, not saved"], "the open edit was not saved before the lock")
     }
 
+    /// ISSUE-292: a relock whose last save fails (here refused, as a full disk refuses it) must
+    /// not lose what was typed. The control checks the save really failed;
+    /// the last assertion is what the owner's "never lose user data" asks for.
+    func testAnEditWhoseSaveFailsAtTheLockSurvivesTheUnlock() throws {
+        let live = controller()
+        XCTAssertEqual(runInPage(live, """
+            beginEdit(takes[0]);
+            rows.children[0].querySelector('.etext').textContent = 'Typed, not saved';
+            return takes[0].blocks[0].text;
+            """) as? String, savedText, "the edit is already saved, so the test proves nothing")
+
+        // Every save the page sends is refused, as the shell answers when the disk is full. The
+        // library keeps its file open, so folder permissions can't force this: the refusal is
+        // made where the page hears it. The reload at the lock drops this override.
+        XCTAssertEqual(runInPage(live, """
+            const h = window.webkit.messageHandlers.catchlight, real = h.postMessage.bind(h);
+            h.postMessage = m => m.cmd === 'save' ? Promise.reject(new Error('The disk is full.')) : real(m);
+            return h.postMessage !== real;
+            """) as? Bool, true, "the save refusal is not in place")
+
+        secrets.refuse = true
+        relock(live)
+        XCTAssertTrue(isLocked, "the vault is not locked")
+
+        secrets.refuse = false
+        _ = runInPage(live, "document.querySelector('#lock .lock-button').click(); return true;")
+        pageBecomes(live, "catchlightLibrary.unlocked === true && !catchlightLibrary.locked && !document.querySelector('#lock')",
+                    "the page did not reload unlocked")
+
+        XCTAssertEqual(try savedTexts(), [savedText], "the forced failure didn't stop the save, so the test proves nothing")
+        let shown = runInPage(live, "return document.body.innerText;") as? String ?? ""
+        XCTAssertTrue(shown.contains("Typed, not saved"), "the typing is gone after the unlock (ISSUE-292)")
+    }
+
     // MARK: Unlock
 
     func testUnlockReopensAndTheLockFadesAway() throws {
