@@ -123,12 +123,12 @@ function settingsPage() {
   ])}
   ${group(t('Reminders'), [
     pick('reminderHours', 'clock', t('Default timing'), [['1', t('1 hour')], ['6', t('6 hours')], ['12', t('12 hours')], ['24', t('1 day')], ['48', t('2 days')]], () => settings.reminderHours),
-    pick('snooze', 'zzz', t('Snooze Duration'), [['5', t('5 mins')], ['15', t('15 mins')], ['30', t('30 mins')], ['60', t('1 hour')], ['360', t('6 hours')], ['720', t('12 hours')], ['1440', t('24 hours')]], () => settings.snooze),
+    pick('snooze', 'zzz', t('Snooze duration'), [['5', t('5 mins')], ['15', t('15 mins')], ['30', t('30 mins')], ['60', t('1 hour')], ['360', t('6 hours')], ['720', t('12 hours')], ['1440', t('24 hours')]], () => settings.snooze),
     toggle('followUp', 'bell', t('Follow-up reminders'), t('Re-nudge until you mark it done'), settings.followUp),
   ])}
   ${group(t('Security'), [
     pick('lockAfter', 'lock', t('Lock after'), [['30', t('30 seconds')], ['60', t('1 minute')], ['300', t('5 minutes')], ['1800', t('30 minutes')], ['3600', t('1 hour')]], () => settings.lockAfter),
-    pick('autoDelete', 'trash', t('Auto-Delete (exc. notes)'), [['never', t('Never')], ['daily', t('Daily')], ['weekly', t('Weekly')], ['monthly', t('Monthly')], ['annually', t('Annually')]], () => settings.autoDelete),
+    pick('autoDelete', 'trash', t('Auto-delete (exc. notes)'), [['never', t('Never')], ['daily', t('Daily')], ['weekly', t('Weekly')], ['monthly', t('Monthly')], ['annually', t('Annually')]], () => settings.autoDelete),
     toggle('confirmDelete', 'warn', t('Confirm before deleting'), t('A deleted Take cannot be recovered'), settings.confirmDelete),
     link('phrase', 'key', t('Privacy phrase')),
     link('second-device', 'device', t('Second device')),
@@ -164,7 +164,7 @@ function settingsPage() {
 const SUB = {
   cloud: () => {
     const folder = store.get('account', {})?.folder;
-    const modes = { automatic: t('Syncs automatically in the background and when you open the app.'), manual: t('Only syncs when you click Sync Now.'), disabled: PLATFORM.text.neverSyncs() };
+    const modes = { automatic: t('Syncs automatically in the background and when you open the app.'), manual: t('Only syncs when you click Sync now.'), disabled: PLATFORM.text.neverSyncs() };
     return [t('Cloud Storage'), `<div class="ssub-col">
       <h2 class="ssub-heading">${t('Choose a cloud folder you own')}</h2>
       <p>${t("Select an empty folder, or create a new one, and we'll take care of the rest.")}</p>
@@ -176,7 +176,7 @@ const SUB = {
       <hr>
       <div class="sgroup">${pick('syncMode', 'cloud', t('Sync'), [['automatic', t('Automatic')], ['manual', t('Manual')], ['disabled', t('Disabled')]], () => settings.syncMode)}</div>
       <p class="quiet">${modes[settings.syncMode]}</p>
-      ${settings.syncMode === 'manual' ? `<button class="slink" type="button" data-act="sync-now"${folder ? '' : ' disabled'}>${t('Sync Now')}</button>` : ''}
+      ${settings.syncMode === 'manual' ? `<button class="slink" type="button" data-act="sync-now"${folder ? '' : ' disabled'}>${t('Sync now')}</button>` : ''}
     </div>`];
   },
   about: () => [t('About'), `<div class="ssub-col">

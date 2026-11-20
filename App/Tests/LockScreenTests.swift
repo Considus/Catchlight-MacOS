@@ -100,7 +100,7 @@ final class LockScreenTests: XCTestCase {
         XCTAssertEqual(unlocking["disabled"] as? Bool, true, "disabled while unlocking")
         XCTAssertTrue((unlocking["live"] as? String ?? "").isEmpty, "unlocking is not announced, as on the iPhone: \(unlocking)")
         let failed = try XCTUnwrap(r["failed"] as? [String: Any])
-        XCTAssertEqual(failed["button"] as? String, "Try Again")
+        XCTAssertEqual(failed["button"] as? String, "Try again")
         XCTAssertEqual(failed["message"] as? String, cancelledText)
         XCTAssertEqual(failed["disabled"] as? Bool, false)
         XCTAssertEqual(failed["live"] as? String, cancelledText, "the failure is announced")
@@ -116,19 +116,19 @@ final class LockScreenTests: XCTestCase {
             return read();
             """)
         XCTAssertEqual(r["message"] as? String, restartText)
-        XCTAssertEqual(r["button"] as? String, "Try Again")
+        XCTAssertEqual(r["button"] as? String, "Try again")
         XCTAssertEqual(r["live"] as? String, restartText)
     }
 
     func testAFailureAtLaunchOpensOnTryAgain() throws {
         let harness = page("locked: true, lockFailure: 'cancelled'")
         let r = try json(harness, probe + "return read();")
-        XCTAssertEqual(r["button"] as? String, "Try Again")
+        XCTAssertEqual(r["button"] as? String, "Try again")
         XCTAssertEqual(r["message"] as? String, cancelledText)
         XCTAssertEqual(r["live"] as? String, cancelledText)
         let unopenable = try json(page("locked: true, lockFailure: 'unopenable'"), probe + "return read();")
         XCTAssertEqual(unopenable["message"] as? String, restartText)
-        XCTAssertEqual(unopenable["button"] as? String, "Try Again")
+        XCTAssertEqual(unopenable["button"] as? String, "Try again")
     }
 
     func testTheTextCrossfadesOverPointTwoSeconds() throws {

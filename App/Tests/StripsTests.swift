@@ -129,7 +129,7 @@ final class StripsTests: XCTestCase {
     func testNotificationsOffWithAnAlertingReminderShowsTheStrip() throws {
         let harness = page(takes: alerting, notifications: "denied")
         try settle(harness)
-        XCTAssertEqual(try strips(harness), #"[["silenced","Enable NotificationsTurn on"]]"#)
+        XCTAssertEqual(try strips(harness), #"[["silenced","Enable notificationsTurn on"]]"#)
         let a11y = try harness.run("""
             const s = document.querySelector('[data-strip="silenced"]');
             const on = s.querySelector('[data-strip-act="turn-on"]'), x = s.querySelector('[data-strip-act="close"]');
@@ -170,7 +170,7 @@ final class StripsTests: XCTestCase {
     func testTheSilencedStripFollowsThePermission() throws {
         let harness = page(takes: alerting, notifications: "denied")
         try settle(harness)
-        XCTAssertEqual(try strips(harness), #"[["silenced","Enable NotificationsTurn on"]]"#)
+        XCTAssertEqual(try strips(harness), #"[["silenced","Enable notificationsTurn on"]]"#)
         shell.fixed["notificationStatus"] = "enabled"
         _ = try harness.run("dispatchEvent(new Event('focus')); return 0;", in: self)
         try settle(harness)
@@ -327,7 +327,7 @@ final class StripsTests: XCTestCase {
         let harness = page(takes: alerting, notifications: "denied", library: ", phraseMissing: true")
         try settle(harness)
         let first = try harness.run("return JSON.stringify(settings.notices.filter(n => n.category === 'storage').map(n => n.message).sort());", in: self) as? String
-        XCTAssertEqual(first, "[\"Enable Notifications\",\"\(phrase)\"]")
+        XCTAssertEqual(first, "[\"Enable notifications\",\"\(phrase)\"]")
         let again = try harness.run("paintStrips(); dispatchEvent(new Event('focus')); for (let i = 0; i < 10; i++) await new Promise(r => setTimeout(r, 25)); renderTakes(); return settings.notices.filter(n => n.category === 'storage').length;", in: self) as? Int
         XCTAssertEqual(again, 2, "not again while it lasts")
     }

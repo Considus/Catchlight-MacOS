@@ -20,7 +20,7 @@ const lock = { phase: 'locked', failure: null, layer: null };
 const lockMessage = (phase, failure) => phase === 'failed'
   ? (failure === 'unopenable' ? t("Your encrypted library couldn't be opened. Please restart Catchlight.") : t("Couldn't unlock. Authenticate to open your Takes."))
   : phase === 'unlocking' ? t('Authenticating…') : t('Authenticate to open your Takes.');
-const lockButtonTitle = phase => phase === 'failed' ? t('Try Again') : phase === 'unlocking' ? t('Unlocking…') : t('Unlock');
+const lockButtonTitle = phase => phase === 'failed' ? t('Try again') : phase === 'unlocking' ? t('Unlocking…') : t('Unlock');
 
 function lockLayer(phase, failure) {
   const layer = document.createElement('section');

@@ -61,7 +61,7 @@ final class LockUnlockingTests: XCTestCase {
             await tick();
             return read();
             """)
-        XCTAssertEqual(r["button"] as? String, "Try Again")
+        XCTAssertEqual(r["button"] as? String, "Try again")
     }
 
     func testItDoesNothingOnAnOpenLibrary() throws {

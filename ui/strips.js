@@ -149,10 +149,10 @@ function paintStrips() {
     `<button class="strip-act" type="button" data-strip-act="export" aria-label="${esc(t('Export your Takes and Scripts'))}" aria-describedby="strip-export-hint">${t('Export now')}</button>`
     + `<span class="sr-only" id="strip-export-hint">${t('Saves a readable copy. Not a Privacy phrase.')}</span>`) : null);
   const muted = stripNotifications === 'denied' && anyAlertingReminder();
-  if (stripNotifications != null && !libraryLocked()) onset('remindersSilenced', muted, t('Enable Notifications'));
+  if (stripNotifications != null && !libraryLocked()) onset('remindersSilenced', muted, t('Enable notifications'));
   const silenced = muted && !store.get('remindersSilencedDismissed', false);
   const hint = 'strip-turn-on-hint';
-  setStrip(silencedStrip, silenced ? stripInner('silenced', t('Enable Notifications'),
+  setStrip(silencedStrip, silenced ? stripInner('silenced', t('Enable notifications'),
     `<button class="strip-act" type="button" data-strip-act="turn-on" aria-label="${esc(t('Turn on notifications'))}" aria-describedby="${hint}">${t('Turn on')}</button>`
     + `<span class="sr-only" id="${hint}">${t('Opens System Settings.')}</span>`
     + `<button class="strip-x" type="button" data-strip-act="close" aria-label="${esc(t('Dismiss'))}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg></button>`) : null);
