@@ -298,7 +298,7 @@ let SAMPLE_NOTICES = new URLSearchParams(location.search).has('notices') && [
 sheet.addEventListener('change', e => {
   const k = e.target.dataset.set;
   if (!k) return;
-  const v = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+  const v = e.target.type === 'checkbox' ? e.target.checked : e.target.value, was = switchLook(e.target);
   if (k === 'mode') { scene = v; store.set('scene', v); applyScene(); }
   else if (k.startsWith('script') && ['scriptSpacing', 'scriptPreview', 'scriptSort'].includes(k)) {
     view[{ scriptSpacing: 'spacing', scriptPreview: 'preview', scriptSort: 'sort' }[k]] = v; store.set('view', view); renderScripts();
@@ -311,6 +311,7 @@ sheet.addEventListener('change', e => {
     if (k === 'scriptTextSize' || k === 'spellcheck') { applyScriptArea(); paginate(); }
   }
   paintSettings();
+  turnSwitch(sheet.querySelector(`[data-set="${k}"]`), was);
   sheet.querySelector(`[data-set="${k}"]`)?.focus();   // the repaint must not lose a keyboard user's place
 });
 

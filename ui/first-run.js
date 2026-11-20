@@ -165,10 +165,25 @@ const SCREENS = {
     <div class="fr-actions">${pill('finish', t('Not now'), ' link')}${pill('connect-folder', t('Connect cloud folder'), ' primary')}</div>`,
 };
 
+// A step change crossfades (OnboardingView, easeInOut 0.18; leaving the splash, RootView's 0.4).
+// The brand mark stays put when both steps show the same one, so only the words and buttons fade.
 function show(step) {
+  const from = layer.isConnected && !layer.hidden && fr.step !== step ? fr.step : null;
+  const oldColumn = from && layer.querySelector('.fr-column'), markOf = c => c?.querySelector('.fr-brand .fr-mark')?.getAttribute('viewBox'), oldBrand = markOf(oldColumn);
+  const at = oldColumn && [oldColumn.getBoundingClientRect(), layer.getBoundingClientRect()];
   fr.step = step;
   layer.dataset.step = step;
   layer.innerHTML = `<div class="fr-column">${BRAND(step === 'welcome' || step === 'complete')}<div class="fr-body">${SCREENS[step]()}</div></div>`;
+  if (oldColumn) {
+    const timing = from === 'splash' ? MOTION.root : MOTION.step, column = layer.querySelector('.fr-column');
+    const keep = oldBrand && oldBrand === markOf(column);   // the same mark (tile, or ring and dot on the field)
+    if (keep) oldColumn.querySelector('.fr-brand').style.visibility = 'hidden';
+    const copy = leavingCopy(oldColumn, 'fr-leaving');
+    Object.assign(copy.style, { position: 'absolute', margin: '0', left: at[0].left - at[1].left + 'px', top: at[0].top - at[1].top + layer.scrollTop + 'px', width: at[0].width + 'px', pointerEvents: 'none' });
+    layer.append(copy);
+    copy.animate([{ opacity: 1 }, { opacity: 0 }], timing).finished.then(() => copy.remove(), () => copy.remove());
+    (keep ? column.querySelector('.fr-body') : column).animate([{ opacity: 0 }, { opacity: 1 }], timing);
+  }
   if (step === 'restore') { paintRestoreStatus(); layer.querySelector('[data-word="0"]').focus(); }
   else layer.querySelector('.fr-pill.primary, .fr-card')?.focus();
 }
@@ -186,8 +201,17 @@ function checkConfirm() {
   const right = fr.positions.every((p, i) => fr.bank[fr.picked[i]] === fr.words[p]);
   if (right) { fr.basics = 0; show('basics'); return; }
   $('#fr-error').hidden = false;
-  layer.querySelectorAll('.fr-slot').forEach(s => s.classList.add('wrong'));
-  setTimeout(() => { if (fr.step === 'confirm') { fr.picked = []; show('confirm'); $('#fr-error').hidden = false; $('#fr-error').focus(); } }, 600);
+  $('#fr-error').animate([{ opacity: 0 }, { opacity: 1 }], MOTION.step);   // the failure card fades in
+  const slots = [...layer.querySelectorAll('.fr-slot')], look = s => { const c = getComputedStyle(s); return { backgroundColor: c.backgroundColor, borderColor: c.borderTopColor }; };
+  const plain = slots.map(look);
+  slots.forEach(s => s.classList.add('wrong'));
+  const wrong = slots.map(look);
+  slots.forEach((s, i) => s.animate([plain[i], wrong[i]], MOTION.step));   // the wrong guess flashes in the accent
+  setTimeout(() => {
+    if (fr.step !== 'confirm') return;
+    fr.picked = []; show('confirm'); $('#fr-error').hidden = false; $('#fr-error').focus();
+    layer.querySelectorAll('.fr-slot').forEach((s, i) => wrong[i] && s.animate([wrong[i], look(s)], MOTION.step));   // and fades back
+  }, 600);
 }
 
 const restoreWords = () => phraseWords(layer);
@@ -269,6 +293,13 @@ async function finish() {
     scripts = []; current = null; save(); renderScripts(); renderDoc(); $('#script-heading').textContent = '';
   }
   fr.secondDevice = false; fr.opened = null;
+  // The first run fades away over the app (RootView, easeInOut 0.4).
+  if (!layer.hidden) {
+    const copy = leavingCopy(layer, 'fr-leaving');
+    Object.assign(copy.style, { pointerEvents: 'none' });
+    layer.after(copy);
+    copy.animate([{ opacity: 1 }, { opacity: 0 }], MOTION.root).finished.then(() => copy.remove(), () => copy.remove());
+  }
   layer.hidden = true; layer.innerHTML = '';
   document.body.classList.remove('first-running');
 }

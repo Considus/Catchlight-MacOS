@@ -210,6 +210,8 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 
 /* ---------- editing a Take (KeyboardTakeEditor / EditorKeyboardBar on iOS) ---------- */
 .sidebar .timeline, .sidebar #pinned, .sidebar .page-heading, .sidebar .heading-date { transition: opacity .22s ease-in-out; }
+.sidebar .timeline, .sidebar .page-heading, .sidebar .heading-date { transition: opacity .2s ease-in-out; }   /* UIState.fanFade */
+@media (prefers-reduced-motion: reduce) { .sidebar .timeline, .sidebar .page-heading, .sidebar .heading-date { transition: none; } }
 .sidebar.editing .timeline { opacity: .14; pointer-events: none; }
 .sidebar.editing #pinned { visibility: hidden; }   /* the Obie never shows twice: for itself the editor is the card */
 .sidebar.editing .page-heading, .sidebar.editing .heading-date { opacity: .12; }
