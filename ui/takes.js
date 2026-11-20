@@ -1183,6 +1183,9 @@ async function exportLibrary() {
   if (!shell?.exportLibrary) return exportTakes(takes);
   try {
     await window.catchlightBridge.flush();
+    // A save that failed left an edit only the page holds: an export from the store would miss
+    // it, and Start over after it would lose it. Stop, and say not to start over.
+    if (window.catchlightBridge.unsaved()) throw new Error('an edit is not saved');
     await shell.exportLibrary(exportName());
   } catch (e) {
     console.error('Exporting the library failed', e);

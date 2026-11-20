@@ -56,8 +56,13 @@
   // read as one the user deleted (Greptile on #55).
   let scriptsGeneration = null;
   // Scripts sync when the shell says they do (SyncService.syncScriptsKey, on by default).
+  // Whether the last save of each list failed: the store then lacks an edit the page holds, so a
+  // whole-library export, which the shell writes from the store, would miss it (takes.js,
+  // exportLibrary). A later save of the same list sends the whole list, so its success clears it.
+  const saveFailed = { takes: false, scripts: false };
   const sendList = (kind, list) => (saves++, (kind === 'takes' || library.syncScripts) && syncSoon(), post('save', { kind, list, generation: kind === 'scripts' ? scriptsGeneration ?? library.generation : library.generation }))
     .then(r => {
+      saveFailed[kind] = false;
       if (kind === 'scripts') scriptsUnsaved = !!r?.rejected?.length;
       // Kept Scripts saved at last: take the library again now, so their snapshot is let go
       // before the Library drops it (it keeps eight) and refuses every save after (Claude review).
@@ -102,6 +107,7 @@
       }
     })
     .catch(e => {
+      saveFailed[kind] = true;
       if (kind === 'scripts') scriptsUnsaved = true;
       console.error(`Saving ${kind} failed`, e);
       // A refused save must never look saved: say so, with what to do. If another dialog is
@@ -237,6 +243,8 @@
     // The shell calls this as the app quits or the window closes: a Take being edited is saved
     // as a click outside it would save it, and the Script editor's pending (debounced) save goes
     // now. It answers once the shell has written everything sent before it.
+    // An edit the page holds that the store doesn't, because its save failed.
+    unsaved: () => saveFailed.takes || saveFailed.scripts,
     async flush() {
       if (typeof draft !== 'undefined' && draft) commitEdit();
       if (typeof script === 'function' && script()) save();

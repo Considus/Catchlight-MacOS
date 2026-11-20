@@ -11,10 +11,13 @@ final class StripsTests: XCTestCase {
     final class FakeShell: NSObject, WKScriptMessageHandlerWithReply {
         var queued: [String: [Any]] = [:]
         var fixed: [String: Any] = ["notificationStatus": "enabled", "conflicts": [Any]()]
+        /// Commands answered with an error, as a refused write is.
+        var failing: Set<String> = []
         private(set) var sent: [String] = []
         func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage, replyHandler: @escaping (Any?, String?) -> Void) {
             let cmd = (message.body as? [String: Any])?["cmd"] as? String ?? ""
             sent.append(cmd)
+            if failing.contains(cmd) { replyHandler(nil, "The disk is full"); return }
             if var q = queued[cmd], !q.isEmpty { replyHandler(q.removeFirst(), nil); queued[cmd] = q; return }
             replyHandler(fixed[cmd] ?? NSNull(), nil)
         }
@@ -383,5 +386,29 @@ final class StripsTests: XCTestCase {
             await new Promise(r => setTimeout(r, 200)); return 0;
             """, in: self)
         XCTAssertFalse(shell.sent.contains("exportLibrary"), "\(shell.sent)")
+    }
+
+    /// The export is written from what the shell stores, so after a save that failed (a full
+    /// disk) it would miss the latest edit, and Start over afterwards would lose it. It stops
+    /// instead, and says not to start over (Greptile on #126).
+    func testAFailedSaveStopsTheExport() throws {
+        let harness = page(takes: alerting, library: ", phraseMissing: true")
+        try settle(harness)
+        shell.failing = ["save"]
+        let said = try harness.run("""
+            takes[0].blocks[0].text = 'Edited'; saveTakes();
+            await new Promise(r => setTimeout(r, 200));
+            if (alertBox.open) [...alertBox.querySelectorAll('button')].find(b => b.textContent === 'OK').click();   // the refused-save box
+            await exportLibrary();
+            return alertBox.querySelector('p')?.textContent;
+            """, in: self) as? String
+        XCTAssertFalse(shell.sent.contains("exportLibrary"), "nothing exported: \(shell.sent)")
+        XCTAssertEqual(said, "Your Takes couldn't be read, so nothing was exported. Don't start over until an export works.")
+        shell.failing = []
+        _ = try harness.run("""
+            if (alertBox.open) [...alertBox.querySelectorAll('button')].find(b => b.textContent === 'OK').click();
+            saveTakes(); await new Promise(r => setTimeout(r, 200)); await exportLibrary(); return 0;
+            """, in: self)
+        XCTAssertTrue(shell.sent.contains("exportLibrary"), "once a save works again, so does the export")
     }
 }
