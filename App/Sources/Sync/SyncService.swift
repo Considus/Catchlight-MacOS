@@ -34,6 +34,16 @@ final class SyncService {
     }
     private var queue_ = ConflictQueue()
     private var queueLibrary: ObjectIdentifier?
+    /// The cached queue as it stands, read without rebuilding it (which `conflicts` does when the
+    /// library has changed). For checking what a relock leaves behind.
+    var cachedQueue: ConflictQueue { queue_ }
+
+    /// A relock closed the library: drops the queue built with its keys and its decrypted pending
+    /// copies now, rather than when something next reads `conflicts`.
+    func forgetLibrary() {
+        queue_ = ConflictQueue()
+        queueLibrary = nil
+    }
     private let defaults: UserDefaults
     private let queue = DispatchQueue(label: "com.considus.catchlight.mac.sync", qos: .utility)
     /// Main thread only.
@@ -87,6 +97,9 @@ final class SyncService {
     func cancel() {
         cancelLock.lock(); cancelled = true; cancelLock.unlock()
     }
+
+    /// Whether a stop has been asked of the pass (the relock asks as its fade starts).
+    var cancelRequested: Bool { isCancelled }
 
     private var isCancelled: Bool {
         cancelLock.lock(); defer { cancelLock.unlock() }
@@ -236,6 +249,8 @@ final class ConflictQueue {
     private let keys: KeyHierarchy?
 
     var count: Int { pending.count + unverified.count }
+    /// Whether this queue still holds a library's keys.
+    var holdsKeys: Bool { keys != nil }
 
     /// Takes whose waiting conflict file doesn't open: `<id>.conflict`, or one already set aside
     /// as `<id>.<uuid>.unreadable`. Each stays held, as on the iPhone, so a damaged file never

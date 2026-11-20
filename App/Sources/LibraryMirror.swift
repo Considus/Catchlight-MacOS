@@ -66,6 +66,17 @@ final class LibraryMirror {
         }
     }
 
+    /// For tests: whether the mirror holds the Takes it last read.
+    var holdsTakes: Bool { lastTakes != nil }
+
+    /// The library has closed (a relock): the decrypted Takes held for the next exposure change go,
+    /// and a background read already running is dropped when it ends, so it can't bring them back.
+    /// The reminders and the Spotlight index stay as they are, as on the iPhone.
+    func forgetTakes() {
+        generation += 1
+        lastTakes = nil
+    }
+
     /// The account was erased or replaced: every notification of ours and the whole Spotlight
     /// index go, as on the iPhone. The refresh the change schedules fills them from the new library.
     func accountWiped() {

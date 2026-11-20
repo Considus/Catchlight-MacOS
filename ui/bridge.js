@@ -265,6 +265,12 @@
       // permission was never asked, and otherwise opens System Settings; it answers the status after.
       notificationStatus: () => post('notificationStatus'),
       enableNotifications: () => post('enableNotifications'),
+      // The lock screen's Unlock button: the shell asks for the Mac's login (Touch ID or password)
+      // and opens the library again. It answers on success (the shell then reloads the page) and
+      // rejects with 'cancelled' or 'unopenable'.
+      unlock: () => post('unlock'),
+      // The Lock after setting, in seconds as Settings holds it (settings.js sends it at load and on every change).
+      setLockAfter: seconds => post('setLockAfter', { seconds }),
       ...(library && {
         // The phrase comes from Core (BIP-39 English, 12 different words), made before the page
         // loaded, and the shell checks one typed in against the list and its checksum.

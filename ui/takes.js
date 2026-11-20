@@ -843,10 +843,12 @@ const MOTION = {
   shape: { duration: 320, bezier: [0.65, 0, 0.35, 1] },
   reduced: { duration: 120, easing: 'ease-in-out' },
   mode: { duration: 200, easing: 'ease-in-out' },
+  lock: { duration: 200, easing: 'ease-in-out' },      // LockView: the message and the button's title change
 };
 // The old text fades out over the new as it fades in (DailiesView's `.id(headingTitle)` with
-// easeInOut 0.18). The fading copy is a picture: no id, hidden from the screen reader.
-function crossfadeText(el, text) {
+// easeInOut 0.18; the lock screen's words use 0.2). The fading copy is a picture: no id, hidden
+// from the screen reader.
+function crossfadeText(el, text, timing = MOTION.heading) {
   const ghost = el.isConnected && el.offsetParent && el.textContent ? el.cloneNode(true) : null;
   el.textContent = text;
   if (!ghost) return;
@@ -854,8 +856,8 @@ function crossfadeText(el, text) {
   ghost.classList.add('text-leaving');
   Object.assign(ghost.style, { position: 'absolute', margin: '0', left: el.offsetLeft + 'px', top: el.offsetTop + 'px', width: el.offsetWidth + 'px', pointerEvents: 'none' });
   el.after(ghost);
-  ghost.animate([{ opacity: 1 }, { opacity: 0 }], MOTION.heading).finished.then(() => ghost.remove(), () => ghost.remove());
-  el.animate([{ opacity: 0 }, { opacity: 1 }], MOTION.heading);
+  ghost.animate([{ opacity: 1 }, { opacity: 0 }], timing).finished.then(() => ghost.remove(), () => ghost.remove());
+  el.animate([{ opacity: 0 }, { opacity: 1 }], timing);
 }
 
 // Opening a Take from outside (Spotlight, a notification) pulses it in the accent once it is in

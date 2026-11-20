@@ -1,0 +1,277 @@
+import AppKit
+import CatchlightAppleStorage
+import CatchlightCore
+import CryptoKit
+import Security
+import WebKit
+import XCTest
+
+/// Locking crossfades from the notes to the lock screen (RootView: easeInOut 0.4, opacity), the
+/// notes staying readable only for the length of the fade and gone from the page and its memory
+/// once the library has closed.
+final class LockFadeTests: XCTestCase {
+    private final class RefusingSecrets: Secrets, @unchecked Sendable {
+        private let memory = MemorySecrets()
+        private let guarded = NSLock()
+        private var refusing = true
+        var refuse: Bool {
+            get { guarded.withLock { refusing } }
+            set { guarded.withLock { refusing = newValue } }
+        }
+        var hasAccount: Bool { memory.hasAccount }
+        func storePhrase(_ words: [String]) throws { try memory.storePhrase(words) }
+        func storeMasterKey(_ raw: Data) throws { try memory.storeMasterKey(raw) }
+        func masterKey(reason: String) throws -> SymmetricKey {
+            if refuse { throw KeychainError.retrieveFailed(errSecUserCanceled) }
+            return try memory.masterKey(reason: reason)
+        }
+        func phrase(reason: String) -> [String]? { memory.phrase(reason: reason) }
+        func deleteMasterKey() { memory.deleteMasterKey() }
+        func deleteAll() { memory.deleteAll() }
+    }
+
+    private var defaults: UserDefaults!
+    private var suite: String!
+    private var dir: URL!
+    private var vault: Vault!
+    private var controllers: [MainWindowController] = []
+    private let words = "Words only the notes hold"
+
+    override func setUpWithError() throws {
+        suite = "catchlight-lock-fade-\(UUID())"
+        defaults = UserDefaults(suiteName: suite)
+        dir = FileManager.default.temporaryDirectory.appendingPathComponent("catchlight-mac-lock-fade-\(UUID())/Catchlight")
+        vault = Vault(secrets: RefusingSecrets(), directory: dir)
+        try vault.createAccount(words: try Vault.newPhrase(), restored: true)
+        _ = try vault.library!.saveTakes([["id": UUID().uuidString, "at": "2026-07-01T09:00:00Z", "isNote": true,
+                                           "blocks": [["k": "text", "text": words]]]])
+    }
+
+    override func tearDown() {
+        controllers.forEach { $0.window?.close() }
+        controllers = []
+        defaults.removePersistentDomain(forName: suite)
+        try? FileManager.default.removeItem(at: dir.deletingLastPathComponent())
+    }
+
+    private func controller() -> MainWindowController {
+        let mirror = LibraryMirror(reminders: MacReminders(centre: FakeCentre()), spotlight: RecordingSpotlightIndexer(), defaults: defaults)
+        let made = MainWindowController(vault: vault, notifications: FakeCentre(), mirror: mirror, defaults: defaults,
+                                        uiRoot: WebViewHarness.repoUI, lock: AppLock(defaults: defaults))
+        made.webView.configuration.userContentController.addUserScript(WKUserScript(source: "localStorage.clear();", injectionTime: .atDocumentStart, forMainFrameOnly: true))
+        controllers.append(made)
+        made.window?.orderFront(nil)   // a page that is not on screen runs no animations
+        let deadline = Date().addingTimeInterval(30)
+        func loaded() -> Bool { !made.webView.isLoading && made.webView.url?.absoluteString == MainWindowController.startURL.absoluteString }
+        while !loaded() && Date() < deadline { RunLoop.current.run(until: Date().addingTimeInterval(0.02)) }
+        XCTAssertTrue(loaded(), "the page did not load")
+        return made
+    }
+
+    private func runInPage(_ controller: MainWindowController, _ body: String) -> Any? {
+        var outcome: Result<Any, Error>?
+        controller.webView.callAsyncJavaScript(body, arguments: [:], in: nil, in: .page) { outcome = $0 }
+        let deadline = Date().addingTimeInterval(20)
+        while outcome == nil && Date() < deadline { RunLoop.current.run(until: Date().addingTimeInterval(0.02)) }
+        return try? outcome?.get()
+    }
+
+    private func spin(until condition: () -> Bool, _ message: String, file: StaticString = #filePath, line: UInt = #line) {
+        let deadline = Date().addingTimeInterval(30)
+        while !condition() && Date() < deadline { RunLoop.current.run(until: Date().addingTimeInterval(0.02)) }
+        XCTAssertTrue(condition(), message, file: file, line: line)
+    }
+
+    private var isLocked: Bool { if case .locked = vault.state { return true } else { return false } }
+
+    private func relock(_ controller: MainWindowController) {
+        var done = false
+        controller.relock { done = true }
+        spin(until: { done }, "relock did not finish")
+    }
+
+    /// The page isn't painted on screen here, so no animation runs on its own (as the other look
+    /// tests do): the fade is ended by hand 150 ms after it starts, and the shell must wait for that.
+    /// The page's timer can run late on a slow runner: on CI it ran past the shell's 1 s timeout
+    /// ("relock page step timed out" in this test's log), the shell took the hung-page path and the
+    /// reload faded in again. These tests are about a fade that ends, so the timeout is out of the
+    /// way here; the tests of a hung or busy page set their own.
+    private func endTheFadeAfter150ms(_ live: MainWindowController) {
+        live.fadeTimeout = 30
+        _ = runInPage(live, """
+            const start = window.catchlightLockFade;
+            window.catchlightLockFade = () => {
+              const done = start();
+              setTimeout(() => document.getAnimations().forEach(a => a.finish()), 150);
+              return done;
+            };
+            return true;
+            """)
+    }
+
+    /// Waits for the reloaded page's lock screen. The old page has a `#lock` too (the fade's layer)
+    /// until the reload replaces it, so only a page opened on the locked library counts.
+    private func waitForTheReloadedLockScreen(_ live: MainWindowController, file: StaticString = #filePath, line: UInt = #line) {
+        spin(until: { self.runInPage(live, "return window.catchlightLibrary?.locked === true && !!document.querySelector('#lock');") as? Bool == true },
+             "the page does not show the lock screen", file: file, line: line)
+    }
+
+    /// The lock layer's animation in the page, as the page reports it.
+    private let lockAnimation = """
+        const a = document.getAnimations().find(a => a.effect?.target?.id === 'lock');
+        if (!a) return null;
+        const t = a.effect.getTiming();
+        return JSON.stringify({ duration: t.duration, easing: t.easing, state: a.playState });
+        """
+
+    func testTheLockFadesInOverTheNotesAndTheLibraryClosesAfterIt() throws {
+        let live = controller()
+        endTheFadeAfter150ms(live)
+        var seen: String?, notes: Bool?, open: Bool?, openMidFade: Bool?
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [unowned self] in openMidFade = self.vault.library != nil }
+        live.beforeRelockClose = { [unowned self] in
+            seen = self.runInPage(live, self.lockAnimation) as? String
+            notes = self.runInPage(live, "return document.body.innerText.includes('\(self.words)');") as? Bool
+            open = self.vault.library != nil
+        }
+
+        relock(live)
+
+        let shown = try XCTUnwrap(seen.flatMap { try? JSONSerialization.jsonObject(with: Data($0.utf8)) as? [String: Any] }, "no lock layer was animated before the library closed")
+        XCTAssertEqual(shown["duration"] as? Int, 400)
+        XCTAssertEqual(shown["easing"] as? String, "ease-in-out")
+        XCTAssertEqual(shown["state"] as? String, "finished", "the library closed before the fade ended")
+        XCTAssertEqual(notes, true, "the notes were not shown under the fade")
+        XCTAssertEqual(open, true, "the library closed during the fade")
+        XCTAssertEqual(openMidFade, true, "the library was closed while the fade was still running")
+        XCTAssertTrue(isLocked)
+    }
+
+    func testNothingDecryptedRemainsAndThePageReloaded() throws {
+        let live = controller()
+        _ = runInPage(live, "window.oldDocument = true; return true;")
+        endTheFadeAfter150ms(live)
+
+        relock(live)
+        waitForTheReloadedLockScreen(live)
+
+        XCTAssertEqual(runInPage(live, "return window.oldDocument === undefined;") as? Bool, true, "the old page was not reloaded")
+        XCTAssertEqual(runInPage(live, "return document.body.innerText.includes('\(words)');") as? Bool, false)
+        XCTAssertEqual(runInPage(live, "return JSON.stringify(window.catchlightLibrary).includes('\(words)');") as? Bool, false)
+        XCTAssertEqual(runInPage(live, "return document.documentElement.innerHTML.includes('\(words)');") as? Bool, false)
+    }
+
+    func testAFadedRelockReloadsOnTheLockScreenWithoutFadingItInAgain() throws {
+        let live = controller()
+        endTheFadeAfter150ms(live)
+        relock(live)
+        waitForTheReloadedLockScreen(live)
+        XCTAssertNil(runInPage(live, lockAnimation) as? String, "the lock screen faded in a second time")
+        XCTAssertFalse(live.bridge.justLocked, "the flag was not spent by the load")
+    }
+
+    func testAColdLoadOfTheLockScreenStillFadesIn() throws {
+        vault.lock()
+        let live = controller()
+        spin(until: { self.runInPage(live, "return !!document.querySelector('#lock');") as? Bool == true }, "the page does not show the lock screen")
+        let shown = runInPage(live, lockAnimation) as? String
+        XCTAssertNotNil(shown, "a cold launch does not fade the lock screen in")
+    }
+
+    func testAPageThatNeverAnswersTheFadeStillLocksWithinTheTimeout() throws {
+        let live = controller()
+        live.fadeTimeout = 0.5
+        _ = runInPage(live, "window.hung = new Promise(() => {}); window.catchlightLockFade = () => window.hung; return true;")
+        let started = Date()
+
+        relock(live)
+
+        XCTAssertTrue(isLocked)
+        let took = Date().timeIntervalSince(started)
+        XCTAssertGreaterThanOrEqual(took, 0.5, "it did not wait for the fade")
+        XCTAssertLessThan(took, 4, "it waited past the timeout")
+    }
+
+    func testTheScreenLockingDoesNotWaitForAFade() throws {
+        let live = controller()
+        live.fadeTimeout = 20
+        _ = runInPage(live, "window.hung = new Promise(() => {}); window.catchlightLockFade = () => window.hung; return true;")
+        let started = Date()
+
+        live.screenDidLock(Notification(name: MainWindowController.screenLockedNotification))
+        spin(until: { self.isLocked }, "the screen locking did not lock the library")
+
+        XCTAssertLessThan(Date().timeIntervalSince(started), 5, "the screen lock waited for the fade")
+    }
+
+    // MARK: Review of the fade
+
+    /// A page stuck in a long script when the relock asks it to stop taking input must not keep the
+    /// library open: the one timeout covers the inert call and the fade together.
+    func testAPageBusyInTheInertCallStillLocksWithinTheTimeout() throws {
+        let live = controller()
+        live.fadeTimeout = 0.5
+        _ = runInPage(live, "window.catchlightRelocking = () => { const t = Date.now(); while (Date.now() - t < 3000); }; return true;")
+        var lockedAtCheck: Bool?
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) { lockedAtCheck = self.isLocked }
+
+        relock(live)
+        spin(until: { lockedAtCheck != nil }, "the check did not run")
+
+        XCTAssertEqual(lockedAtCheck, true, "the library was still open well past the timeout")
+    }
+
+    /// The pass is asked to stop as the fade starts, so the close waits only for the fade, not for
+    /// the fade and then the pass winding down.
+    func testTheSyncIsAskedToStopWhenTheFadeStarts() throws {
+        let live = controller()
+        let folder = SyncFolder(defaults: defaults)
+        let cloud = dir.deletingLastPathComponent().appendingPathComponent("Cloud", isDirectory: true)
+        try FileManager.default.createDirectory(at: cloud, withIntermediateDirectories: true)
+        folder.pick = { _, done in done(cloud) }
+        folder.choose(in: nil) { _ in }
+        let sync = SyncService(vault: vault, folder: folder, defaults: defaults)
+        live.bridge.sync = sync
+        live.fadeTimeout = 5
+        _ = runInPage(live, "window.catchlightLockFade = () => new Promise(r => setTimeout(() => r(true), 1000)); return true;")
+        var cancelledMidFade: Bool?
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) { cancelledMidFade = sync.cancelRequested }
+
+        relock(live)
+
+        XCTAssertEqual(cancelledMidFade, true, "the pass was not asked to stop until the fade had ended")
+    }
+
+    /// Two relocks back to back are one: the page reloads once, and what the first one's end
+    /// leaves (here a failure that arrived) is not wiped by a second close.
+    func testASecondRelockDuringARelockIsOneRelock() throws {
+        let live = controller()
+        var loads = 0
+        let watch = live.webView.observe(\.isLoading, options: [.new]) { _, change in if change.newValue == true { loads += 1 } }
+        defer { watch.invalidate() }
+        var first = false, second = false
+        live.relock {
+            first = true
+            live.bridge.lockFailure = "cancelled"   // a failure arriving as the first relock ends
+        }
+        live.relock { second = true }
+        spin(until: { first && second }, "the relocks did not finish")
+        waitForTheReloadedLockScreen(live)
+        RunLoop.current.run(until: Date().addingTimeInterval(1.5))   // a second reload would show by now
+
+        XCTAssertEqual(loads, 1, "the page reloaded more than once")
+        XCTAssertEqual(live.bridge.lockFailure, "cancelled", "the second relock wiped a failure")
+    }
+
+    /// Between the save and the close the menu offers no Take command (⌘N included).
+    func testTheMenuOffersNoTakeCommandOnceTheRelockHasSaved() throws {
+        let live = controller()
+        let newTake = "const m = catchlightMenu.model().flatMap(g => g.items || []).find(i => i.id === 'newTake'); return m && m.enabled;"
+        XCTAssertEqual(runInPage(live, newTake) as? Bool, true, "New Take is not offered before the relock, or the test proves nothing")
+
+        _ = runInPage(live, "catchlightRelocking(); return true;")
+
+        XCTAssertEqual(runInPage(live, newTake) as? Bool, false, "New Take is still offered after the relock's save")
+        XCTAssertEqual(runInPage(live, "return catchlightMenu.run('newTake');") as? Bool, false, "New Take still runs")
+    }
+}

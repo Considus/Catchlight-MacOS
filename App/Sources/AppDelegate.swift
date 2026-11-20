@@ -17,8 +17,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Set before anything else: a notification that launched the app is delivered once this is set.
         UNUserNotificationCenter.current().delegate = self
-        guard let vault = unlockedVault() else { NSApp.terminate(nil); return }
-        let controller = MainWindowController(vault: vault)
+        guard let (vault, lockFailure) = unlockedVault() else { NSApp.terminate(nil); return }
+        let controller = MainWindowController(vault: vault, lock: AppLock(defaults: .standard))
+        if let lockFailure {
+            // Before the page loads (it waits for the web-address block): it opens on Try Again.
+            controller.bridge.lockFailure = lockFailure
+            controller.bridge.refreshUserScripts(in: controller.webView.configuration.userContentController)
+        }
         controller.showWindow(nil)
         windowController = controller
         NSApp.activate(ignoringOtherApps: true)
@@ -58,11 +63,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     }
 
     /// The account's library, opened before the window loads so the page starts with its Takes.
-    /// Opening asks for the user (Touch ID or the login password) when there is an account; a
-    /// cancelled or failed unlock offers another try or Quit, and nothing is shown until then.
-    private func unlockedVault() -> Vault? {
+    /// Opening asks for the user (Touch ID or the login password) once, when there is an account.
+    /// A cancelled or failed unlock still opens the window, locked, with why (`"cancelled"` or
+    /// `"unopenable"`) for its lock screen, which offers Try Again.
+    private func unlockedVault() -> (vault: Vault, lockFailure: String?)? {
         #if DEBUG
-        if let vault = DebugLaunch.vault() { return vault }
+        if let vault = DebugLaunch.vault() { return (vault, nil) }
         #endif
         let vault: Vault
         do {
@@ -71,25 +77,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
             Self.log.fault("no Application Support folder: \(String(describing: error), privacy: .public)")
             return nil
         }
-        while true {
-            do {
-                try vault.start()
-                return vault
-            } catch {
-                Self.log.error("start failed: \(String(describing: error), privacy: .public)")
-                let alert = NSAlert()
-                if error is KeychainError {
-                    alert.messageText = String(localized: "Catchlight is locked")
-                    alert.informativeText = String(localized: "Your Takes stay encrypted until you unlock them with Touch ID or your Mac's password.")
-                } else {
-                    // Unlocked, but the library didn't open: say so, with what to report.
-                    alert.messageText = String(localized: "Catchlight couldn't open your Takes")
-                    alert.informativeText = String(localized: "Nothing has been changed or deleted. If trying again doesn't help, report it with this detail: \(String(describing: error))")
-                }
-                alert.addButton(withTitle: String(localized: "Try Again"))
-                alert.addButton(withTitle: String(localized: "Quit"))
-                if alert.runModal() != .alertFirstButtonReturn { return nil }
-            }
+        do {
+            try vault.start()
+            return (vault, nil)
+        } catch {
+            Self.log.error("start failed: \(String(describing: error), privacy: .public)")
+            return (vault, error is KeychainError ? "cancelled" : "unopenable")
         }
     }
 

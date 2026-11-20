@@ -144,10 +144,10 @@ final class LocalisationTests: XCTestCase {
         let de = try XCTUnwrap(bundle.path(forResource: "de", ofType: "lproj").flatMap(Bundle.init(path:)), "no de.lproj built")
         let url = WebViewHarness.repoUI.deletingLastPathComponent().appendingPathComponent("App/Resources/Localizable.xcstrings")
         let root = try XCTUnwrap(try JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
-        let entry = try XCTUnwrap((root["strings"] as? [String: Any])?["Catchlight is locked"] as? [String: Any])
+        let entry = try XCTUnwrap((root["strings"] as? [String: Any])?["unlock your Takes"] as? [String: Any])
         let german = try XCTUnwrap(((entry["localizations"] as? [String: Any])?["de"] as? [String: Any]).flatMap { ($0["stringUnit"] as? [String: Any])?["value"] as? String })
-        XCTAssertEqual(String(localized: "Catchlight is locked", bundle: de), german)
-        XCTAssertNotEqual(german, "Catchlight is locked")
+        XCTAssertEqual(String(localized: "unlock your Takes", bundle: de), german)
+        XCTAssertNotEqual(german, "unlock your Takes")
         XCTAssertTrue(bundle.localizations.contains(ShellBridge.language(from: bundle)), bundle.localizations.description)
     }
 

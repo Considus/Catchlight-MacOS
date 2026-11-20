@@ -1,6 +1,8 @@
 import AppKit
 import WebKit
+import CatchlightAppleStorage
 import CatchlightCore
+import CryptoKit
 import UserNotifications
 import os
 
@@ -24,18 +26,46 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
     private let defaults: UserDefaults
     private let uiRoot: URL?
     private(set) lazy var takeOpener = TakeOpener { [weak self] id, reply in self?.callPage("catchlightOpenTake", id, completion: reply) }
+    /// The away timer behind Settings ▸ Lock after. Nil in tests that don't lock, and then
+    /// nothing locks on its own.
+    private let lock: AppLock?
+    /// Who is waiting on the unlock that is running; empty when none is.
+    private var unlockReplies: [(String?) -> Void] = []
+    /// Moved on by every relock (the screen lock's too): an unlock whose prompt was up across one
+    /// answers for a lock that has been overtaken, so its key is not used.
+    private var unlockGeneration = 0
+    /// A Take clicked while locked or relocking, opened after the next unlock (the iPhone's pending reveal).
+    private var takeHeldWhileLocked: UUID?
+    /// From the start of a relock until the library has closed: a click then is held too.
+    private var relocking = false
+    /// Completions of relocks asked for while one was running.
+    private var relockWaiters: [() -> Void] = []
+    /// Posted to every app as the Mac's screen locks.
+    static let screenLockedNotification = Notification.Name("com.apple.screenIsLocked")
+
+    /// Posted to every app as the Mac's screen unlocks.
+    static let screenUnlockedNotification = Notification.Name("com.apple.screenIsUnlocked")
+    /// For tests: whether the app is the active one (the app's own is `NSApp.isActive`).
+    var isAppActive: () -> Bool = { NSApp.isActive }
+    /// For tests: how long a relock waits for the page's lock fade before carrying on (a hung page must not keep the library open).
+    var fadeTimeout: TimeInterval = 1
+    /// For tests: runs in a relock after the page has saved, just before the library closes.
+    var beforeRelockClose: (() -> Void)?
 
     /// `vault` is nil only in tests that load the page without a library; the page then keeps
     /// the browser prototype's localStorage behaviour.
     /// `notifications`, `mirror`, `defaults` and `uiRoot` are the app's own except in tests, which
     /// have no notification centre to ask, and serve the repo's `ui/` rather than a bundle's.
+    /// `lock` is the app's away timer; tests pass one with their own clock.
     init(vault: Vault?,
          notifications: NotificationCentre = UNUserNotificationCenter.current(),
          mirror: LibraryMirror? = nil,
          defaults: UserDefaults = .standard,
-         uiRoot: URL? = nil) {
+         uiRoot: URL? = nil,
+         lock: AppLock? = nil) {
         self.defaults = defaults
         self.uiRoot = uiRoot
+        self.lock = lock
         bridge.defaults = defaults
         bridge.vault = vault
         var syncDefaults = UserDefaults.standard
@@ -82,7 +112,9 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
         bridge.window = window
         bridge.writingToolsChanged = { [weak self] in self?.rebuildWebView() }
         bridge.libraryChanged = { [weak self] in self?.mirrorLibrary(inBackground: true) }
+        bridge.unlock = { [weak self] reply in self?.unlock(reply) }
         wireMenu()
+        observeLockTriggers()
         #if DEBUG
         DebugLaunch.attach(to: self)
         #endif
@@ -156,6 +188,10 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
 
+    deinit {
+        DistributedNotificationCenter.default().removeObserver(self)
+    }
+
     override func showWindow(_ sender: Any?) {
         super.showWindow(sender)
         if UserDefaults.standard.bool(forKey: Self.fullScreenKey), let window, !window.styleMask.contains(.fullScreen) {
@@ -169,7 +205,213 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
         showWindow(nil)
         window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+        if case .locked = bridge.vault?.state {
+            takeHeldWhileLocked = id
+            return
+        }
+        if relocking {
+            takeHeldWhileLocked = id
+            return
+        }
         takeOpener.open(id)
+    }
+
+    // MARK: Lock
+
+    // As the iPhone's RootView: going away starts the timer; coming back relocks after Settings ▸
+    // Lock after and then asks for the user at once if the library is locked; the screen locking
+    // relocks straight away (AppModel's device-lock relock).
+    private func observeLockTriggers() {
+        guard lock != nil else { return }
+        let centre = NotificationCenter.default
+        centre.addObserver(self, selector: #selector(appWentAway(_:)), name: NSApplication.didResignActiveNotification, object: nil)
+        centre.addObserver(self, selector: #selector(appCameBack(_:)), name: NSApplication.didBecomeActiveNotification, object: nil)
+        DistributedNotificationCenter.default().addObserver(self, selector: #selector(screenDidLock(_:)), name: Self.screenLockedNotification, object: nil)
+        DistributedNotificationCenter.default().addObserver(self, selector: #selector(screenDidUnlock(_:)), name: Self.screenUnlockedNotification, object: nil)
+    }
+
+    /// The login prompt makes the app inactive while it is up: that is not time away.
+    @objc private func appWentAway(_ notification: Notification) {
+        guard unlockReplies.isEmpty else { return }
+        lock?.noteWentAway()
+    }
+
+    @objc private func appCameBack(_ notification: Notification) {
+        guard let lock else { return }
+        if lock.shouldLockOnReturn() {
+            relock { [weak self] in self?.unlockOnReturn() }
+        } else {
+            unlockOnReturn()
+        }
+    }
+
+    @objc func screenDidLock(_ notification: Notification) {
+        relock(fade: false)   // nobody can see a fade now
+    }
+
+    /// The Mac's screen unlocking with Catchlight in front: ask for the user as the iPhone does when
+    /// it comes back, unless the library is open, a failure is showing or an unlock is running.
+    @objc func screenDidUnlock(_ notification: Notification) {
+        guard isAppActive() else { return }
+        unlockOnReturn()
+    }
+
+    /// The iPhone asks on return whenever the library is locked, unless a failure is showing
+    /// (then Try Again asks) or an unlock is already running. The lock screen shows it is asking,
+    /// as the iPhone's does (a page still loading is told once it has, in `didFinish`). A failure
+    /// reloads the page so it opens on Try Again; a success has reloaded it already.
+    private func unlockOnReturn() {
+        guard case .locked = bridge.vault?.state, bridge.lockFailure == nil, unlockReplies.isEmpty else { return }
+        showUnlocking()
+        unlock { [weak self] failure in
+            if failure != nil { self?.reloadPage() }
+        }
+    }
+
+    /// Closes the library, as the iPhone's `relock`: the page saves what is open first, while the
+    /// library still is, then the library closes and the page loads again as the lock screen.
+    /// A sync pass started after the save (the old page can still start one) is stopped and waited
+    /// for, so none runs on with the closed library's keys. A Take clicked on the way, or waiting
+    /// for the page to load, is held for the next unlock. Does nothing unless the library is open.
+    func relock(fade: Bool = true, completion: (() -> Void)? = nil) {
+        unlockGeneration += 1   // an unlock still asking, even of a library already locked, is overtaken
+        // A second relock while one runs is that one: it only waits for its end.
+        if relocking {
+            if let completion { relockWaiters.append(completion) }
+            return
+        }
+        guard bridge.vault?.library != nil else { completion?(); return }
+        relocking = true
+        var faded = false
+        let finished = { [weak self] in
+            completion?()
+            guard let self else { return }
+            let waiters = self.relockWaiters
+            self.relockWaiters = []
+            waiters.forEach { $0() }
+        }
+        flushPage { [weak self] in
+            guard let self, let vault = self.bridge.vault else { self?.relocking = false; finished(); return }
+            let close = { [weak self] in
+                guard let self else { finished(); return }
+                self.beforeRelockClose?()
+                vault.lock()
+                self.libraryMirror?.forgetTakes()
+                self.bridge.justLocked = faded
+                self.bridge.sync?.forgetLibrary()
+                self.relocking = false
+                self.bridge.lockFailure = nil
+                // A click held during the relock is newer than one still waiting for the page.
+                let waiting = self.takeOpener.withdrawWaiting()
+                if self.takeHeldWhileLocked == nil { self.takeHeldWhileLocked = waiting }
+                self.reloadPage()
+                finished()
+            }
+            // The page has saved: from here it takes no input, so nothing typed is lost to the
+            // closing library, and no save is refused as "locked" (`catchlightRelocking`, ui/lock.js).
+            // A pass still running is asked to stop now, so its wind-down overlaps the fade.
+            self.bridge.sync?.cancel()
+            self.settlePage(fade: fade) { ended in
+                faded = ended && fade
+                if let sync = self.bridge.sync {
+                    // Again: a pass the old page started during the fade resets the stop at its start.
+                    sync.cancel()
+                    sync.whenIdle(close)
+                } else {
+                    close()
+                }
+            }
+        }
+    }
+
+    /// One call to the page for the whole of the relock's visible part: it stops taking input
+    /// (`catchlightRelocking`) and, unless nobody can see it, the lock screen fades in over the
+    /// notes (`catchlightLockFade`, ui/lock.js). One timeout covers both, so a page that is busy or
+    /// never answers can't keep the library open. Answers `true` when the fade ended.
+    private func settlePage(fade: Bool, _ done: @escaping (Bool) -> Void) {
+        var answered = false
+        let answer = { (ended: Bool) in
+            guard !answered else { return }
+            answered = true
+            done(ended)
+        }
+        let script = "window.catchlightRelocking?.(); return \(fade ? "(await window.catchlightLockFade?.()) === true" : "false");"
+        webView.callAsyncJavaScript(script, arguments: [:], in: nil, in: .page) { result in
+            if case .failure(let error) = result { Self.log.error("relock page step failed: \(String(describing: error), privacy: .public)") }
+            answer((try? result.get()) as? Bool == true)
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + fadeTimeout) {
+            if !answered { Self.log.error("relock page step timed out; closing anyway") }
+            answer(false)
+        }
+    }
+
+    /// The lock screen's Unlock and Try Again, and the ask on return: opens the library and
+    /// answers nil, else `"cancelled"` for any key error (a cancelled or refused prompt, or a key
+    /// gone: the iPhone says "Couldn't unlock" for all of them, and the vault stays locked rather
+    /// than offer first run) or `"unopenable"` when the key reads but the library won't open.
+    /// Only the prompt (`Vault.readKey`, which blocks) runs off the main thread, as the iPhone's
+    /// runs off the main actor; the library opens on main, where the vault is only ever changed.
+    /// A second ask while one runs waits for the same answer.
+    func unlock(_ reply: @escaping (String?) -> Void) {
+        guard let vault = bridge.vault, case .locked = vault.state else { return reply(nil) }
+        unlockReplies.append(reply)
+        guard unlockReplies.count == 1 else { return }
+        let generation = unlockGeneration
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            let key = Result { try vault.readKey() }
+            DispatchQueue.main.async { self?.finishUnlock(vault, key, generation: generation) }
+        }
+    }
+
+    private func finishUnlock(_ vault: Vault, _ key: Result<SymmetricKey, Error>, generation: Int) {
+        // The screen locked (or a relock ran) while the prompt was up: that answer is not for the
+        // lock showing now. The library stays locked and the page shows the plain lock screen, as
+        // a lock that nobody has tried to open yet.
+        guard generation == unlockGeneration else {
+            Self.log.info("an unlock overtaken by a lock was set aside")
+            bridge.lockFailure = nil
+            reloadPage()
+            let replies = unlockReplies
+            unlockReplies = []
+            replies.forEach { $0("cancelled") }
+            return
+        }
+        let failure: String?
+        do {
+            try vault.open(with: key.get())
+            failure = nil
+        } catch {
+            Self.log.error("start failed: \(String(describing: error), privacy: .public)")
+            failure = error is KeychainError ? "cancelled" : "unopenable"
+        }
+        bridge.lockFailure = failure
+        if failure == nil {
+            lock?.forgetWentAway()
+            bridge.justUnlocked = true
+            reloadPage()
+            mirrorLibrary(inBackground: true)
+            if let id = takeHeldWhileLocked {
+                takeHeldWhileLocked = nil
+                takeOpener.open(id)
+            }
+        }
+        let replies = unlockReplies
+        unlockReplies = []
+        replies.forEach { $0(failure) }
+    }
+
+    /// Puts the lock screen into its unlocking state (`catchlightLockUnlocking`, ui/lock.js).
+    private func showUnlocking() {
+        webView.evaluateJavaScript("window.catchlightLockUnlocking?.()")
+    }
+
+    /// Loads the page again on the library as it is now (locked or open): the scripts are
+    /// rebuilt first, and a Take waiting to open waits for the new page.
+    private func reloadPage() {
+        takeOpener.pageDidUnload()
+        bridge.refreshUserScripts(in: webView.configuration.userContentController)
+        webView.reload()
     }
 
     // MARK: Menu
@@ -306,6 +548,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
         if window?.styleMask.contains(.fullScreen) == true { markFullScreen(true) }
         // Only the app's own page: the error page and a failed load have no catchlightOpenTake.
         if webView.url?.absoluteString == Self.startURL.absoluteString { takeOpener.pageDidLoad() }
+        // A lock screen loaded while the shell is asking shows that it is.
+        if !unlockReplies.isEmpty { showUnlocking() }
         #if DEBUG
         DebugLaunch.pageDidLoad(webView)
         #endif

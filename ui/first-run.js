@@ -373,8 +373,9 @@ function wirePhraseEntry(root, changed, submit) {
 }
 wirePhraseEntry(layer, () => paintRestoreStatus(), () => { if (!layer.querySelector('[data-fr="do-restore"]').disabled) doRestore(); });
 
-// Runs once, until an account exists. `?first-run` replays it.
-if (!store.get('account', null) || new URLSearchParams(location.search).has('first-run')) {
+// Runs once, until an account exists. `?first-run` replays it. Never over the lock screen: a
+// locked library belongs to an account, and a Take made before the unlock would be lost.
+if (!window.catchlightLibrary?.locked && (!store.get('account', null) || new URLSearchParams(location.search).has('first-run'))) {
   layer.hidden = false;
   document.body.classList.add('first-running');
   show('splash');
