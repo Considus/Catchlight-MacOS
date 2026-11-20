@@ -89,10 +89,15 @@ final class MotionMoreTests: XCTestCase {
             const during = { hidden: banner.hidden, ghostHidden: ghost?.getAttribute('aria-hidden'), ghostText: ghost?.textContent ?? '', review: document.querySelectorAll('[data-cf="review"]:not([inert] *)').length };
             ghost?.getAnimations().forEach(a => a.finish());
             await new Promise(f => setTimeout(f, 20));
-            return { come: come ? [come.frames[0].opacity, come.frames[0].height, come.frames[1].opacity, come.frames[1].height, come.options.duration, come.options.easing] : null, full,
+            return { still: still.matches, keys: come ? Object.keys(come.frames[0]).sort() : [], come: come ? [come.frames[0].opacity, come.frames[0].height, come.frames[1].opacity, come.frames[1].height, come.options.duration, come.options.easing] : null, full,
               go: go ? [go.frames[0].opacity, go.frames[1].opacity, go.frames[1].height, go.options.duration] : null, during, gone: !document.querySelector('.conflict-banner-leaving') };
             """)
         let come = try XCTUnwrap(r["come"] as? [Any], "the banner animates in: \(r)")
+        if r["still"] as? Bool == true {   // Reduce Motion: a fade alone, nothing moves
+            XCTAssertEqual(r["keys"] as? [String], ["opacity"], "\(r)"); XCTAssertEqual(come[4] as? Double, 120)
+            let go = try XCTUnwrap(r["go"] as? [Any], "\(r)"); XCTAssertEqual(go[1] as? Double, 0); XCTAssertNil(go[2] as? String)
+            XCTAssertEqual(r["gone"] as? Bool, true); return
+        }
         XCTAssertEqual(come[0] as? Double, 0); XCTAssertEqual(come[1] as? String, "0px")
         XCTAssertEqual(come[2] as? Double, 1); XCTAssertEqual(come[3] as? String, r["full"] as? String)
         XCTAssertEqual(come[4] as? Double, 200); XCTAssertEqual(come[5] as? String, "ease-in-out")

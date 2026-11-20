@@ -101,8 +101,15 @@ function paintConflicts() {
 }
 
 // The banner fades in and out over 0.2 s while the list below moves to make room (DailiesView's
-// top strips, easeInOut 0.2). Going, it is hidden at once and a copy of it folds away.
+// top strips, easeInOut 0.2). Going, it is hidden at once and a copy of it folds away. With
+// Reduce Motion it only fades, and the list takes its new place at once.
 function bannerFold(el, coming) {
+  if (still.matches) {
+    if (!coming) { el.style.position = 'absolute'; el.style.width = el.offsetWidth + 'px'; }   // out of the flow: nothing below moves
+    el.animate(coming ? [{ opacity: 0 }, { opacity: 1 }] : [{ opacity: 1 }, { opacity: 0 }], MOTION.reduced).finished
+      .then(() => { if (!coming) el.remove(); }, () => { if (!coming) el.remove(); });
+    return;
+  }
   const cs = getComputedStyle(el), full = { opacity: 1, height: cs.height, marginBottom: cs.marginBottom, paddingTop: cs.paddingTop, paddingBottom: cs.paddingBottom, borderTopWidth: cs.borderTopWidth, borderBottomWidth: cs.borderBottomWidth };
   const none = { opacity: 0, height: '0px', marginBottom: '0px', paddingTop: '0px', paddingBottom: '0px', borderTopWidth: '0px', borderBottomWidth: '0px' };
   el.style.overflow = 'hidden';
