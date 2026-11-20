@@ -110,6 +110,7 @@
     "%lld Takes changed on another device.": {"one": "%lld Take changed on another device.", "other": "%lld Takes changed on another device."},
     "%lld Takes couldn't be verified and need a choice.": {"one": "%lld Take couldn't be verified and needs a choice.", "other": "%lld Takes couldn't be verified and need a choice."},
     "%lld Takes couldn't be verified and were skipped.": {"one": "%lld Take couldn't be verified and was skipped.", "other": "%lld Takes couldn't be verified and were skipped."},
+    "%lld Takes need a decision.": {"one": "%lld Take needs a decision.", "other": "%lld Takes need a decision."},
     "%lld Takes not re-uploaded. This device was away too long to rule out deletion elsewhere. Edit a Take to sync it again.": {"one": "%lld Take not re-uploaded. This device was away too long to rule out deletion elsewhere. Edit a Take to sync it again.", "other": "%lld Takes not re-uploaded. This device was away too long to rule out deletion elsewhere. Edit a Take to sync it again."},
     "%lld Takes weren't changed": {"one": "%lld Take wasn't changed", "other": "%lld Takes weren't changed"},
     "%lld notes couldn't be saved. Import again to try them, and if it keeps happening, report it.": {"one": "%lld note couldn't be saved. Import again to try it, and if it keeps happening, report it.", "other": "%lld notes couldn't be saved. Import again to try them, and if it keeps happening, report it."},

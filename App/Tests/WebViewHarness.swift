@@ -7,8 +7,11 @@ final class WebViewHarness: NSObject, WKNavigationDelegate {
     let webView: WKWebView
     private var loaded: XCTestExpectation?   // fulfilled by didFinish; a failed load times out and is retried
 
-    init(root: URL, ruleList: WKContentRuleList?) {
+    /// `privateStorage`: the page gets storage of its own, which no other test's page reads, writes
+    /// or clears (every other harness shares the default store, and many clear it as they load).
+    init(root: URL, ruleList: WKContentRuleList?, privateStorage: Bool = false) {
         let configuration = WKWebViewConfiguration()
+        if privateStorage { configuration.websiteDataStore = .nonPersistent() }
         configuration.setURLSchemeHandler(UIResourceSchemeHandler(root: root), forURLScheme: UIResourceSchemeHandler.scheme)
         configuration.preferences.isFraudulentWebsiteWarningEnabled = false
         if let ruleList { configuration.userContentController.add(ruleList) }
