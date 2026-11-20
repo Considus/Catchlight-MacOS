@@ -59,7 +59,16 @@ function shotChanged(focusIndex) {
   if (!isTask(draft)) { closeShotList(); return; }
   paintShotList(focusIndex);
 }
-function tick(i) { const b = draft.blocks[i]; b.done = !b.done; shotChanged(i); }
+// The box and the text change over 0.15 s (ShotListView.toggle; none with Reduce Motion).
+function tick(i) {
+  const b = draft.blocks[i], text = () => slRows.querySelector(`.sl-item[data-i="${i}"] .sl-text`);
+  const from = text() && getComputedStyle(text()).color;
+  b.done = !b.done; shotChanged(i);
+  const now = text();
+  if (still.matches || !now || !from) return;
+  now.closest('.sl-row').querySelector('.sl-box').animate([{ opacity: 0 }, { opacity: 1 }], { ...MOTION.tick, pseudoElement: '::before' });
+  now.animate([{ color: from }, { color: getComputedStyle(now).color }], MOTION.tick);
+}
 function removeItem(i) { draft.blocks.splice(i, 1); shotChanged(); }
 function moveBlock(i, to) {
   if (to < 0 || to >= draft.blocks.length) return;
@@ -220,9 +229,14 @@ function endShotDrag(e) {
   if (!d.started) return;
   const from = +d.item.dataset.i;
   const to = [...slRows.children].filter(r => r !== d.item).indexOf(d.gap);
+  const lifted = d.item.getBoundingClientRect().top;
   d.gap.remove(); d.item.style.cssText = ''; d.item.classList.remove('lifted'); slRows.classList.remove('reordering');
-  if (to === from) { paintShotList(); return; }   // dropped where it began: nothing changes
-  moveBlock(from, to);
+  if (to === from) paintShotList();   // dropped where it began: nothing changes
+  else moveBlock(from, to);
+  // It settles from where it was let go into its slot (ShotListView.endReorder, easeInOut 0.18).
+  const landed = slRows.children[to];
+  const dy = landed ? lifted - landed.getBoundingClientRect().top : 0;
+  if (dy && !still.matches) landed.animate([{ transform: `translateY(${dy}px)` }, { transform: 'none' }], MOTION.settle);
 }
 slRows.addEventListener('pointerup', endShotDrag);
 slRows.addEventListener('pointercancel', endShotDrag);

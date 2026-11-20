@@ -89,12 +89,31 @@ const conflictsOf = list => ({ pairs: list.filter(c => !c.unverified), unverifie
 
 function paintConflicts() {
   const n = conflictList.length;
+  const was = !conflictBanner.hidden;
+  if (was && n === 0) bannerLeaves();
   conflictBanner.hidden = n === 0;
   const kinds = conflictKinds(conflictList);
   const said = kinds === 'both' ? t('%lld Takes and Scripts changed on another device.', n)
     : kinds === 'scripts' ? t('%lld Scripts changed on another device.', n) : t('%lld Takes changed on another device.', n);
   conflictBanner.innerHTML = n ? `<span>${esc(said)}</span><button class="slink" type="button" data-cf="review">${t('Review')}</button>` : '';
+  if (!was && n) bannerFold(conflictBanner, true);
   if (conflictSheet.open) paintConflictSheet();
+}
+
+// The banner fades in and out over 0.2 s while the list below moves to make room (DailiesView's
+// top strips, easeInOut 0.2). Going, it is hidden at once and a copy of it folds away.
+function bannerFold(el, coming) {
+  const cs = getComputedStyle(el), full = { opacity: 1, height: cs.height, marginBottom: cs.marginBottom, paddingTop: cs.paddingTop, paddingBottom: cs.paddingBottom, borderTopWidth: cs.borderTopWidth, borderBottomWidth: cs.borderBottomWidth };
+  const none = { opacity: 0, height: '0px', marginBottom: '0px', paddingTop: '0px', paddingBottom: '0px', borderTopWidth: '0px', borderBottomWidth: '0px' };
+  el.style.overflow = 'hidden';
+  const run = el.animate(coming ? [none, full] : [full, none], MOTION.mode);
+  run.finished.then(() => { el.style.overflow = ''; if (!coming) el.remove(); }, () => { if (!coming) el.remove(); });
+}
+function bannerLeaves() {
+  const ghost = conflictBanner.cloneNode(true);
+  ghost.className = 'conflict-banner-leaving'; ghost.setAttribute('aria-hidden', 'true'); ghost.inert = true;
+  conflictBanner.before(ghost);
+  bannerFold(ghost, false);
 }
 
 function paintConflictSheet() {
