@@ -82,6 +82,14 @@ final class Vault {
         return state
     }
 
+    /// Closes the open library and forgets the master key in memory; `start()` reopens it.
+    /// Does nothing unless the library is open.
+    func lock() {
+        guard case .open = state else { return }
+        state = .locked
+        openKey = nil
+    }
+
     // MARK: First run
 
     static func englishBIP39() throws -> BIP39 { BIP39(wordlist: try EnglishWordlist.load()) }
