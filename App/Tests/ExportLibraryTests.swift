@@ -120,7 +120,7 @@ final class ExportLibraryTests: XCTestCase {
     func testEachExportSavesTheLastEditFirstThenAsksTheShell() throws {
         for (name, trigger) in [
             ("Settings row", "openSettings(); document.querySelector('[data-open=\"export\"]').click();"),
-            ("Start over", "startOver(); [...alertBox.querySelectorAll('button')].find(b => b.textContent === 'Export Takes').click();"),
+            ("Start over", "startOver(); [...alertBox.querySelectorAll('button')].find(b => b.textContent === 'Export Takes and Scripts').click();"),
             ("menu", "catchlightMenu.run('exportTakes');"),
             ("No Privacy phrase strip", "exportReadable(); [...alertBox.querySelectorAll('button')].find(b => b.textContent === 'Export anyway').click();"),
         ] {

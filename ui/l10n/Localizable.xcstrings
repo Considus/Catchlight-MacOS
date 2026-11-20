@@ -2489,6 +2489,365 @@
         }
       }
     },
+    "%lld Scripts need a decision." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Script kræver en afgørelse."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Scripts kræver en afgørelse."
+                }
+              }
+            }
+          }
+        },
+        "de" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Script erfordert eine Entscheidung."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Scripts erfordern eine Entscheidung."
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Script needs a decision."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Scripts need a decision."
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Scripts necesitan una decisión."
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Script necesita una decisión."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Scripts necesitan una decisión."
+                }
+              }
+            }
+          }
+        },
+        "fi" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Scripti vaatii päätöksen."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Scriptiä vaatii päätöksen."
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Scripts nécessitent une décision."
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Script nécessite une décision."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Scripts nécessitent une décision."
+                }
+              }
+            }
+          }
+        },
+        "it" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Script richiedono una decisione."
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Script richiede una decisione."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Script richiedono una decisione."
+                }
+              }
+            }
+          }
+        },
+        "ja" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld件のScriptで判断が必要です。"
+                }
+              }
+            }
+          }
+        },
+        "ko" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Script %lld개에 결정이 필요합니다."
+                }
+              }
+            }
+          }
+        },
+        "nb" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Script krever en avgjørelse."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Script-er krever en avgjørelse."
+                }
+              }
+            }
+          }
+        },
+        "nl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Script vereist een beslissing."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Scripts vereisen een beslissing."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Scripty wymagają decyzji."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Scriptów wymaga decyzji."
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Script wymaga decyzji."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Scriptu wymaga decyzji."
+                }
+              }
+            }
+          }
+        },
+        "pt-BR" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Os %lld Scripts precisam de uma decisão."
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Script precisa de uma decisão."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Os %lld Scripts precisam de uma decisão."
+                }
+              }
+            }
+          }
+        },
+        "pt-PT" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Scripts precisam de uma decisão."
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Script precisa de uma decisão."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Scripts precisam de uma decisão."
+                }
+              }
+            }
+          }
+        },
+        "sv" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Ett beslut krävs för %lld Script."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Ett beslut krävs för %lld Scripts."
+                }
+              }
+            }
+          }
+        },
+        "th" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Script จำเป็นต้องได้รับการตัดสินใจ"
+                }
+              }
+            }
+          }
+        },
+        "tr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Script için bir karar gerekiyor."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Script için bir karar gerekiyor."
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld 篇 Scripts 需要您决定如何处理。"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hant" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld 篇 Scripts 需要您決定如何處理。"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld Scripts weren't changed" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3207,6 +3566,365 @@
         }
       }
     },
+    "%lld Takes and Scripts need a decision." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Take eller Script kræver en afgørelse."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Takes og Scripts kræver en afgørelse."
+                }
+              }
+            }
+          }
+        },
+        "de" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Take oder Script erfordert eine Entscheidung."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Takes und Scripts erfordern eine Entscheidung."
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Take or Script needs a decision."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Takes and Scripts need a decision."
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Takes y Scripts necesitan una decisión."
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Take o Script necesita una decisión."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Takes y Scripts necesitan una decisión."
+                }
+              }
+            }
+          }
+        },
+        "fi" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Take tai Scripti vaatii päätöksen."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Take:a ja Scriptiä vaatii päätöksen."
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Takes et Scripts nécessitent une décision."
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Take ou Script nécessite une décision."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Takes et Scripts nécessitent une décision."
+                }
+              }
+            }
+          }
+        },
+        "it" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Take e Script richiedono una decisione."
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Take o Script richiede una decisione."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Take e Script richiedono una decisione."
+                }
+              }
+            }
+          }
+        },
+        "ja" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld件のTakeとScriptで判断が必要です。"
+                }
+              }
+            }
+          }
+        },
+        "ko" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Take 및 Script %lld개에 결정이 필요합니다."
+                }
+              }
+            }
+          }
+        },
+        "nb" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Take eller Script krever en avgjørelse."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Take-er og Script-er krever en avgjørelse."
+                }
+              }
+            }
+          }
+        },
+        "nl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Take of Script vereist een beslissing."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Takes en Scripts vereisen een beslissing."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Decyzji wymagają Takes i Scripty: %lld."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Decyzji wymagają Takes i Scripty: %lld."
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Take lub Script wymaga decyzji."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Decyzji wymagają Takes i Scripty: %lld."
+                }
+              }
+            }
+          }
+        },
+        "pt-BR" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Os %lld Takes e Scripts precisam de uma decisão."
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Take ou Script precisa de uma decisão."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Os %lld Takes e Scripts precisam de uma decisão."
+                }
+              }
+            }
+          }
+        },
+        "pt-PT" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Takes e Scripts precisam de uma decisão."
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Take ou Script precisa de uma decisão."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Takes e Scripts precisam de uma decisão."
+                }
+              }
+            }
+          }
+        },
+        "sv" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Ett beslut krävs för %lld Take eller Script."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Ett beslut krävs för %lld Takes och Scripts."
+                }
+              }
+            }
+          }
+        },
+        "th" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Take และ Script %lld รายการ จำเป็นต้องได้รับการตัดสินใจ"
+                }
+              }
+            }
+          }
+        },
+        "tr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Take veya Script için bir karar gerekiyor."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Take ve Script için bir karar gerekiyor."
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld 项 Takes 和 Scripts 需要您决定如何处理。"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hant" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld 項 Takes 和 Scripts 需要您決定如何處理。"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld Takes changed on another device." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3401,8 +4119,8 @@
               },
               "other" : {
                 "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld Takes ble endret på en annen enhet."
+                  "state" : "needs_review",
+                  "value" : "%lld Take-er ble endret på en annen enhet."
                 }
               }
             }
@@ -4467,7 +5185,7 @@
               "many" : {
                 "stringUnit" : {
                   "state" : "needs_review",
-                  "value" : "%lld Takes richiedono una decisione."
+                  "value" : "%lld Take richiedono una decisione."
                 }
               },
               "one" : {
@@ -4478,8 +5196,8 @@
               },
               "other" : {
                 "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld Takes richiedono una decisione."
+                  "state" : "needs_review",
+                  "value" : "%lld Take richiedono una decisione."
                 }
               }
             }
@@ -4628,8 +5346,8 @@
               },
               "other" : {
                 "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld Takes krever en avgjørelse."
+                  "state" : "needs_review",
+                  "value" : "%lld Take-er krever en avgjørelse."
                 }
               }
             }
@@ -24950,115 +25668,115 @@
         }
       }
     },
-    "Enter your Privacy phrase to bring your Takes onto this device. Any Takes stored only on this device will be removed. To keep a copy first, cancel and use Export Takes (Markdown), or make sure they're already in your cloud folder." : {
+    "Enter your Privacy phrase to bring your Takes and Scripts onto this device. Any Takes or Scripts stored only on this device will be removed. To keep a copy first, cancel and use Export Takes and Scripts (Markdown), or make sure they're already in your cloud folder." : {
       "extractionState" : "manual",
       "localizations" : {
         "da" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Indtast din privatfrase for at hente dine Takes til denne enhed. Alle Takes, der kun er gemt på denne enhed, vil blive fjernet. For at beholde en kopi først skal du annullere og bruge Eksportér Takes (Markdown) eller sørge for, at de allerede ligger i din skymappe."
+            "state" : "needs_review",
+            "value" : "Indtast din privatfrase for at hente dine Takes og Scripts til denne enhed. Alle Takes eller Scripts, der kun er gemt på denne enhed, vil blive fjernet. For at beholde en kopi først skal du annullere og bruge Eksportér Takes og Scripts (Markdown) eller sørge for, at de allerede ligger i din skymappe."
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gib deine Datenschutz-Phrase ein, um deine Takes auf dieses Gerät zu übertragen. Alle Takes, die nur auf diesem Gerät gespeichert sind, werden entfernt. Um vorher eine Kopie zu behalten, breche ab und nutze „Takes exportieren (Markdown)“ oder stelle sicher, dass sie sich bereits in deinem Cloud-Ordner befinden."
+            "state" : "needs_review",
+            "value" : "Gib deine Datenschutz-Phrase ein, um deine Takes und Scripts auf dieses Gerät zu übertragen. Alle Takes oder Scripts, die nur auf diesem Gerät gespeichert sind, werden entfernt. Um vorher eine Kopie zu behalten, breche ab und nutze „Takes und Scripts exportieren (Markdown)“ oder stelle sicher, dass sie sich bereits in deinem Cloud-Ordner befinden."
           }
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Introduce tu frase de privacidad para traer tus Takes a este dispositivo. Se eliminará cualquier Take que esté almacenado únicamente en este dispositivo. Para conservar primero una copia, cancela y usa Exportar Takes (Markdown), o asegúrate de que ya estén en tu carpeta en la nube."
+            "state" : "needs_review",
+            "value" : "Introduce tu frase de privacidad para traer tus Takes y Scripts a este dispositivo. Se eliminará cualquier Take o Script que esté almacenado únicamente en este dispositivo. Para conservar primero una copia, cancela y usa Exportar Takes y Scripts (Markdown), o asegúrate de que ya estén en tu carpeta en la nube."
           }
         },
         "fi" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tuo Takesi tähän laitteeseen antamalla yksityisyyslauseesi. Kaikki vain tähän laitteeseen tallennetut Taket poistetaan. Jos haluat säilyttää niistä kopion, peruuta ja valitse Vie Taket (Markdown) tai varmista, että ne ovat jo pilvikansiossasi."
+            "state" : "needs_review",
+            "value" : "Tuo Takesi ja Scriptisi tähän laitteeseen antamalla yksityisyyslauseesi. Kaikki vain tähän laitteeseen tallennetut Taket tai Scriptit poistetaan. Jos haluat säilyttää niistä kopion, peruuta ja valitse Vie Taket ja Scriptit (Markdown) tai varmista, että ne ovat jo pilvikansiossasi."
           }
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Saisissez votre phrase de confidentialité pour importer vos Takes sur cet appareil. Tous les Takes stockés uniquement sur cet appareil seront supprimés. Pour en conserver une copie, annulez et utilisez Exporter les Takes (Markdown), ou assurez-vous qu’ils sont déjà dans votre dossier cloud."
+            "state" : "needs_review",
+            "value" : "Saisissez votre phrase de confidentialité pour importer vos Takes et Scripts sur cet appareil. Tous les Takes ou Scripts stockés uniquement sur cet appareil seront supprimés. Pour en conserver une copie, annulez et utilisez Exporter les Takes et Scripts (Markdown), ou assurez-vous qu’ils sont déjà dans votre dossier cloud."
           }
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Inserisci la tua frase di riservatezza per trasferire i tuoi Take su questo dispositivo. Eventuali Take memorizzati solo su questo dispositivo verranno rimossi. Per conservarne una copia, annulla e usa Esporta Take (Markdown), oppure assicurati che siano già nella tua cartella cloud."
+            "state" : "needs_review",
+            "value" : "Inserisci la tua frase di riservatezza per trasferire i tuoi Take e Script su questo dispositivo. Eventuali Take o Script memorizzati solo su questo dispositivo verranno rimossi. Per conservarne una copia, annulla e usa Esporta Take e Script (Markdown), oppure assicurati che siano già nella tua cartella cloud."
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "プライバシーフレーズを入力して、Takeをこのデバイスに移します。このデバイスにのみ保存されているTakeは削除されます。先にコピーを残すには、キャンセルして「Takeを書き出す(Markdown)」を使用するか、Takeがすでにクラウドフォルダにあることを確認してください。"
+            "state" : "needs_review",
+            "value" : "プライバシーフレーズを入力して、TakeとScriptをこのデバイスに移します。このデバイスにのみ保存されているTakeやScriptは削除されます。先にコピーを残すには、キャンセルして「TakeとScriptを書き出す(Markdown)」を使用するか、TakeとScriptがすでにクラウドフォルダにあることを確認してください。"
           }
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "개인정보 보호 문구를 입력하여 Take를 이 기기로 가져오세요. 이 기기에만 저장된 Take는 제거됩니다. 먼저 사본을 보관하려면 취소한 다음 Take 내보내기(Markdown)를 사용하거나, 해당 Take가 이미 클라우드 폴더에 있는지 확인하세요."
+            "state" : "needs_review",
+            "value" : "개인정보 보호 문구를 입력하여 Take와 Script를 이 기기로 가져오세요. 이 기기에만 저장된 Take나 Script는 제거됩니다. 먼저 사본을 보관하려면 취소한 다음 Take 및 Script 내보내기(Markdown)를 사용하거나, 해당 Take와 Script가 이미 클라우드 폴더에 있는지 확인하세요."
           }
         },
         "nb" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Skriv inn personvernfrasen din for å hente Take-ene dine til denne enheten. Take-er som bare er lagret på denne enheten, blir fjernet. Hvis du vil ta vare på en kopi først, avbryter du og bruker Eksporter Take-er (Markdown), eller kontrollerer at de allerede ligger i skymappen din."
+            "state" : "needs_review",
+            "value" : "Skriv inn personvernfrasen din for å hente Take-ene og Script-ene dine til denne enheten. Take-er eller Script-er som bare er lagret på denne enheten, blir fjernet. Hvis du vil ta vare på en kopi først, avbryter du og bruker Eksporter Take-er og Script-er (Markdown), eller kontrollerer at de allerede ligger i skymappen din."
           }
         },
         "nl" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Voer je privacyzin in om je Takes naar dit apparaat over te zetten. Takes die alleen op dit apparaat zijn opgeslagen, worden verwijderd. Wil je eerst een kopie bewaren? Annuleer dan en gebruik Takes exporteren (Markdown), of controleer of ze al in je cloudmap staan."
+            "state" : "needs_review",
+            "value" : "Voer je privacyzin in om je Takes en Scripts naar dit apparaat over te zetten. Takes of Scripts die alleen op dit apparaat zijn opgeslagen, worden verwijderd. Wil je eerst een kopie bewaren? Annuleer dan en gebruik Takes en Scripts exporteren (Markdown), of controleer of ze al in je cloudmap staan."
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wpisz swoją frazę prywatności, aby przenieść swoje Takes na to urządzenie. Takes przechowywane tylko na tym urządzeniu zostaną usunięte. Aby najpierw zachować kopię, anuluj i użyj opcji Eksportuj Takes (Markdown) albo upewnij się, że są już w Twoim folderze w chmurze."
+            "state" : "needs_review",
+            "value" : "Wpisz swoją frazę prywatności, aby przenieść swoje Takes i Scripty na to urządzenie. Takes lub Scripty przechowywane tylko na tym urządzeniu zostaną usunięte. Aby najpierw zachować kopię, anuluj i użyj opcji Eksportuj Takes i Scripty (Markdown) albo upewnij się, że są już w Twoim folderze w chmurze."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Digite sua frase de Privacidade para trazer seus Takes para este dispositivo. Quaisquer Takes armazenados apenas neste dispositivo serão removidos. Para manter uma cópia primeiro, cancele e use Exportar Takes (Markdown) ou certifique-se de que já estejam na sua pasta na nuvem."
+            "state" : "needs_review",
+            "value" : "Digite sua frase de Privacidade para trazer seus Takes e Scripts para este dispositivo. Quaisquer Takes ou Scripts armazenados apenas neste dispositivo serão removidos. Para manter uma cópia primeiro, cancele e use Exportar Takes e Scripts (Markdown) ou certifique-se de que já estejam na sua pasta na nuvem."
           }
         },
         "pt-PT" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Introduza a sua frase de privacidade para trazer os seus Takes para este dispositivo. Quaisquer Takes guardados apenas neste dispositivo serão removidos. Para guardar primeiro uma cópia, cancele e use Exportar Takes (Markdown) ou certifique-se de que já estão na sua pasta na nuvem."
+            "state" : "needs_review",
+            "value" : "Introduza a sua frase de privacidade para trazer os seus Takes e Scripts para este dispositivo. Quaisquer Takes ou Scripts guardados apenas neste dispositivo serão removidos. Para guardar primeiro uma cópia, cancele e use Exportar Takes e Scripts (Markdown) ou certifique-se de que já estão na sua pasta na nuvem."
           }
         },
         "sv" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ange din integritetsfras för att överföra dina Takes till den här enheten. Alla Takes som bara finns lagrade på den här enheten tas bort. Avbryt och använd Exportera Takes (Markdown) om du först vill spara en kopia, eller kontrollera att de redan finns i din molnmapp."
+            "state" : "needs_review",
+            "value" : "Ange din integritetsfras för att överföra dina Takes och Scripts till den här enheten. Alla Takes eller Scripts som bara finns lagrade på den här enheten tas bort. Avbryt och använd Exportera Takes och Scripts (Markdown) om du först vill spara en kopia, eller kontrollera att de redan finns i din molnmapp."
           }
         },
         "th" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "ป้อนวลีความเป็นส่วนตัวของคุณเพื่อนำ Take มายังอุปกรณ์นี้ Take ใดก็ตามที่จัดเก็บไว้เฉพาะในอุปกรณ์นี้จะถูกลบออก หากต้องการเก็บสำเนาไว้ก่อน ให้ยกเลิกและใช้ ส่งออก Take (Markdown) หรือตรวจสอบให้แน่ใจว่าได้จัดเก็บไว้ในโฟลเดอร์คลาวด์ของคุณแล้ว"
+            "state" : "needs_review",
+            "value" : "ป้อนวลีความเป็นส่วนตัวของคุณเพื่อนำ Take และ Script มายังอุปกรณ์นี้ Take หรือ Script ใดก็ตามที่จัดเก็บไว้เฉพาะในอุปกรณ์นี้จะถูกลบออก หากต้องการเก็บสำเนาไว้ก่อน ให้ยกเลิกและใช้ ส่งออก Take และ Script (Markdown) หรือตรวจสอบให้แน่ใจว่าได้จัดเก็บไว้ในโฟลเดอร์คลาวด์ของคุณแล้ว"
           }
         },
         "tr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Take'lerinizi bu cihaza getirmek için Gizlilik ifadenizi girin. Yalnızca bu cihazda saklanan tüm Take'ler kaldırılacaktır. Önce bir kopyasını saklamak için iptal edin ve Take'leri Dışa Aktar (Markdown) seçeneğini kullanın veya bunların zaten bulut klasörünüzde olduğundan emin olun."
+            "state" : "needs_review",
+            "value" : "Take'lerinizi ve Script'lerinizi bu cihaza getirmek için Gizlilik ifadenizi girin. Yalnızca bu cihazda saklanan tüm Take'ler veya Script'ler kaldırılacaktır. Önce bir kopyasını saklamak için iptal edin ve Take'leri ve Script'leri Dışa Aktar (Markdown) seçeneğini kullanın veya bunların zaten bulut klasörünüzde olduğundan emin olun."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "输入您的隐私短语，将 Takes 导入此设备。仅存储在此设备上的 Takes 都会被移除。如需先保留副本，请取消并使用“导出 Takes（Markdown）”，或确认这些 Takes 已在您的云文件夹中。"
+            "state" : "needs_review",
+            "value" : "输入您的隐私短语，将 Takes 和 Scripts 导入此设备。仅存储在此设备上的 Takes 或 Scripts 都会被移除。如需先保留副本，请取消并使用“导出 Takes 和 Scripts（Markdown）”，或确认这些 Takes 和 Scripts 已在您的云文件夹中。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "輸入您的隱私密語，將 Takes 帶到此裝置。僅儲存在此裝置上的 Takes 都會被移除。若要先保留副本，請取消並使用「匯出 Takes（Markdown）」，或確認這些 Takes 已在您的雲端資料夾中。"
+            "state" : "needs_review",
+            "value" : "輸入您的隱私密語，將 Takes 和 Scripts 帶到此裝置。僅儲存在此裝置上的 Takes 或 Scripts 都會被移除。若要先保留副本，請取消並使用「匯出 Takes 和 Scripts（Markdown）」，或確認這些 Takes 和 Scripts 已在您的雲端資料夾中。"
           }
         }
       }
@@ -25289,228 +26007,228 @@
         }
       }
     },
-    "Erase. Takes exported" : {
+    "Erase. Already exported" : {
       "extractionState" : "manual",
       "localizations" : {
         "da" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Slet. Takes eksporteret"
+            "state" : "needs_review",
+            "value" : "Slet. Allerede eksporteret"
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Löschen. Takes exportiert"
+            "state" : "needs_review",
+            "value" : "Löschen. Bereits exportiert"
           }
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Borrar. Takes exportados"
+            "state" : "needs_review",
+            "value" : "Borrar. Ya exportados"
           }
         },
         "fi" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tyhjennä. Taket viety"
+            "state" : "needs_review",
+            "value" : "Tyhjennä. Jo viety"
           }
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Effacer. Takes exportés"
+            "state" : "needs_review",
+            "value" : "Effacer. Déjà exportés"
           }
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cancella. Take esportati"
+            "state" : "needs_review",
+            "value" : "Cancella. Già esportati"
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "消去。Takeは書き出し済み"
+            "state" : "needs_review",
+            "value" : "消去。書き出し済み"
           }
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "지우기. Take 내보내기 완료"
+            "state" : "needs_review",
+            "value" : "지우기. 이미 내보냄"
           }
         },
         "nb" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Slett. Take-er eksportert"
+            "state" : "needs_review",
+            "value" : "Slett. Allerede eksportert"
           }
         },
         "nl" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wissen. Takes geëxporteerd"
+            "state" : "needs_review",
+            "value" : "Wissen. Al geëxporteerd"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wymaż. Takes wyeksportowane"
+            "state" : "needs_review",
+            "value" : "Wymaż. Już wyeksportowane"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apagar. Takes exportados"
+            "state" : "needs_review",
+            "value" : "Apagar. Já exportados"
           }
         },
         "pt-PT" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apagar. Takes exportados"
+            "state" : "needs_review",
+            "value" : "Apagar. Já exportados"
           }
         },
         "sv" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Radera. Takes har exporterats"
+            "state" : "needs_review",
+            "value" : "Radera. Redan exporterade"
           }
         },
         "th" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "ลบข้อมูล ส่งออก Take แล้ว"
+            "state" : "needs_review",
+            "value" : "ลบข้อมูล ส่งออกแล้ว"
           }
         },
         "tr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sil. Take'ler dışa aktarıldı"
+            "state" : "needs_review",
+            "value" : "Sil. Zaten dışa aktarıldı"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "抹除。Takes 已导出"
+            "state" : "needs_review",
+            "value" : "抹除。已导出"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "清除。Takes 已匯出"
+            "state" : "needs_review",
+            "value" : "清除。已匯出"
           }
         }
       }
     },
-    "Erases every Take here and creates a new Privacy phrase. Cloud copies become unreadable too. Export first, it is the only way back." : {
+    "Erases every Take and Script here and creates a new Privacy phrase. Cloud copies become unreadable too. Export first, it's the only way back." : {
       "extractionState" : "manual",
       "localizations" : {
         "da" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sletter alle Takes her og opretter en ny privatfrase. Kopier i skyen bliver også ulæselige. Eksportér først – det er den eneste måde at gendanne dem på."
+            "state" : "needs_review",
+            "value" : "Sletter alle Takes og Scripts her og opretter en ny privatfrase. Kopier i skyen bliver også ulæselige. Eksportér først – det er den eneste måde at gendanne dem på."
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Löscht jeden Take hier und erstellt eine neue Datenschutz-Phrase. Cloud-Kopien werden ebenfalls unlesbar. Exportiere zuerst, das ist die einzige Möglichkeit der Wiederherstellung."
+            "state" : "needs_review",
+            "value" : "Löscht jeden Take und jedes Script hier und erstellt eine neue Datenschutz-Phrase. Cloud-Kopien werden ebenfalls unlesbar. Exportiere zuerst, das ist die einzige Möglichkeit der Wiederherstellung."
           }
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Borra todos los Takes de aquí y crea una nueva frase de privacidad. Las copias en la nube también quedarán ilegibles. Exporta primero, es la única forma de recuperarlos."
+            "state" : "needs_review",
+            "value" : "Borra todos los Takes y Scripts de aquí y crea una nueva frase de privacidad. Las copias en la nube también quedarán ilegibles. Exporta primero, es la única forma de recuperarlos."
           }
         },
         "fi" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tyhjentää kaikki tämän laitteen Taket ja luo uuden yksityisyyslauseen. Myös pilvessä olevat kopiot muuttuvat lukukelvottomiksi. Vie Taket ensin – se on ainoa tapa palauttaa ne."
+            "state" : "needs_review",
+            "value" : "Tyhjentää kaikki tämän laitteen Taket ja Scriptit ja luo uuden yksityisyyslauseen. Myös pilvessä olevat kopiot muuttuvat lukukelvottomiksi. Vie ne ensin – se on ainoa tapa palauttaa ne."
           }
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Supprime tous les Takes ici et crée une nouvelle phrase de confidentialité. Les copies cloud deviennent illisibles. Exportez d’abord, c’est le seul moyen de les récupérer."
+            "state" : "needs_review",
+            "value" : "Supprime tous les Takes et Scripts ici et crée une nouvelle phrase de confidentialité. Les copies cloud deviennent illisibles. Exportez d’abord, c’est le seul moyen de les récupérer."
           }
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cancella ogni Take presente su questo dispositivo e crea una nuova frase di riservatezza. Anche le copie nel cloud diventeranno illeggibili. Esporta prima i dati, è l'unico modo per recuperarli."
+            "state" : "needs_review",
+            "value" : "Cancella ogni Take e Script presente su questo dispositivo e crea una nuova frase di riservatezza. Anche le copie nel cloud diventeranno illeggibili. Esporta prima i dati, è l'unico modo per recuperarli."
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "ここにあるすべてのTakeを消去し、新しいプライバシーフレーズを作成します。クラウド上のコピーも読めなくなります。先に書き出してください。元に戻す方法はそれしかありません。"
+            "state" : "needs_review",
+            "value" : "ここにあるすべてのTakeとScriptを消去し、新しいプライバシーフレーズを作成します。クラウド上のコピーも読めなくなります。先に書き出してください。元に戻す方法はそれしかありません。"
           }
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "이 기기의 모든 Take를 지우고 새 개인정보 보호 문구를 만듭니다. 클라우드 사본도 읽을 수 없게 됩니다. 먼저 내보내세요. 되돌릴 수 있는 유일한 방법입니다."
+            "state" : "needs_review",
+            "value" : "이 기기의 모든 Take와 Script를 지우고 새 개인정보 보호 문구를 만듭니다. 클라우드 사본도 읽을 수 없게 됩니다. 먼저 내보내세요. 되돌릴 수 있는 유일한 방법입니다."
           }
         },
         "nb" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sletter alle Take-er her og oppretter en ny personvernfrase. Kopier i skyen blir også uleselige. Eksporter først – det er den eneste måten å få dem tilbake på."
+            "state" : "needs_review",
+            "value" : "Sletter alle Take-er og Script-er her og oppretter en ny personvernfrase. Kopier i skyen blir også uleselige. Eksporter først – det er den eneste måten å få dem tilbake på."
           }
         },
         "nl" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hiermee worden alle Takes op dit apparaat gewist en wordt een nieuwe privacyzin aangemaakt. Ook cloudkopieën worden onleesbaar. Exporteer ze eerst; dat is de enige manier om ze te behouden."
+            "state" : "needs_review",
+            "value" : "Hiermee worden alle Takes en Scripts op dit apparaat gewist en wordt een nieuwe privacyzin aangemaakt. Ook cloudkopieën worden onleesbaar. Exporteer ze eerst; dat is de enige manier om ze te behouden."
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wymazuje każdy Take na tym urządzeniu i tworzy nową frazę prywatności. Kopie w chmurze także staną się nieczytelne. Najpierw wyeksportuj – to jedyna droga powrotu."
+            "state" : "needs_review",
+            "value" : "Wymazuje każdy Take i każdy Script na tym urządzeniu i tworzy nową frazę prywatności. Kopie w chmurze także staną się nieczytelne. Najpierw wyeksportuj – to jedyna droga powrotu."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apaga todos os Takes aqui e cria uma nova frase de Privacidade. Cópias na nuvem também se tornam ilegíveis. Exporte primeiro, essa é a única forma de recuperá-los."
+            "state" : "needs_review",
+            "value" : "Apaga todos os Takes e Scripts aqui e cria uma nova frase de Privacidade. Cópias na nuvem também se tornam ilegíveis. Exporte primeiro, essa é a única forma de recuperá-los."
           }
         },
         "pt-PT" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apaga todos os Takes aqui e cria uma nova frase de privacidade. As cópias na nuvem também ficarão ilegíveis. Exporte primeiro; é a única forma de recuperar."
+            "state" : "needs_review",
+            "value" : "Apaga todos os Takes e Scripts aqui e cria uma nova frase de privacidade. As cópias na nuvem também ficarão ilegíveis. Exporte primeiro; é a única forma de os recuperar."
           }
         },
         "sv" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Raderar alla Takes här och skapar en ny integritetsfras. Även molnkopiorna blir oläsbara. Exportera först – det är enda sättet att få tillbaka dem."
+            "state" : "needs_review",
+            "value" : "Raderar alla Takes och Scripts här och skapar en ny integritetsfras. Även molnkopiorna blir oläsbara. Exportera först – det är enda sättet att få tillbaka dem."
           }
         },
         "th" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "ลบทุก Take ที่นี่และสร้างวลีความเป็นส่วนตัวใหม่ สำเนาบนคลาวด์จะไม่อ่านได้เช่นกัน ส่งออกก่อนเสมอ นี่เป็นวิธีเดียวที่จะกู้คืนได้"
+            "state" : "needs_review",
+            "value" : "ลบทุก Take และ Script ที่นี่และสร้างวลีความเป็นส่วนตัวใหม่ สำเนาบนคลาวด์จะไม่อ่านได้เช่นกัน ส่งออกก่อนเสมอ นี่เป็นวิธีเดียวที่จะกู้คืนได้"
           }
         },
         "tr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Buradaki tüm Take'leri siler ve yeni bir Gizlilik ifadesi oluşturur. Buluttaki kopyalar da okunamaz hale gelir. Önce dışa aktarın, geri dönüşün tek yolu budur."
+            "state" : "needs_review",
+            "value" : "Buradaki tüm Take'leri ve Script'leri siler ve yeni bir Gizlilik ifadesi oluşturur. Buluttaki kopyalar da okunamaz hale gelir. Önce dışa aktarın, geri dönüşün tek yolu budur."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "抹除此处的所有 Take 并创建新的隐私短语。云端副本也将无法读取。请先导出，这是唯一的恢复方式。"
+            "state" : "needs_review",
+            "value" : "抹除此处的所有 Take 和 Script 并创建新的隐私短语。云端副本也将无法读取。请先导出，这是唯一的恢复方式。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "清除此處的每則 Take 並建立新的隱私密語。雲端副本也會變得無法讀取。請先匯出；這是唯一的復原方式。"
+            "state" : "needs_review",
+            "value" : "清除此處的每則 Take 和 Script 並建立新的隱私密語。雲端副本也會變得無法讀取。請先匯出；這是唯一的復原方式。"
           }
         }
       }
@@ -26418,341 +27136,228 @@
         }
       }
     },
-    "Export Takes" : {
+    "Export Takes and Scripts" : {
       "extractionState" : "manual",
       "localizations" : {
         "da" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Eksportér Takes"
+            "state" : "needs_review",
+            "value" : "Eksportér Takes og Scripts"
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Takes exportieren"
+            "state" : "needs_review",
+            "value" : "Takes und Scripts exportieren"
           }
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Exportar Takes"
+            "state" : "needs_review",
+            "value" : "Exportar Takes y Scripts"
           }
         },
         "fi" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vie Taket"
+            "state" : "needs_review",
+            "value" : "Vie Taket ja Scriptit"
           }
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Exporter les Takes"
+            "state" : "needs_review",
+            "value" : "Exporter les Takes et Scripts"
           }
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Esporta Take"
+            "state" : "needs_review",
+            "value" : "Esporta Take e Script"
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Takeを書き出す"
+            "state" : "needs_review",
+            "value" : "TakeとScriptを書き出す"
           }
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Take 내보내기"
+            "state" : "needs_review",
+            "value" : "Take 및 Script 내보내기"
           }
         },
         "nb" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Eksporter Take-er"
+            "state" : "needs_review",
+            "value" : "Eksporter Take-er og Script-er"
           }
         },
         "nl" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Takes exporteren"
+            "state" : "needs_review",
+            "value" : "Takes en Scripts exporteren"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Eksportuj Takes"
+            "state" : "needs_review",
+            "value" : "Eksportuj Takes i Scripty"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Exportar Takes"
+            "state" : "needs_review",
+            "value" : "Exportar Takes e Scripts"
           }
         },
         "pt-PT" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Exportar Takes"
+            "state" : "needs_review",
+            "value" : "Exportar Takes e Scripts"
           }
         },
         "sv" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Exportera Takes"
+            "state" : "needs_review",
+            "value" : "Exportera Takes och Scripts"
           }
         },
         "th" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "ส่งออก Take"
+            "state" : "needs_review",
+            "value" : "ส่งออก Take และ Script"
           }
         },
         "tr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Take'leri Dışa Aktar"
+            "state" : "needs_review",
+            "value" : "Take'leri ve Script'leri Dışa Aktar"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "导出 Takes"
+            "state" : "needs_review",
+            "value" : "导出 Takes 和 Scripts"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "匯出 Takes"
+            "state" : "needs_review",
+            "value" : "匯出 Takes 和 Scripts"
           }
         }
       }
     },
-    "Export Takes now. This is the only way to preserve them. This will make cloud copies unreadable." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "da" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Eksportér Takes nu. Dette er den eneste måde at bevare dem på. Dette vil gøre kopier i skyen ulæselige."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Exportiere Takes jetzt. Das ist die einzige Möglichkeit, sie zu bewahren. Dadurch werden Cloud-Kopien unlesbar."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Exporta los Takes ahora. Esta es la única forma de conservarlos. Esto hará que las copias en la nube queden ilegibles."
-          }
-        },
-        "fi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vie Taket nyt. Tämä on ainoa tapa säilyttää ne. Tämä tekee pilvessä olevista kopioista lukukelvottomia."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Exportez vos Takes maintenant. C’est le seul moyen de les conserver. Cela rendra les copies cloud illisibles."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Esporta i Take ora. È l'unico modo per conservarli. Questo renderà illeggibili le copie nel cloud."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "今すぐTakeを書き出してください。Takeを残すにはこれしか方法がありません。この操作により、クラウド上のコピーは読めなくなります。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "지금 Take를 내보내세요. 보존할 수 있는 유일한 방법입니다. 이렇게 하면 클라우드 사본을 읽을 수 없게 됩니다."
-          }
-        },
-        "nb" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Eksporter Take-ene nå. Dette er den eneste måten å ta vare på dem på. Da blir kopiene i skyen uleselige."
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Exporteer je Takes nu. Dit is de enige manier om ze te bewaren. Hierdoor worden cloudkopieën onleesbaar."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wyeksportuj Takes teraz. To jedyny sposób, aby je zachować. Kopie w chmurze staną się nieczytelne."
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Exporte seus Takes agora. Essa é a única forma de preservá-los. Isso tornará as cópias na nuvem ilegíveis."
-          }
-        },
-        "pt-PT" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Exporte os Takes agora. Esta é a única forma de os preservar. Isto tornará as cópias na nuvem ilegíveis."
-          }
-        },
-        "sv" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Exportera Takes nu. Det här är enda sättet att bevara dem. Molnkopiorna blir oläsbara."
-          }
-        },
-        "th" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ส่งออก Take ตอนนี้ นี่เป็นวิธีเดียวในการเก็บรักษาไว้ การทำเช่นนี้จะทำให้สำเนาบนคลาวด์ไม่สามารถอ่านได้"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Take'leri şimdi dışa aktarın. Onları korumanın tek yolu budur. Bu işlem bulut kopyalarını okunamaz hale getirecektir."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "立即导出 Takes。这是保留它们的唯一方法。此操作会使云端副本无法读取。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "立即匯出 Takes。這是保留它們的唯一方式。這麼做會使雲端副本無法讀取。"
-          }
-        }
-      }
-    },
-    "Export Takes…" : {
+    "Export Takes and Scripts…" : {
       "extractionState" : "manual",
       "localizations" : {
         "da" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Eksportér Takes…"
+            "value" : "Eksportér Takes og Scripts…"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Takes exportieren …"
+            "value" : "Takes und Scripts exportieren …"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Exportar Takes…"
+            "value" : "Exportar Takes y Scripts…"
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Vie Taket…"
+            "value" : "Vie Taket ja Scriptit…"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Exporter les Takes…"
+            "value" : "Exporter les Takes et Scripts…"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Esporta Take…"
+            "value" : "Esporta Take e Script…"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Takeを書き出す…"
+            "value" : "TakeとScriptを書き出す…"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Take 내보내기…"
+            "value" : "Take 및 Script 내보내기…"
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Eksporter Take-er …"
+            "value" : "Eksporter Take-er og Script-er …"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Takes exporteren…"
+            "value" : "Takes en Scripts exporteren…"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Eksportuj Takes…"
+            "value" : "Eksportuj Takes i Scripty…"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Exportar Takes…"
+            "value" : "Exportar Takes e Scripts…"
           }
         },
         "pt-PT" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Exportar Takes…"
+            "value" : "Exportar Takes e Scripts…"
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Exportera Takes…"
+            "value" : "Exportera Takes och Scripts…"
           }
         },
         "th" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "ส่งออก Take…"
+            "value" : "ส่งออก Take และ Script…"
           }
         },
         "tr" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Take'leri Dışa Aktar…"
+            "value" : "Take'leri ve Script'leri Dışa Aktar…"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "导出 Takes…"
+            "value" : "导出 Takes 和 Scripts…"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "匯出 Takes…"
+            "value" : "匯出 Takes 和 Scripts…"
           }
         }
       }
@@ -27322,228 +27927,341 @@
         }
       }
     },
-    "Export your Takes" : {
+    "Export them now. It's the only way to keep them. Erasing makes cloud copies unreadable." : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : {
+        "da" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Deine Takes exportieren"
+            "state" : "needs_review",
+            "value" : "Eksportér dem nu. Dette er den eneste måde at bevare dem på. Sletning gør kopier i skyen ulæselige."
           }
         },
-        "fr" : {
+        "de" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Exporter vos Takes"
+            "state" : "needs_review",
+            "value" : "Exportiere sie jetzt. Das ist die einzige Möglichkeit, sie zu bewahren. Durch das Löschen werden Cloud-Kopien unlesbar."
           }
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Exportar tus Takes"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Esporta i tuoi Take"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Exportar seus Takes"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Je Takes exporteren"
-          }
-        },
-        "pt-PT" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Exportar os seus Takes"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wyeksportuj swoje Takes"
-          }
-        },
-        "sv" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Exportera dina Takes"
-          }
-        },
-        "da" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Eksportér dine Takes"
-          }
-        },
-        "nb" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Eksporter Take-ene dine"
+            "state" : "needs_review",
+            "value" : "Expórtalos ahora. Esta es la única forma de conservarlos. Borrar hará que las copias en la nube queden ilegibles."
           }
         },
         "fi" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vie Takesi"
+            "state" : "needs_review",
+            "value" : "Vie ne nyt. Tämä on ainoa tapa säilyttää ne. Tyhjentäminen tekee pilvessä olevista kopioista lukukelvottomia."
           }
         },
-        "tr" : {
+        "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Take'lerinizi dışa aktarın"
+            "state" : "needs_review",
+            "value" : "Exportez-les maintenant. C’est le seul moyen de les conserver. L’effacement rendra les copies cloud illisibles."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Esportali ora. È l'unico modo per conservarli. La cancellazione renderà illeggibili le copie nel cloud."
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Takeを書き出す"
+            "state" : "needs_review",
+            "value" : "今すぐ書き出してください。残すにはこれしか方法がありません。消去すると、クラウド上のコピーは読めなくなります。"
           }
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Take 내보내기"
+            "state" : "needs_review",
+            "value" : "지금 내보내세요. 보존할 수 있는 유일한 방법입니다. 지우면 클라우드 사본을 읽을 수 없게 됩니다."
           }
         },
-        "zh-Hans" : {
+        "nb" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "导出您的 Takes"
+            "state" : "needs_review",
+            "value" : "Eksporter dem nå. Dette er den eneste måten å ta vare på dem på. Sletting gjør kopiene i skyen uleselige."
           }
         },
-        "zh-Hant" : {
+        "nl" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "匯出您的 Takes"
+            "state" : "needs_review",
+            "value" : "Exporteer ze nu. Dit is de enige manier om ze te bewaren. Door te wissen worden cloudkopieën onleesbaar."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Wyeksportuj je teraz. To jedyny sposób, aby je zachować. Wymazanie sprawi, że kopie w chmurze staną się nieczytelne."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Exporte-os agora. Essa é a única forma de preservá-los. Apagar tornará as cópias na nuvem ilegíveis."
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Exporte-os agora. Esta é a única forma de os preservar. Apagar tornará as cópias na nuvem ilegíveis."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Exportera dem nu. Det här är enda sättet att bevara dem. Radering gör molnkopiorna oläsbara."
           }
         },
         "th" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "ส่งออก Take ของคุณ"
+            "state" : "needs_review",
+            "value" : "ส่งออกตอนนี้ นี่เป็นวิธีเดียวในการเก็บรักษาไว้ การลบข้อมูลจะทำให้สำเนาบนคลาวด์ไม่สามารถอ่านได้"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bunları şimdi dışa aktarın. Onları korumanın tek yolu budur. Silme işlemi bulut kopyalarını okunamaz hale getirecektir."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "立即导出它们。这是保留它们的唯一方法。抹除会使云端副本无法读取。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "立即匯出它們。這是保留它們的唯一方式。清除會使雲端副本無法讀取。"
           }
         }
       }
     },
-    "Export your Takes?" : {
+    "Export your Takes and Scripts" : {
       "extractionState" : "manual",
       "localizations" : {
         "da" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Eksportér dine Takes?"
+            "state" : "needs_review",
+            "value" : "Eksportér dine Takes og Scripts"
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Deine Takes exportieren?"
+            "state" : "needs_review",
+            "value" : "Deine Takes und Scripts exportieren"
           }
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "¿Exportar tus Takes?"
+            "state" : "needs_review",
+            "value" : "Exportar tus Takes y Scripts"
           }
         },
         "fi" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Viedäänkö Takesi?"
+            "state" : "needs_review",
+            "value" : "Vie Takesi ja Scriptisi"
           }
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Exporter vos Takes ?"
+            "state" : "needs_review",
+            "value" : "Exporter vos Takes et Scripts"
           }
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vuoi esportare i tuoi Take?"
+            "state" : "needs_review",
+            "value" : "Esporta i tuoi Take e Script"
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Takeを書き出しますか？"
+            "state" : "needs_review",
+            "value" : "TakeとScriptを書き出す"
           }
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Take를 내보내겠습니까?"
+            "state" : "needs_review",
+            "value" : "Take 및 Script 내보내기"
           }
         },
         "nb" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Eksportere Take-ene dine?"
+            "state" : "needs_review",
+            "value" : "Eksporter Take-ene og Script-ene dine"
           }
         },
         "nl" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Je Takes exporteren?"
+            "state" : "needs_review",
+            "value" : "Je Takes en Scripts exporteren"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wyeksportować swoje Takes?"
+            "state" : "needs_review",
+            "value" : "Wyeksportuj swoje Takes i Scripty"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Exportar seus Takes?"
+            "state" : "needs_review",
+            "value" : "Exportar seus Takes e Scripts"
           }
         },
         "pt-PT" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Exportar os seus Takes?"
+            "state" : "needs_review",
+            "value" : "Exportar os seus Takes e Scripts"
           }
         },
         "sv" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Exportera dina Takes?"
+            "state" : "needs_review",
+            "value" : "Exportera dina Takes och Scripts"
           }
         },
         "th" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "ส่งออก Take ของคุณหรือไม่?"
+            "state" : "needs_review",
+            "value" : "ส่งออก Take และ Script ของคุณ"
           }
         },
         "tr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Take'leriniz dışa aktarılsın mı?"
+            "state" : "needs_review",
+            "value" : "Take'lerinizi ve Script'lerinizi dışa aktarın"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "要导出您的 Takes 吗？"
+            "state" : "needs_review",
+            "value" : "导出您的 Takes 和 Scripts"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "要匯出您的 Takes 嗎？"
+            "state" : "needs_review",
+            "value" : "匯出您的 Takes 和 Scripts"
+          }
+        }
+      }
+    },
+    "Export your Takes and Scripts?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Eksportér dine Takes og Scripts?"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Deine Takes und Scripts exportieren?"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "¿Exportar tus Takes y Scripts?"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Viedäänkö Takesi ja Scriptisi?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Exporter vos Takes et Scripts ?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vuoi esportare i tuoi Take e Script?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "TakeとScriptを書き出しますか？"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Take와 Script를 내보내겠습니까?"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Eksportere Take-ene og Script-ene dine?"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Je Takes en Scripts exporteren?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Wyeksportować swoje Takes i Scripty?"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Exportar seus Takes e Scripts?"
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Exportar os seus Takes e Scripts?"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Exportera dina Takes och Scripts?"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ส่งออก Take และ Script ของคุณหรือไม่?"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Take'leriniz ve Script'leriniz dışa aktarılsın mı?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "要导出您的 Takes 和 Scripts 吗？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "要匯出您的 Takes 和 Scripts 嗎？"
           }
         }
       }
@@ -46350,115 +47068,115 @@
         }
       }
     },
-    "Quit Catchlight and open it again to set up a new Privacy phrase. If you exported your Takes, you can bring them back with Import from a file." : {
+    "Quit Catchlight and open it again to set up a new Privacy phrase. If you exported your Takes and Scripts, you can bring them back with Import from a file." : {
       "extractionState" : "manual",
       "localizations" : {
         "da" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Afslut Catchlight, og åbn den igen for at oprette en ny privatfrase. Hvis du har eksporteret dine Takes, kan du hente dem tilbage med Importér fra en fil."
+            "value" : "Afslut Catchlight, og åbn den igen for at oprette en ny privatfrase. Hvis du har eksporteret dine Takes og Scripts, kan du hente dem tilbage med Importér fra en fil."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Beende Catchlight und öffne es erneut, um eine neue Datenschutz-Phrase einzurichten. Wenn du deine Takes exportiert hast, kannst du sie mit „Aus einer Datei importieren“ wiederherstellen."
+            "value" : "Beende Catchlight und öffne es erneut, um eine neue Datenschutz-Phrase einzurichten. Wenn du deine Takes und Scripts exportiert hast, kannst du sie mit „Aus einer Datei importieren“ wiederherstellen."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Sal de Catchlight y vuelve a abrirlo para configurar una nueva frase de privacidad. Si exportaste tus Takes, puedes recuperarlos con Importar desde un archivo."
+            "value" : "Sal de Catchlight y vuelve a abrirlo para configurar una nueva frase de privacidad. Si exportaste tus Takes y Scripts, puedes recuperarlos con Importar desde un archivo."
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Lopeta Catchlight ja avaa se uudelleen määrittääksesi uuden yksityisyyslauseen. Jos veit Takesi, voit tuoda ne takaisin valitsemalla Tuo tiedostosta."
+            "value" : "Lopeta Catchlight ja avaa se uudelleen määrittääksesi uuden yksityisyyslauseen. Jos veit Takesi ja Scriptisi, voit tuoda ne takaisin valitsemalla Tuo tiedostosta."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Quittez Catchlight et rouvrez-le pour configurer une nouvelle phrase de confidentialité. Si vous avez exporté vos Takes, vous pouvez les récupérer avec Importer depuis un fichier."
+            "value" : "Quittez Catchlight et rouvrez-le pour configurer une nouvelle phrase de confidentialité. Si vous avez exporté vos Takes et Scripts, vous pouvez les récupérer avec Importer depuis un fichier."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Esci e riapri Catchlight per configurare una nuova frase di riservatezza. Se hai esportato i tuoi Take, puoi ripristinarli con Importa da un file."
+            "value" : "Esci e riapri Catchlight per configurare una nuova frase di riservatezza. Se hai esportato i tuoi Take e Script, puoi ripristinarli con Importa da un file."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Catchlightを終了してもう一度開き、新しいプライバシーフレーズを設定してください。Takeを書き出していた場合は、「ファイルからインポート」で戻せます。"
+            "value" : "Catchlightを終了してもう一度開き、新しいプライバシーフレーズを設定してください。TakeとScriptを書き出していた場合は、「ファイルからインポート」で戻せます。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Catchlight를 종료했다가 다시 열어 새 개인정보 보호 문구를 설정하세요. Take를 내보냈다면 파일에서 가져오기로 다시 불러올 수 있습니다."
+            "value" : "Catchlight를 종료했다가 다시 열어 새 개인정보 보호 문구를 설정하세요. Take와 Script를 내보냈다면 파일에서 가져오기로 다시 불러올 수 있습니다."
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Avslutt Catchlight og åpne appen på nytt for å opprette en ny personvernfrase. Hvis du har eksportert Take-ene dine, kan du hente dem tilbake med «Importer fra en fil»."
+            "value" : "Avslutt Catchlight og åpne appen på nytt for å opprette en ny personvernfrase. Hvis du har eksportert Take-ene og Script-ene dine, kan du hente dem tilbake med «Importer fra en fil»."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Stop Catchlight en open de app opnieuw om een nieuwe privacyfrase in te stellen. Als je je Takes hebt geëxporteerd, kun je ze terugzetten met Importeren uit een bestand."
+            "value" : "Stop Catchlight en open de app opnieuw om een nieuwe privacyfrase in te stellen. Als je je Takes en Scripts hebt geëxporteerd, kun je ze terugzetten met Importeren uit een bestand."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Zakończ Catchlight i otwórz ponownie, aby ustawić nową frazę prywatności. Jeśli wyeksportowałeś swoje Takes, możesz je przywrócić za pomocą opcji Importuj z pliku."
+            "value" : "Zakończ Catchlight i otwórz ponownie, aby ustawić nową frazę prywatności. Jeśli wyeksportowałeś swoje Takes i Scripty, możesz je przywrócić za pomocą opcji Zaimportuj z pliku."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Encerre o Catchlight e abra-o novamente para configurar uma nova frase de Privacidade. Se você exportou seus Takes, pode recuperá-los com Importar de um arquivo."
+            "value" : "Encerre o Catchlight e abra-o novamente para configurar uma nova frase de Privacidade. Se você exportou seus Takes e Scripts, pode recuperá-los com Importar de um arquivo."
           }
         },
         "pt-PT" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Saia do Catchlight e volte a abri-lo para configurar uma nova frase de privacidade. Se exportou os seus Takes, pode recuperá-los com a opção Importar de um ficheiro."
+            "value" : "Saia do Catchlight e volte a abri-lo para configurar uma nova frase de privacidade. Se exportou os seus Takes e Scripts, pode recuperá-los com a opção Importar de um ficheiro."
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Avsluta Catchlight och öppna appen igen för att skapa en ny integritetsfras. Om du exporterade dina Takes kan du återställa dem med Importera från en fil."
+            "value" : "Avsluta Catchlight och öppna appen igen för att skapa en ny integritetsfras. Om du exporterade dina Takes och Scripts kan du återställa dem med Importera från en fil."
           }
         },
         "th" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "ออกจาก Catchlight แล้วเปิดใหม่อีกครั้งเพื่อตั้งค่าวลีความเป็นส่วนตัวใหม่ หากคุณส่งออก Take ของคุณไว้ คุณสามารถดึงกลับมาได้ด้วยการนำเข้าจากไฟล์"
+            "value" : "ออกจาก Catchlight แล้วเปิดใหม่อีกครั้งเพื่อตั้งค่าวลีความเป็นส่วนตัวใหม่ หากคุณส่งออก Take และ Script ของคุณไว้ คุณสามารถดึงกลับมาได้ด้วยการนำเข้าจากไฟล์"
           }
         },
         "tr" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Yeni bir Gizlilik ifadesi oluşturmak için Catchlight'tan çıkıp tekrar açın. Take'lerinizi dışa aktardıysanız Dosyadan içe aktar seçeneğiyle geri getirebilirsiniz."
+            "value" : "Yeni bir Gizlilik ifadesi oluşturmak için Catchlight'tan çıkıp tekrar açın. Take'lerinizi ve Script'lerinizi dışa aktardıysanız Dosyadan içe aktar seçeneğiyle geri getirebilirsiniz."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "退出 Catchlight 并重新打开，以设置新的隐私短语。如果你已导出 Takes，可以通过“从文件导入”将它们恢复。"
+            "value" : "退出 Catchlight 并重新打开，以设置新的隐私短语。如果你已导出 Takes 和 Scripts，可以通过“从文件导入”将它们恢复。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "結束 Catchlight 再重新開啟，即可設定新的隱私密語。如果你已匯出 Takes，可以使用「從檔案匯入」將其匯回。"
+            "value" : "結束 Catchlight 再重新開啟，即可設定新的隱私密語。如果你已匯出 Takes 和 Scripts，可以使用「從檔案匯入」將其匯回。"
           }
         }
       }
@@ -60481,115 +61199,115 @@
         }
       }
     },
-    "The file is readable text and it does not contain a Privacy phrase. Use Start over and Import from a file to re-import your Takes. Delete the export once your Takes are back." : {
+    "The file is readable text and it doesn't contain a Privacy phrase. Use Start over and Import from a file to re-import your Takes and Scripts. Delete the export once they're back." : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : {
+        "da" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Die Datei ist lesbarer Text und enthält keine Datenschutz-Phrase. Wähle „Von vorn beginnen“ und „Aus Datei importieren“, um deine Takes erneut zu importieren. Lösche den Export, sobald deine Takes wiederhergestellt sind."
+            "state" : "needs_review",
+            "value" : "Filen er læsbar tekst og indeholder ikke en privatfrase. Brug Start forfra og Importér fra en fil for at importere dine Takes og Scripts igen. Slet eksporten, når de er tilbage."
           }
         },
-        "fr" : {
+        "de" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Le fichier est un texte lisible et ne contient pas de phrase de confidentialité. Utilisez Recommencer et Importer depuis un fichier pour réimporter vos Takes. Supprimez l'exportation une fois vos Takes récupérés."
+            "state" : "needs_review",
+            "value" : "Die Datei ist lesbarer Text und enthält keine Datenschutz-Phrase. Wähle „Von vorn beginnen“ und „Aus einer Datei importieren“, um deine Takes und Scripts erneut zu importieren. Lösche den Export, sobald sie wiederhergestellt sind."
           }
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "El archivo es texto legible y no contiene una frase de privacidad. Usa Empezar de nuevo e Importar desde un archivo para volver a importar tus Takes. Elimina la exportación una vez que hayas recuperado tus Takes."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Il file è in testo leggibile e non contiene una frase di riservatezza. Usa Ricomincia e Importa da un file per importare di nuovo i tuoi Take. Elimina il file esportato una volta ripristinati i Take."
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "O arquivo é um texto legível e não contém uma frase de privacidade. Use Recomeçar e Importar de um arquivo para reimportar seus Takes. Exclua a exportação assim que seus Takes estiverem de volta."
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Het bestand is leesbare tekst en bevat geen privacyzin. Gebruik Opnieuw beginnen en Importeren uit bestand om je Takes opnieuw te importeren. Verwijder het exportbestand zodra je Takes weer terug zijn."
-          }
-        },
-        "pt-PT" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "O ficheiro é texto legível e não contém uma frase de privacidade. Use Começar de novo e Importar de um ficheiro para voltar a importar os seus Takes. Elimine a exportação assim que os seus Takes estejam de volta."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Plik zawiera czytelny tekst i nie zawiera frazy prywatności. Użyj opcji Zacznij od nowa oraz Importuj z pliku, aby ponownie zaimportować swoje Takes. Usuń eksport, gdy Twoje Takes wrócą."
-          }
-        },
-        "sv" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Filen innehåller läsbar text och ingen integritetsfras. Använd Börja om och Importera från en fil för att importera dina Takes igen. Radera exportfilen när dina Takes är tillbaka."
-          }
-        },
-        "da" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Filen er læsbar tekst og indeholder ikke en privatfrase. Brug Start forfra og Importér fra en fil for at importere dine Takes igen. Slet eksporten, når dine Takes er tilbage."
-          }
-        },
-        "nb" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Filen er lesbar tekst og inneholder ikke en personvernfrase. Bruk Start på nytt og Importer fra en fil for å importere Take-ene dine på nytt. Slett eksportfilen når Take-ene er tilbake."
+            "state" : "needs_review",
+            "value" : "El archivo es texto legible y no contiene una frase de privacidad. Usa Empezar de nuevo e Importar desde un archivo para volver a importar tus Takes y Scripts. Elimina la exportación una vez que los hayas recuperado."
           }
         },
         "fi" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tiedosto on luettavaa tekstiä, eikä se sisällä yksityisyyslausetta. Käytä valintoja Aloita alusta ja Tuo tiedostosta tuodaksesi Takesi uudelleen. Poista vientitiedosto, kun Takesi ovat palautuneet."
+            "state" : "needs_review",
+            "value" : "Tiedosto on luettavaa tekstiä, eikä se sisällä yksityisyyslausetta. Käytä valintoja Aloita alusta ja Tuo tiedostosta tuodaksesi Takesi ja Scriptisi uudelleen. Poista vientitiedosto, kun ne ovat palautuneet."
           }
         },
-        "tr" : {
+        "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dosya okunabilir bir metindir ve gizlilik ifadesi içermez. Take'lerinizi yeniden içe aktarmak için Baştan Başla ve Dosyadan İçe Aktar seçeneklerini kullanın. Take'leriniz geri geldiğinde dışa aktarılan dosyayı silin."
+            "state" : "needs_review",
+            "value" : "Le fichier est un texte lisible et ne contient pas de phrase de confidentialité. Utilisez Recommencer et Importer depuis un fichier pour réimporter vos Takes et Scripts. Supprimez l'exportation une fois qu'ils sont récupérés."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Il file è in testo leggibile e non contiene una frase di riservatezza. Usa Ricomincia e Importa da un file per importare di nuovo i tuoi Take e Script. Elimina il file esportato una volta ripristinati."
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "このファイルは読み取り可能なテキストで、プライバシーフレーズは含まれていません。「最初からやり直す」と「ファイルから読み込む」を使って、Takeを再読み込みしてください。Takeが戻ったら、エクスポートファイルを削除してください。"
+            "state" : "needs_review",
+            "value" : "このファイルは読み取り可能なテキストで、プライバシーフレーズは含まれていません。「最初からやり直す」と「ファイルからインポート」を使って、TakeとScriptを再読み込みしてください。戻ったら、エクスポートファイルを削除してください。"
           }
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "파일은 읽을 수 있는 텍스트이며 개인정보 보호 문구는 포함되어 있지 않습니다. 처음부터 다시 시작을 선택한 다음 파일에서 가져오기를 사용해 Take를 다시 가져오세요. Take가 복원되면 내보낸 파일을 삭제하세요."
+            "state" : "needs_review",
+            "value" : "파일은 읽을 수 있는 텍스트이며 개인정보 보호 문구는 포함되어 있지 않습니다. 처음부터 다시 시작을 선택한 다음 파일에서 가져오기를 사용해 Take와 Script를 다시 가져오세요. 복원되면 내보낸 파일을 삭제하세요."
           }
         },
-        "zh-Hans" : {
+        "nb" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "该文件是可读文本，不包含隐私短语。使用“重新开始”和“从文件导入”重新导入 Takes。Takes 恢复后，请删除导出文件。"
+            "state" : "needs_review",
+            "value" : "Filen er lesbar tekst og inneholder ikke en personvernfrase. Bruk Start på nytt og Importer fra en fil for å importere Take-ene og Script-ene dine på nytt. Slett eksportfilen når de er tilbake."
           }
         },
-        "zh-Hant" : {
+        "nl" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "此檔案是可讀取的文字，不含隱私密語。請使用「重新開始」和「從檔案匯入」重新匯入 Takes。Takes 復原後，請刪除匯出的檔案。"
+            "state" : "needs_review",
+            "value" : "Het bestand is leesbare tekst en bevat geen privacyzin. Gebruik Opnieuw beginnen en Importeren uit een bestand om je Takes en Scripts opnieuw te importeren. Verwijder het exportbestand zodra ze weer terug zijn."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plik zawiera czytelny tekst i nie zawiera frazy prywatności. Użyj opcji Zacznij od nowa oraz Zaimportuj z pliku, aby ponownie zaimportować swoje Takes i Scripty. Usuń eksport, gdy wrócą."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "O arquivo é um texto legível e não contém uma frase de privacidade. Use Recomeçar e Importar de um arquivo para reimportar seus Takes e Scripts. Exclua a exportação assim que eles estiverem de volta."
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "O ficheiro é texto legível e não contém uma frase de privacidade. Use Começar de novo e Importar de um ficheiro para voltar a importar os seus Takes e Scripts. Elimine a exportação assim que estejam de volta."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Filen innehåller läsbar text och ingen integritetsfras. Använd Börja om och Importera från en fil för att importera dina Takes och Scripts igen. Radera exportfilen när de är tillbaka."
           }
         },
         "th" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "ไฟล์นี้เป็นข้อความที่อ่านได้และไม่มีวลีความเป็นส่วนตัว ใช้ \"เริ่มต้นใหม่\" และ \"นำเข้าไฟล์\" เพื่อนำเข้า Take ของคุณอีกครั้ง ลบการส่งออกเมื่อ Take ของคุณกลับมาแล้ว"
+            "state" : "needs_review",
+            "value" : "ไฟล์นี้เป็นข้อความที่อ่านได้และไม่มีวลีความเป็นส่วนตัว ใช้ \"เริ่มต้นใหม่\" และ \"นำเข้าจากไฟล์\" เพื่อนำเข้า Take และ Script ของคุณอีกครั้ง ลบการส่งออกเมื่อกลับมาแล้ว"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dosya okunabilir bir metindir ve gizlilik ifadesi içermez. Take'lerinizi ve Script'lerinizi yeniden içe aktarmak için Baştan başla ve Dosyadan içe aktar seçeneklerini kullanın. Geri geldiklerinde dışa aktarılan dosyayı silin."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "该文件是可读文本，不包含隐私短语。使用“重新开始”和“从文件导入”重新导入 Takes 和 Scripts。恢复后，请删除导出文件。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "此檔案是可讀取的文字，不含隱私密語。請使用「重新開始」和「從檔案匯入」重新匯入 Takes 和 Scripts。復原後，請刪除匯出的檔案。"
           }
         }
       }
@@ -62854,115 +63572,115 @@
         }
       }
     },
-    "This deletes every Take on this device and the Privacy phrase that unlocks them. Takes in your cloud folder will be unreadable. This cannot be undone." : {
+    "This deletes every Take and Script on this device and the Privacy phrase that unlocks them. Takes and Scripts in your cloud folder will be unreadable. This can't be undone." : {
       "extractionState" : "manual",
       "localizations" : {
         "da" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dette sletter alle Takes på denne enhed og den privatfrase, der låser dem op. Takes i din skymappe bliver ulæselige. Dette kan ikke fortrydes."
+            "state" : "needs_review",
+            "value" : "Dette sletter alle Takes og Scripts på denne enhed og den privatfrase, der låser dem op. Takes og Scripts i din skymappe bliver ulæselige. Dette kan ikke fortrydes."
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dadurch werden alle Takes auf diesem Gerät und die Datenschutz-Phrase, mit der sie entsperrt werden, gelöscht. Takes in deinem Cloud-Ordner sind dann nicht mehr lesbar. Das kann nicht rückgängig gemacht werden."
+            "state" : "needs_review",
+            "value" : "Dadurch werden alle Takes und Scripts auf diesem Gerät und die Datenschutz-Phrase, mit der sie entsperrt werden, gelöscht. Takes und Scripts in deinem Cloud-Ordner sind dann nicht mehr lesbar. Das kann nicht rückgängig gemacht werden."
           }
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Esto eliminará todos los Takes de este dispositivo y la frase de privacidad que los desbloquea. Los Takes de tu carpeta de la nube dejarán de ser legibles. Esto no se puede deshacer."
+            "state" : "needs_review",
+            "value" : "Esto eliminará todos los Takes y Scripts de este dispositivo y la frase de privacidad que los desbloquea. Los Takes y Scripts de tu carpeta de la nube dejarán de ser legibles. Esto no se puede deshacer."
           }
         },
         "fi" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tämä poistaa jokaisen Take:n tältä laitteelta sekä niiden lukituksen avaavan tietosuojalauseen. Pilvikansiossasi olevia Takeja ei voi lukea. Tätä ei voi peruuttaa."
+            "state" : "needs_review",
+            "value" : "Tämä poistaa jokaisen Take:n ja Scriptin tältä laitteelta sekä niiden lukituksen avaavan tietosuojalauseen. Pilvikansiossasi olevia Takeja ja Scriptejä ei voi lukea. Tätä ei voi peruuttaa."
           }
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cela supprime tous les Takes sur cet appareil ainsi que la phrase de confidentialité qui les déverrouille. Les Takes dans votre dossier cloud seront illisibles. Cette action est irréversible."
+            "state" : "needs_review",
+            "value" : "Cela supprime tous les Takes et Scripts sur cet appareil ainsi que la phrase de confidentialité qui les déverrouille. Les Takes et Scripts dans votre dossier cloud seront illisibles. Cette action est irréversible."
           }
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Questa operazione elimina tutti i Take su questo dispositivo e la frase Privacy che li sblocca. I Take nella cartella cloud non saranno leggibili. Non è possibile annullare questa operazione."
+            "state" : "needs_review",
+            "value" : "Questa operazione elimina tutti i Take e gli Script su questo dispositivo e la frase Privacy che li sblocca. I Take e gli Script nella cartella cloud non saranno leggibili. Non è possibile annullare questa operazione."
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "このデバイス上のすべてのTakeと、ロック解除に使うプライバシーフレーズが削除されます。クラウドフォルダ内のTakeは読み取れなくなります。この操作は取り消せません。"
+            "state" : "needs_review",
+            "value" : "このデバイス上のすべてのTakeとScript、およびロック解除に使うプライバシーフレーズが削除されます。クラウドフォルダ内のTakeとScriptは読み取れなくなります。この操作は取り消せません。"
           }
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "이 기기의 모든 Take와 잠금을 해제하는 개인정보 보호 문구가 삭제됩니다. 클라우드 폴더에 있는 Take도 읽을 수 없게 됩니다. 이 작업은 되돌릴 수 없습니다."
+            "state" : "needs_review",
+            "value" : "이 기기의 모든 Take와 Script, 그리고 잠금을 해제하는 개인정보 보호 문구가 삭제됩니다. 클라우드 폴더에 있는 Take와 Script도 읽을 수 없게 됩니다. 이 작업은 되돌릴 수 없습니다."
           }
         },
         "nb" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dette sletter alle Take-er på denne enheten og personvernfrasen som låser dem opp. Take-ene i skymappen din blir uleselige. Dette kan ikke angres."
+            "state" : "needs_review",
+            "value" : "Dette sletter alle Take-er og Script-er på denne enheten og personvernfrasen som låser dem opp. Take-ene og Script-ene i skymappen din blir uleselige. Dette kan ikke angres."
           }
         },
         "nl" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hiermee verwijder je alle Takes op dit apparaat en de privacyzin waarmee je ze ontgrendelt. Takes in je cloudmap worden onleesbaar. Dit kan niet ongedaan worden gemaakt."
+            "state" : "needs_review",
+            "value" : "Hiermee verwijder je alle Takes en Scripts op dit apparaat en de privacyzin waarmee je ze ontgrendelt. Takes en Scripts in je cloudmap worden onleesbaar. Dit kan niet ongedaan worden gemaakt."
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Spowoduje to usunięcie każdego Take na tym urządzeniu oraz frazy prywatności, która je odblokowuje. Takes w Twoim folderze w chmurze staną się nieczytelne. Tej czynności nie można cofnąć."
+            "state" : "needs_review",
+            "value" : "Spowoduje to usunięcie każdego Take i Scriptu na tym urządzeniu oraz frazy prywatności, która je odblokowuje. Takes i Scripty w Twoim folderze w chmurze staną się nieczytelne. Tej czynności nie można cofnąć."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Isso exclui todos os Takes neste dispositivo e a Frase de privacidade que os desbloqueia. Os Takes na sua pasta na nuvem não poderão ser lidos. Isso não pode ser desfeito."
+            "state" : "needs_review",
+            "value" : "Isso exclui todos os Takes e Scripts neste dispositivo e a Frase de privacidade que os desbloqueia. Os Takes e Scripts na sua pasta na nuvem não poderão ser lidos. Isso não pode ser desfeito."
           }
         },
         "pt-PT" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Isto elimina todos os Takes neste dispositivo e a frase de privacidade que os desbloqueia. Os Takes na sua pasta na nuvem ficarão ilegíveis. Esta ação não pode ser desfeita."
+            "state" : "needs_review",
+            "value" : "Isto elimina todos os Takes e Scripts neste dispositivo e a frase de privacidade que os desbloqueia. Os Takes e Scripts na sua pasta na nuvem ficarão ilegíveis. Esta ação não pode ser desfeita."
           }
         },
         "sv" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Det här raderar alla Takes på den här enheten och integritetsfrasen som låser upp dem. Takes i din molnmapp blir oläsbara. Det går inte att ångra."
+            "state" : "needs_review",
+            "value" : "Det här raderar alla Takes och Scripts på den här enheten och integritetsfrasen som låser upp dem. Takes och Scripts i din molnmapp blir oläsbara. Det går inte att ångra."
           }
         },
         "th" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "การดำเนินการนี้จะลบ Take ทั้งหมดในอุปกรณ์นี้และวลีความเป็นส่วนตัวที่ใช้ปลดล็อก Take เหล่านั้น Take ในโฟลเดอร์คลาวด์ของคุณจะไม่สามารถอ่านได้ การดำเนินการนี้ไม่สามารถยกเลิกได้"
+            "state" : "needs_review",
+            "value" : "การดำเนินการนี้จะลบ Take และ Script ทั้งหมดในอุปกรณ์นี้และวลีความเป็นส่วนตัวที่ใช้ปลดล็อก Take และ Script เหล่านั้น Take และ Script ในโฟลเดอร์คลาวด์ของคุณจะไม่สามารถอ่านได้ การดำเนินการนี้ไม่สามารถยกเลิกได้"
           }
         },
         "tr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bu işlem, bu cihazdaki tüm Take'leri ve bunların kilidini açan Gizlilik ifadesini siler. Bulut klasörünüzdeki Take'ler okunamaz hale gelir. Bu işlem geri alınamaz."
+            "state" : "needs_review",
+            "value" : "Bu işlem, bu cihazdaki tüm Take'leri, Script'leri ve bunların kilidini açan Gizlilik ifadesini siler. Bulut klasörünüzdeki Take'ler ve Script'ler okunamaz hale gelir. Bu işlem geri alınamaz."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "这会删除此设备上的所有 Take，以及用于解锁它们的隐私短语。云文件夹中的 Takes 将无法读取。此操作无法撤销。"
+            "state" : "needs_review",
+            "value" : "这会删除此设备上的所有 Take 和 Script，以及用于解锁它们的隐私短语。云文件夹中的 Takes 和 Scripts 将无法读取。此操作无法撤销。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "這會刪除此裝置上的每則 Take，以及用來解鎖它們的隱私密語。雲端資料夾中的 Takes 將無法讀取。此動作無法復原。"
+            "state" : "needs_review",
+            "value" : "這會刪除此裝置上的每則 Take 和 Script，以及用來解鎖它們的隱私密語。雲端資料夾中的 Takes 和 Scripts 將無法讀取。此動作無法復原。"
           }
         }
       }
@@ -63193,115 +63911,115 @@
         }
       }
     },
-    "This replaces the account on this Mac. Takes stored only here will be removed and can't be recovered. If you haven't already, close this and use Export Takes (Markdown) to keep a copy first." : {
+    "This replaces the account on this Mac. Takes and Scripts stored only here will be removed and can't be recovered. If you haven't already, close this and use Export Takes and Scripts (Markdown) to keep a copy first." : {
       "extractionState" : "manual",
       "localizations" : {
         "da" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Dette erstatter kontoen på denne Mac. Takes, der kun er gemt her, vil blive fjernet og kan ikke gendannes. Hvis du ikke allerede har gjort det, skal du lukke dette og bruge Eksportér Takes (Markdown) for at beholde en kopi først."
+            "value" : "Dette erstatter kontoen på denne Mac. Takes og Scripts, der kun er gemt her, vil blive fjernet og kan ikke gendannes. Hvis du ikke allerede har gjort det, skal du lukke dette og bruge Eksportér Takes og Scripts (Markdown) for at beholde en kopi først."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Dadurch wird das Konto auf diesem Mac ersetzt. Nur hier gespeicherte Takes werden entfernt und können nicht wiederhergestellt werden. Falls du es noch nicht getan hast, schließe diese Ansicht und verwende zuerst „Takes exportieren (Markdown)“, um eine Kopie zu behalten."
+            "value" : "Dadurch wird das Konto auf diesem Mac ersetzt. Nur hier gespeicherte Takes und Scripts werden entfernt und können nicht wiederhergestellt werden. Falls du es noch nicht getan hast, schließe diese Ansicht und verwende zuerst „Takes und Scripts exportieren (Markdown)“, um eine Kopie zu behalten."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Esto reemplaza la cuenta en este Mac. Los Takes almacenados únicamente aquí se eliminarán y no se podrán recuperar. Si aún no lo has hecho, cierra esto y usa Exportar Takes (Markdown) para guardar una copia primero."
+            "value" : "Esto reemplaza la cuenta en este Mac. Los Takes y Scripts almacenados únicamente aquí se eliminarán y no se podrán recuperar. Si aún no lo has hecho, cierra esto y usa Exportar Takes y Scripts (Markdown) para guardar una copia primero."
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Tämä korvaa tällä Macilla olevan tilin. Vain tänne tallennetut Taket poistetaan, eikä niitä voi palauttaa. Jos et ole vielä tehnyt niin, sulje tämä ja käytä toimintoa Vie Taket (Markdown) säilyttääksesi kopion."
+            "value" : "Tämä korvaa tällä Macilla olevan tilin. Vain tänne tallennetut Taket ja Scriptit poistetaan, eikä niitä voi palauttaa. Jos et ole vielä tehnyt niin, sulje tämä ja käytä toimintoa Vie Taket ja Scriptit (Markdown) säilyttääksesi kopion."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Cela remplace le compte sur ce Mac. Les Takes stockés uniquement ici seront supprimés et ne pourront pas être récupérés. Si ce n’est pas déjà fait, fermez ceci et utilisez Exporter les Takes (Markdown) pour en conserver d’abord une copie."
+            "value" : "Cela remplace le compte sur ce Mac. Les Takes et Scripts stockés uniquement ici seront supprimés et ne pourront pas être récupérés. Si ce n’est pas déjà fait, fermez ceci et utilisez Exporter les Takes et Scripts (Markdown) pour en conserver d’abord une copie."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Questo sostituisce l’account su questo Mac. I Take salvati solo qui verranno rimossi e non potranno essere recuperati. Se non l’hai già fatto, chiudi questa schermata e usa Esporta Take (Markdown) per conservarne prima una copia."
+            "value" : "Questo sostituisce l’account su questo Mac. I Take e gli Script salvati solo qui verranno rimossi e non potranno essere recuperati. Se non l’hai già fatto, chiudi questa schermata e usa Esporta Take e Script (Markdown) per conservarne prima una copia."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "このMacのアカウントが置き換えられます。このMacにのみ保存されているTakeは削除され、復元できません。まだコピーを保存していない場合は、この画面を閉じて「Takeを書き出す（Markdown）」を使い、先にコピーを保存してください。"
+            "value" : "このMacのアカウントが置き換えられます。このMacにのみ保存されているTakeとScriptは削除され、復元できません。まだコピーを保存していない場合は、この画面を閉じて「TakeとScriptを書き出す（Markdown）」を使い、先にコピーを保存してください。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "이 Mac의 계정이 교체됩니다. 이 Mac에만 저장된 Take는 삭제되며 복구할 수 없습니다. 아직 사본을 저장하지 않았다면 이 화면을 닫고 Take 내보내기(Markdown)를 사용해 먼저 사본을 보관하세요."
+            "value" : "이 Mac의 계정이 교체됩니다. 이 Mac에만 저장된 Take와 Script는 삭제되며 복구할 수 없습니다. 아직 사본을 저장하지 않았다면 이 화면을 닫고 Take 및 Script 내보내기(Markdown)를 사용해 먼저 사본을 보관하세요."
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Dette erstatter kontoen på denne Macen. Take-er som bare er lagret her, blir fjernet og kan ikke gjenopprettes. Hvis du ikke allerede har gjort det, lukker du dette og bruker Eksporter Take-er (Markdown) for å ta vare på en kopi først."
+            "value" : "Dette erstatter kontoen på denne Macen. Take-er og Script-er som bare er lagret her, blir fjernet og kan ikke gjenopprettes. Hvis du ikke allerede har gjort det, lukker du dette og bruker Eksporter Take-er og Script-er (Markdown) for å ta vare på en kopi først."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Hiermee vervang je de account op deze Mac. Takes die alleen hier zijn opgeslagen, worden verwijderd en kunnen niet worden hersteld. Sluit dit scherm en gebruik eerst Takes exporteren (Markdown) om een kopie te bewaren, als je dat nog niet hebt gedaan."
+            "value" : "Hiermee vervang je de account op deze Mac. Takes en Scripts die alleen hier zijn opgeslagen, worden verwijderd en kunnen niet worden hersteld. Sluit dit scherm en gebruik eerst Takes en Scripts exporteren (Markdown) om een kopie te bewaren, als je dat nog niet hebt gedaan."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Spowoduje to zastąpienie konta na tym Macu. Takes przechowywane tylko tutaj zostaną usunięte i nie będzie można ich odzyskać. Jeśli nie masz jeszcze kopii, zamknij to okno i użyj opcji Eksportuj Takes (Markdown), aby ją najpierw zachować."
+            "value" : "Spowoduje to zastąpienie konta na tym Macu. Takes i Scripty przechowywane tylko tutaj zostaną usunięte i nie będzie można ich odzyskać. Jeśli nie masz jeszcze kopii, zamknij to okno i użyj opcji Eksportuj Takes i Scripty (Markdown), aby ją najpierw zachować."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Isso substitui a conta neste Mac. Os Takes armazenados apenas aqui serão removidos e não poderão ser recuperados. Se ainda não fez isso, feche isto e use Exportar Takes (Markdown) para guardar uma cópia primeiro."
+            "value" : "Isso substitui a conta neste Mac. Os Takes e Scripts armazenados apenas aqui serão removidos e não poderão ser recuperados. Se ainda não fez isso, feche isto e use Exportar Takes e Scripts (Markdown) para guardar uma cópia primeiro."
           }
         },
         "pt-PT" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Isto substitui a conta neste Mac. Os Takes guardados apenas aqui serão removidos e não poderão ser recuperados. Se ainda não o fez, feche isto e use Exportar Takes (Markdown) para guardar primeiro uma cópia."
+            "value" : "Isto substitui a conta neste Mac. Os Takes e Scripts guardados apenas aqui serão removidos e não poderão ser recuperados. Se ainda não o fez, feche isto e use Exportar Takes e Scripts (Markdown) para guardar primeiro uma cópia."
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Det här ersätter kontot på den här Macen. Takes som bara finns lagrade här tas bort och kan inte återställas. Om du inte redan har gjort det, stäng det här och använd Exportera Takes (Markdown) för att först spara en kopia."
+            "value" : "Det här ersätter kontot på den här Macen. Takes och Scripts som bara finns lagrade här tas bort och kan inte återställas. Om du inte redan har gjort det, stäng det här och använd Exportera Takes och Scripts (Markdown) för att först spara en kopia."
           }
         },
         "th" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "การดำเนินการนี้จะแทนที่บัญชีบน Mac เครื่องนี้ Take ที่เก็บไว้เฉพาะที่นี่จะถูกลบและไม่สามารถกู้คืนได้ หากคุณยังไม่ได้ทำ ให้ปิดหน้านี้และใช้ \"ส่งออก Take (Markdown)\" เพื่อเก็บสำเนาก่อน"
+            "value" : "การดำเนินการนี้จะแทนที่บัญชีบน Mac เครื่องนี้ Take และ Script ที่เก็บไว้เฉพาะที่นี่จะถูกลบและไม่สามารถกู้คืนได้ หากคุณยังไม่ได้ทำ ให้ปิดหน้านี้และใช้ \"ส่งออก Take และ Script (Markdown)\" เพื่อเก็บสำเนาก่อน"
           }
         },
         "tr" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Bu işlem bu Mac'teki hesabın yerine geçer. Yalnızca burada saklanan Take'ler kaldırılır ve kurtarılamaz. Henüz yapmadıysanız bunu kapatın ve önce bir kopya saklamak için Take'leri Dışa Aktar (Markdown) seçeneğini kullanın."
+            "value" : "Bu işlem bu Mac'teki hesabın yerine geçer. Yalnızca burada saklanan Take'ler ve Script'ler kaldırılır ve kurtarılamaz. Henüz yapmadıysanız bunu kapatın ve önce bir kopya saklamak için Take'leri ve Script'leri Dışa Aktar (Markdown) seçeneğini kullanın."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "这会替换此 Mac 上的账户。仅存储在此处的 Takes 将被删除且无法恢复。如果你还没有备份，请先关闭此页面，并使用“导出 Takes（Markdown）”保存副本。"
+            "value" : "这会替换此 Mac 上的账户。仅存储在此处的 Takes 和 Scripts 将被删除且无法恢复。如果你还没有备份，请先关闭此页面，并使用“导出 Takes 和 Scripts（Markdown）”保存副本。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "這會取代此 Mac 上的帳號。僅儲存在此處的 Takes 將會移除，且無法復原。如果你還沒備份，請先關閉此畫面，並使用「匯出 Takes（Markdown）」保留一份副本。"
+            "value" : "這會取代此 Mac 上的帳號。僅儲存在此處的 Takes 和 Scripts 將會移除，且無法復原。如果你還沒備份，請先關閉此畫面，並使用「匯出 Takes 和 Scripts（Markdown）」保留一份副本。"
           }
         }
       }
@@ -68506,6 +69224,119 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "你的隱私密語"
+          }
+        }
+      }
+    },
+    "Your Takes and Scripts couldn't be read, so nothing was exported. Don't start over until an export works." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dine Takes og Scripts kunne ikke læses, så intet blev eksporteret. Start ikke forfra, før en eksport er lykkedes."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Deine Takes und Scripts konnten nicht gelesen werden, deshalb wurde nichts exportiert. Beginne nicht von vorn, bevor ein Export geklappt hat."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "No se pudieron leer tus Takes y Scripts, así que no se ha exportado nada. No empieces de nuevo hasta que una exportación funcione."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Takejasi ja Scriptejäsi ei voitu lukea, joten mitään ei viety. Älä aloita alusta ennen kuin vienti onnistuu."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Impossible de lire vos Takes et Scripts, rien n’a donc été exporté. Ne recommencez pas tant qu’une exportation n’a pas réussi."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Impossibile leggere i tuoi Take e Script, quindi non è stato esportato nulla. Non ricominciare finché un'esportazione non riesce."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "TakeとScriptを読み込めなかったため、何もエクスポートされていません。エクスポートが成功するまで、最初からやり直さないでください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Take와 Script를 읽을 수 없어 아무것도 내보내지 않았습니다. 내보내기가 성공할 때까지 처음부터 다시 시작하지 마세요."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Take-ene og Script-ene dine kunne ikke leses, så ingenting ble eksportert. Ikke start på nytt før en eksport har lyktes."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Je Takes en Scripts konden niet worden gelezen, dus er is niets geëxporteerd. Begin niet opnieuw voordat een export is gelukt."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nie można odczytać Twoich Takes i Scriptów, więc nic nie zostało wyeksportowane. Nie zaczynaj od nowa, dopóki eksport się nie powiedzie."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Não foi possível ler seus Takes e Scripts, então nada foi exportado. Não recomece até que uma exportação dê certo."
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Não foi possível ler os seus Takes e Scripts, por isso nada foi exportado. Não comece de novo até que uma exportação funcione."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dina Takes och Scripts kunde inte läsas, så inget exporterades. Börja inte om förrän en export har lyckats."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ไม่สามารถอ่าน Take และ Script ของคุณได้ จึงไม่มีสิ่งใดถูกส่งออก อย่าเริ่มต้นใหม่จนกว่าการส่งออกจะสำเร็จ"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Take'leriniz ve Script'leriniz okunamadı, bu yüzden hiçbir şey dışa aktarılmadı. Dışa aktarma başarılı olana kadar baştan başlamayın."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "无法读取您的 Takes 和 Scripts，因此没有导出任何内容。在导出成功之前，请不要重新开始。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "無法讀取您的 Takes 和 Scripts，因此沒有匯出任何內容。在匯出成功之前，請不要重新開始。"
           }
         }
       }

@@ -186,6 +186,20 @@ final class StripsTests: XCTestCase {
         XCTAssertEqual(try strips(harness), #"[["conflict","1 Take needs a decision.Review"]]"#.replacingOccurrences(of: "1 Take needs a decision.", with: try harness.run("return t('%lld Takes need a decision.', 1);", in: self) as! String))
     }
 
+    /// Owner, 2026-11-20: with an unverified Take waiting, Script conflicts are named as Scripts,
+    /// never counted as Takes.
+    func testAMixOfTakesAndScriptsIsNamedForWhatIsWaiting() throws {
+        let take: [String: Any] = ["kind": "take", "blocks": [["k": "text", "text": "Mine"]]]
+        let script: [String: Any] = ["kind": "script", "blocks": ["# Winter series"]]
+        let harness = page(conflicts: [
+            ["id": UUID().uuidString, "unverified": true, "local": take, "cloud": take],
+            ["id": UUID().uuidString, "local": script, "remote": script],
+            ["id": UUID().uuidString, "local": script, "remote": script],
+        ])
+        _ = try harness.run(String(format: waitFor, "!conflictBanner.hidden") + " return 0;", in: self)
+        XCTAssertEqual(try strips(harness), #"[["conflict","3 Takes and Scripts need a decision.Review"]]"#)
+    }
+
     func testTheStripsComeInTheIPhonesOrder() throws {
         let take: [String: Any] = ["kind": "take", "blocks": [["k": "text", "text": "Mine"]]]
         let harness = page(takes: alerting, notifications: "denied", conflicts: [["id": UUID().uuidString, "local": take, "remote": take]])
@@ -274,7 +288,7 @@ final class StripsTests: XCTestCase {
             const b = document.querySelector('[data-strip="phrase"] [data-strip-act="export"]'), s = getComputedStyle(b.closest('.strip'));
             return JSON.stringify([b.getAttribute('aria-label'), document.getElementById(b.getAttribute('aria-describedby'))?.textContent, s.paddingTop, s.paddingBottom]);
             """, in: self) as? String
-        XCTAssertEqual(a11y, #"["Export your Takes","Saves a readable copy. Not a Privacy phrase.","8px","8px"]"#)
+        XCTAssertEqual(a11y, #"["Export your Takes and Scripts","Saves a readable copy. Not a Privacy phrase.","8px","8px"]"#)
     }
 
     func testNoPhraseStripWhenThePhraseIsThere() throws {
@@ -290,7 +304,7 @@ final class StripsTests: XCTestCase {
             document.querySelector('[data-strip="phrase"] [data-strip-act="export"]').click();
             return JSON.stringify([alertBox.open, alertBox.querySelector('h2, h1, .alert-title')?.textContent, alertBox.querySelector('p')?.textContent, [...alertBox.querySelectorAll('button')].map(b => b.textContent)]);
             """, in: self) as? String
-        XCTAssertEqual(dialog, #"[true,"Export a readable copy?","The file is readable text and it does not contain a Privacy phrase. Use Start over and Import from a file to re-import your Takes. Delete the export once your Takes are back.",["Export anyway","Cancel"]]"#)
+        XCTAssertEqual(dialog, #"[true,"Export a readable copy?","The file is readable text and it doesn't contain a Privacy phrase. Use Start over and Import from a file to re-import your Takes and Scripts. Delete the export once they're back.",["Export anyway","Cancel"]]"#)
         XCTAssertFalse(shell.sent.contains("exportLibrary"), "nothing leaves before the choice")
         _ = try harness.run("[...alertBox.querySelectorAll('button')].find(b => b.textContent === 'Export anyway').click(); await new Promise(r => setTimeout(r, 200)); return 0;", in: self)
         XCTAssertTrue(shell.sent.contains("exportLibrary"), "\(shell.sent)")
@@ -403,7 +417,7 @@ final class StripsTests: XCTestCase {
             return alertBox.querySelector('p')?.textContent;
             """, in: self) as? String
         XCTAssertFalse(shell.sent.contains("exportLibrary"), "nothing exported: \(shell.sent)")
-        XCTAssertEqual(said, "Your Takes couldn't be read, so nothing was exported. Don't start over until an export works.")
+        XCTAssertEqual(said, "Your Takes and Scripts couldn't be read, so nothing was exported. Don't start over until an export works.")
         shell.failing = []
         _ = try harness.run("""
             if (alertBox.open) [...alertBox.querySelectorAll('button')].find(b => b.textContent === 'OK').click();
