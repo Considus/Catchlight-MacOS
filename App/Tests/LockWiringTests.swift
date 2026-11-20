@@ -367,8 +367,8 @@ final class LockWiringTests: XCTestCase {
         spin(until: { live.bridge.lockFailure != nil }, "the unlock was not attempted")
         XCTAssertEqual(live.bridge.lockFailure, "cancelled")
         XCTAssertEqual(secrets.asked, askedBefore + 1)
-        pageBecomes(live, "document.querySelector('#lock .lock-button')?.textContent === 'Try Again'",
-                    "the page does not open on Try Again")
+        pageBecomes(live, "document.querySelector('#lock .lock-button')?.textContent === 'Try again'",
+                    "the page does not open on Try again")
         XCTAssertTrue(isLocked)
 
         // A failure is showing: coming back again leaves it to the Try Again button.

@@ -146,7 +146,7 @@ const ITEMS = {
   exportTakes: { label: t('Export Takes and Scripts…'), keys: { all: 'Mod+Shift+E' }, enabled: () => free() && (takes.length > 0 || scripts.length > 0), run: () => exportLibrary() },
   importFile: { label: t('Import from a File…'), enabled: free, run: importFromFile },   // settings.js
   importNotes: { label: t('Import Notes'), enabled: () => free() && !!store.get('account', {})?.folder, run: importNotes },
-  syncNow: { label: t('Sync Now'), enabled: () => free() && settings.syncMode === 'manual' && !!store.get('account', {})?.folder, run: () => window.catchlightBridge ? catchlightBridge.sync('manual') : ask(t('Sync Now'), t("The sync runs in Core, through the shell, which doesn't exist yet."), [[t('OK'), null, 'cancel']]) },
+  syncNow: { label: t('Sync now'), enabled: () => free() && settings.syncMode === 'manual' && !!store.get('account', {})?.folder, run: () => window.catchlightBridge ? catchlightBridge.sync('manual') : ask(t('Sync now'), t("The sync runs in Core, through the shell, which doesn't exist yet."), [[t('OK'), null, 'cancel']]) },
   undo: { label: t('Undo'), keys: { all: 'Mod+Z' }, inPlace: true, run: () => active >= 0 ? undo() : document.execCommand('undo') },
   redo: { label: t('Redo'), keys: { mac: 'Mod+Shift+Z', windows: 'Mod+Y', linux: 'Mod+Shift+Z' }, inPlace: true, run: () => active >= 0 ? redo() : document.execCommand('redo') },
   cut: { label: t('Cut'), keys: { all: 'Mod+X' }, role: 'cut' },

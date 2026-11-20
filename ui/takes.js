@@ -1306,12 +1306,12 @@ const asksWhichToDelete = t => !storyboard && repeats(t.reminder);
 function askWhichToDelete(t) {
   if (refuseHeld(t.id)) return;
   ask(L10N.t('This is a repeating reminder.'), L10N.t('Delete only the next occurrence, or the whole repeating series?'), [
-    [L10N.t('Delete This Occurrence'), () => {
+    [L10N.t('Delete this occurrence'), () => {
       // Leave the editor first if this Take is open, or saving the draft would undo the skip.
       if (draft && original?.id === t.id) discardEdit();
       advanceRepeat(t.reminder); touch(t);
     }],
-    [L10N.t('Delete Series'), () => deleteTake(t.id), 'danger'],
+    [L10N.t('Delete series'), () => deleteTake(t.id), 'danger'],
     [L10N.t('Cancel'), null, 'cancel'],
   ]);
 }
