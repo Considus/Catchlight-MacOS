@@ -358,7 +358,7 @@ body.first-running .app { visibility: hidden; }
 /* The opening line is a heading in the muted colour (OnboardingView splash). */
 .fr-tagline { margin-top: 8px !important; font-size: 28px !important; font-weight: 500 !important; line-height: 1.1 !important; color: var(--muted) !important; }
 /* The footer: a quiet outlined plate in the toolbar's slot. */
-.fr-foot { margin-top: 48px !important; min-height: 44px; display: inline-flex; align-items: center; padding: 0 16px; border-radius: 14px; border: 1px solid var(--outline); font: 500 15px var(--sys) !important; color: var(--muted) !important; }
+.fr-foot { margin-top: 48px !important; min-height: 44px; display: flex; align-items: center; justify-content: center; align-self: stretch; box-sizing: border-box; padding: 0 16px; border-radius: 14px; border: 1px solid var(--outline); font: 500 15px var(--sys) !important; color: var(--muted) !important; }
 /* DockPill: 44 high, corner 14, 15 medium. Main: the accent with its label; on the field, the
    field's ink with the field colour. Second: clear with a 1 outline edge. A link: the accent's
    text colour, underlined in the field's ink on the field. */
