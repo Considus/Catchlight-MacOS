@@ -349,7 +349,7 @@ sheet.addEventListener('click', async e => {
     if (shell?.enableNotifications) shell.enableNotifications().then(status => { settings.notifications = status; paintSettings(); }).catch(e => console.error('Asking for notification permission failed', e));
     else { settings.notifications = 'enabled'; saveSettings(); paintSettings(); }
   }
-  else if (open === 'export') exportTakes(takes);
+  else if (open === 'export') exportLibrary();
   else if (open === 'import-notes') importNotes();
   else if (open === 'import-file') importFromFile();
   else if (open === 'report') window.open(reportUrl(), '_blank', 'noopener');
@@ -429,13 +429,13 @@ sheet.addEventListener('keydown', e => {
   if (openCtx(v, r.left + 12, r.bottom)) ctx.querySelector('button')?.focus();
 });
 
-// Start over, as on iOS: Export Takes exports and stops there; "Erase. Takes exported" goes on
+// Start over, as on iOS: Export Takes exports (every Take and Script, exportLibrary) and stops there; "Erase. Takes exported" goes on
 // to the erase question; Cancel stops everything. After erasing there is nothing left to show,
 // so a last screen says so and offers no way back (ResetCompleteView). Touch ID belongs
 // to the shell.
 function startOver() {
   ask(t('Export your Takes?'), t('Export Takes now. This is the only way to preserve them. This will make cloud copies unreadable.'), [
-    [t('Export Takes'), () => exportTakes(takes)],
+    [t('Export Takes'), () => exportLibrary()],
     [t('Erase. Takes exported'), () => ask(t('Erase everything on this device?'), t('This deletes every Take on this device and the Privacy phrase that unlocks them. Takes in your cloud folder will be unreadable. This cannot be undone.'),
       [[t('Cancel'), null, 'cancel'], [t('Erase everything'), eraseEverything, 'danger']]), 'danger'],
     [t('Cancel'), null, 'cancel'],

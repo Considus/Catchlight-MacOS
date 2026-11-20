@@ -111,6 +111,13 @@ final class Library {
         return (generation, takes, scripts)
     }
 
+    /// The whole library, Takes and Scripts, as Core writes an export: the iPhone's Markdown with
+    /// its data block, so Import from a file brings each item back with its marks (Important,
+    /// Obie, order, reminders) and a Script back as a Script (owner, 2026-11-20).
+    func exportMarkdown(at now: Date = Date()) throws -> String {
+        TakeExporter.export(try store.allTakes(), exportedAt: now)
+    }
+
     func pageTakes() throws -> [[String: Any]] { try snapshot().takes }
     func pageScripts() throws -> [[String: Any]] { try snapshot().scripts }
 
