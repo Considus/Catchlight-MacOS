@@ -39,14 +39,14 @@ final class ScenePickerTests: XCTestCase {
     func testChoosingASceneAppliesAtOnceAndIsKept() throws {
         let harness = page()
         let r = try json(harness, """
-            document.documentElement.dataset.mode = 'dark';
             openSettings(); await new Promise(f => setTimeout(f, 300));
             const select = document.querySelector('[data-set="colourScene"]');
             select.value = 'jade'; select.dispatchEvent(new Event('change', { bubbles: true }));
-            return { scene: document.documentElement.dataset.scene, ground: getComputedStyle(document.documentElement).getPropertyValue('--ground').trim() };
+            return { scene: document.documentElement.dataset.scene, mode: document.documentElement.dataset.mode, ground: getComputedStyle(document.documentElement).getPropertyValue('--ground').trim() };
             """)
         XCTAssertEqual(r["scene"] as? String, "jade")
-        XCTAssertEqual(r["ground"] as? String, "#0C1511", "Jade Dark's ground, applied at once")
+        // Jade's ground in the mode the Mac is in (the CI Mac runs Light).
+        XCTAssertEqual(r["ground"] as? String, r["mode"] as? String == "light" ? "#F6F8F5" : "#0C1511", "Jade's ground, applied at once: \(r)")
         let again = page(keeping: true)
         let kept = try json(again, "return { scene: document.documentElement.dataset.scene };")
         XCTAssertEqual(kept["scene"] as? String, "jade", "kept for next time")
