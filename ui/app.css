@@ -124,7 +124,13 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 .card.obie .body { color: var(--lit); }
 .card.overdue { border-color: var(--ruby); }
 .card.overdue .meta { color: var(--overdue-text); font-style: italic; font-weight: 500; }
-.card.overdue::before { content: "OVERDUE"; position: absolute; left: 6px; top: 50%; transform: translateY(-50%) rotate(180deg); writing-mode: vertical-rl; font-size: 9px; letter-spacing: 1px; color: var(--overdue-text); }
+/* The state word (takes.js, fitStateWords): the translated "Overdue" in capitals at the time line's
+   11 medium, centred in the strip left of the Iris and reading bottom to top, scaled down to 80% at
+   most; else it starts the time line, semibold, and the strip is empty (TakeStateWordStrip). */
+.state-word { position: absolute; left: calc(var(--iris-x) / 2); top: 50%; transform: translate(-50%, -50%) rotate(-90deg) scale(var(--word-scale, 1)); font: 500 11px var(--sys); white-space: nowrap; color: var(--overdue-text); pointer-events: none; }
+.card.word-on-line .state-word { display: none; }
+.card .meta .state-inline { display: none; font-style: normal; font-weight: 600; }
+.card.word-on-line .meta .state-inline { display: inline; }
 .card.done .body { color: var(--faint); }
 .card.selected { border-color: var(--accent-text); background: color-mix(in srgb, var(--accent) 9%, var(--card)); }
 /* The Iris: 44 square, 14 down from the card's outer top edge (13.25 inside its border). */
