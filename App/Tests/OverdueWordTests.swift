@@ -5,15 +5,19 @@ import XCTest
 /// the Iris when it fits at 80% or more, else at the start of the time line at full size (owner
 /// 2026-11-12: OVERDUE in capitals; Art Director 2026-11-20: the Mac drew English at 9).
 final class OverdueWordTests: XCTestCase {
-    private let overdue = #"[{"id":"7D4C4A4E-0000-4000-8000-0000000000AA","at":"2026-11-01T09:00:00.000Z","blocks":[{"k":"text","text":"Call"}],"reminder":{"kind":"time","when":"2020-01-01T09:00:00Z","notify":true,"done":false}}]"#
+    /// An overdue Take whose text runs to `lines` lines: the card's height decides the fit.
+    private func overdue(lines: Int) -> String {
+        let text = (["Call"] + Array(repeating: "and again", count: lines - 1)).joined(separator: "\\n")
+        return #"[{"id":"7D4C4A4E-0000-4000-8000-0000000000AA","at":"2026-11-01T09:00:00.000Z","blocks":[{"k":"text","text":"\#(text)"}],"reminder":{"kind":"time","when":"2020-01-01T09:00:00Z","notify":true,"done":false}}]"#
+    }
 
     /// What the overdue card shows, in `lang`: the strip's word (or nil), its size as drawn, and
     /// the time line's first word.
-    private func shown(_ lang: String) throws -> [String: Any] {
+    private func shown(_ lang: String, lines: Int = 1) throws -> [String: Any] {
         let harness = WebViewHarness(root: WebViewHarness.repoUI, ruleList: nil, privateStorage: true)
         harness.load("index.html?lang=\(lang)", in: self)
         let json = try harness.run("""
-            takes = \(overdue); renderTakes();
+            takes = \(overdue(lines: lines)); renderTakes();
             await new Promise(r => setTimeout(r, 60));
             const card = document.querySelector('.card.overdue');
             const before = getComputedStyle(card, '::before').content;
@@ -27,6 +31,7 @@ final class OverdueWordTests: XCTestCase {
               upright: drawn ? drawn.height > drawn.width : null,
               line: inline ? inline.textContent : null,
               hidden: word ? word.getAttribute('aria-hidden') : null,
+              height: card.clientHeight,
             });
             """, in: self) as? String
         return try XCTUnwrap(try JSONSerialization.jsonObject(with: Data(XCTUnwrap(json).utf8)) as? [String: Any])
@@ -42,8 +47,11 @@ final class OverdueWordTests: XCTestCase {
         XCTAssertNil(r["line"] as? String)
     }
 
+    /// On a card of one line, whether the German word fits at 80% turns on the system font's exact
+    /// width (it fits on this Mac and not on the CI runner), so this card is three lines tall.
     func testGermanShowsTheTranslatedWordInCapitals() throws {
-        let r = try shown("de")
+        let r = try shown("de", lines: 3)
+        XCTAssertGreaterThan(try XCTUnwrap(r["height"] as? Double), 90, "the card is not taller, so the fit still turns on the font")
         XCTAssertEqual(r["strip"] as? String, "ÜBERFÄLLIG")
         XCTAssertGreaterThanOrEqual(try XCTUnwrap(r["size"] as? Double), 11 * 0.8 - 0.01, "never under 80%")
         XCTAssertNil(r["line"] as? String)
