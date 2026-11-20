@@ -82,6 +82,11 @@ targets:
       - path: ui
         type: folder
         buildPhase: resources
+      # The app icon: the Art Director's Cobalt Icon Composer file, copied from Catchlight-iOS as
+      # it is. Cobalt only: a Mac app can't offer the iPhone's alternate icons (AppKit has no
+      # setAlternateIconName, and the sandboxed app can't restyle its own bundle).
+      - path: App/Resources/AppIcon.icon
+        buildPhase: resources
     info:
       # XcodeGen rewrites this file from the properties below on every
       # `generate`. Edit them here, not the plist.
@@ -170,6 +175,8 @@ targets:
         # target only; the test bundle keeps the project-level YES.
         ENABLE_USER_SCRIPT_SANDBOXING: NO
         PRODUCT_BUNDLE_IDENTIFIER: com.considus.catchlight.mac
+        # The Cobalt icon (App/Resources/AppIcon.icon). Xcode builds the older systems' images from it.
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         PRODUCT_NAME: Catchlight
         CODE_SIGN_ENTITLEMENTS: App/Resources/Catchlight.entitlements
         ENABLE_HARDENED_RUNTIME: YES

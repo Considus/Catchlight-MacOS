@@ -1044,6 +1044,8 @@ function applyScene() {
   // The stored setting keeps its old values (auto, night, daylight); the page reads it as the
   // appearance, data-mode, and scenes.css paints the default Scene in it.
   document.documentElement.dataset.mode = (scene === 'auto' ? mq.matches : scene === 'daylight') ? 'light' : 'dark';
+  // The colour Scene (Settings, Scene): Cobalt until the person picks one.
+  document.documentElement.dataset.scene = (typeof settings !== 'undefined' && SCENES.some(s => s.id === settings.colourScene)) ? settings.colourScene : DEFAULT_SCENE;
   $('#tb-scene').title = scene === 'auto' ? t('Scene: follows the system') : scene === 'night' ? t('Scene: Dark') : t('Scene: Light');
 }
 mq.addEventListener('change', applyScene);
