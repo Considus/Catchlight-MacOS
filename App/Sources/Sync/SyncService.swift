@@ -98,6 +98,9 @@ final class SyncService {
         cancelLock.lock(); cancelled = true; cancelLock.unlock()
     }
 
+    /// Whether a stop has been asked of the pass (the relock asks as its fade starts).
+    var cancelRequested: Bool { isCancelled }
+
     private var isCancelled: Bool {
         cancelLock.lock(); defer { cancelLock.unlock() }
         return cancelled

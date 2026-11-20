@@ -66,6 +66,7 @@ window.catchlightLockUnlocking = () => {
 // The shell calls this once a relock has saved what was open: the page takes no more input, so
 // nothing typed is lost to the closing library and no save is refused as locked.
 window.catchlightRelocking = () => {
+  window.catchlightRelockingNow = true;   // the menu offers no Take command from here (ui/menu.js)
   const appRoot = document.getElementById('app');
   appRoot.inert = true; appRoot.setAttribute('aria-hidden', 'true');
 };

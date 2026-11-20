@@ -265,7 +265,8 @@ const val = v => typeof v === 'function' ? v() : v;
 // the OS supplies (Quit, Hide, Cut, Copy…) and the ones that touch no Take (Help, Report an Issue,
 // Copy Version and Device Info) are offered. The shell reloads the page once it has unlocked.
 const LOCKED_OFFERS = ['help', 'report', 'copyInfo'];
-const offered = id => !(window.catchlightLibrary?.locked && !LOCKED_OFFERS.includes(id)) && (!ITEMS[id].enabled || !!ITEMS[id].enabled());
+// A relock has the same rule from the moment it has saved, until the library has closed.
+const offered = id => !((window.catchlightLibrary?.locked || window.catchlightRelockingNow) && !LOCKED_OFFERS.includes(id)) && (!ITEMS[id].enabled || !!ITEMS[id].enabled());
 function itemModel(id) {
   const it = ITEMS[id];
   return { id, label: val(it.label), shortcut: keyOf(it), shortcutLabel: keyLabel(keyOf(it)), role: it.role || null,

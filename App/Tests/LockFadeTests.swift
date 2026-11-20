@@ -191,4 +191,75 @@ final class LockFadeTests: XCTestCase {
 
         XCTAssertLessThan(Date().timeIntervalSince(started), 5, "the screen lock waited for the fade")
     }
+
+    // MARK: Review of the fade
+
+    /// A page stuck in a long script when the relock asks it to stop taking input must not keep the
+    /// library open: the one timeout covers the inert call and the fade together.
+    func testAPageBusyInTheInertCallStillLocksWithinTheTimeout() throws {
+        let live = controller()
+        live.fadeTimeout = 0.5
+        _ = runInPage(live, "window.catchlightRelocking = () => { const t = Date.now(); while (Date.now() - t < 3000); }; return true;")
+        var lockedAtCheck: Bool?
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) { lockedAtCheck = self.isLocked }
+
+        relock(live)
+        spin(until: { lockedAtCheck != nil }, "the check did not run")
+
+        XCTAssertEqual(lockedAtCheck, true, "the library was still open well past the timeout")
+    }
+
+    /// The pass is asked to stop as the fade starts, so the close waits only for the fade, not for
+    /// the fade and then the pass winding down.
+    func testTheSyncIsAskedToStopWhenTheFadeStarts() throws {
+        let live = controller()
+        let folder = SyncFolder(defaults: defaults)
+        let cloud = dir.deletingLastPathComponent().appendingPathComponent("Cloud", isDirectory: true)
+        try FileManager.default.createDirectory(at: cloud, withIntermediateDirectories: true)
+        folder.pick = { _, done in done(cloud) }
+        folder.choose(in: nil) { _ in }
+        let sync = SyncService(vault: vault, folder: folder, defaults: defaults)
+        live.bridge.sync = sync
+        live.fadeTimeout = 5
+        _ = runInPage(live, "window.catchlightLockFade = () => new Promise(r => setTimeout(() => r(true), 1000)); return true;")
+        var cancelledMidFade: Bool?
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) { cancelledMidFade = sync.cancelRequested }
+
+        relock(live)
+
+        XCTAssertEqual(cancelledMidFade, true, "the pass was not asked to stop until the fade had ended")
+    }
+
+    /// Two relocks back to back are one: the page reloads once, and what the first one's end
+    /// leaves (here a failure that arrived) is not wiped by a second close.
+    func testASecondRelockDuringARelockIsOneRelock() throws {
+        let live = controller()
+        var loads = 0
+        let watch = live.webView.observe(\.isLoading, options: [.new]) { _, change in if change.newValue == true { loads += 1 } }
+        defer { watch.invalidate() }
+        var first = false, second = false
+        live.relock {
+            first = true
+            live.bridge.lockFailure = "cancelled"   // a failure arriving as the first relock ends
+        }
+        live.relock { second = true }
+        spin(until: { first && second }, "the relocks did not finish")
+        spin(until: { self.runInPage(live, "return !!document.querySelector('#lock');") as? Bool == true }, "the page does not show the lock screen")
+        RunLoop.current.run(until: Date().addingTimeInterval(1.5))   // a second reload would show by now
+
+        XCTAssertEqual(loads, 1, "the page reloaded more than once")
+        XCTAssertEqual(live.bridge.lockFailure, "cancelled", "the second relock wiped a failure")
+    }
+
+    /// Between the save and the close the menu offers no Take command (⌘N included).
+    func testTheMenuOffersNoTakeCommandOnceTheRelockHasSaved() throws {
+        let live = controller()
+        let newTake = "const m = catchlightMenu.model().flatMap(g => g.items || []).find(i => i.id === 'newTake'); return m && m.enabled;"
+        XCTAssertEqual(runInPage(live, newTake) as? Bool, true, "New Take is not offered before the relock, or the test proves nothing")
+
+        _ = runInPage(live, "catchlightRelocking(); return true;")
+
+        XCTAssertEqual(runInPage(live, newTake) as? Bool, false, "New Take is still offered after the relock's save")
+        XCTAssertEqual(runInPage(live, "return catchlightMenu.run('newTake');") as? Bool, false, "New Take still runs")
+    }
 }
