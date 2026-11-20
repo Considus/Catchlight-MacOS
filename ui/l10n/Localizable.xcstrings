@@ -41441,13 +41441,13 @@
         }
       }
     },
-    "Open Source Licences" : {
+    "Open source licences" : {
       "extractionState" : "manual",
       "localizations" : {
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Open Source-licenser"
+            "value" : "Open source-licenser"
           }
         },
         "de" : {
@@ -41537,7 +41537,7 @@
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Açık Kaynak Lisansları"
+            "value" : "Açık kaynak lisansları"
           }
         },
         "zh-Hans" : {

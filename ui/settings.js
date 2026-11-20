@@ -181,7 +181,7 @@ const SUB = {
       ${brandMark()}
       <h2 class="ssub-heading">${t('Privacy-first notes and reminders')}</h2>
       <p class="quiet sversion" tabindex="0" data-copy-info title="${esc(t('Right-click to copy version and device info'))}">${t('Version %@', shell.version())}</p>
-      <div class="scard"><h4>${t('Open Source Licences')}</h4>
+      <div class="scard"><h4>${t('Open source licences')}</h4>
         <p>${t('Archivo, under the SIL Open Font License 1.1. The licence text is beside the font and listed in NOTICE.')}</p>
         <p class="quiet">${t('The BIP-39 English wordlist is sourced from the Trezor project and bundled under the MIT licence.')}</p></div>
       <div class="scard links">${[[t('Privacy Policy'), 'https://catchlight.app/privacy/'], [t('Terms of Service'), 'https://catchlight.app/terms/'], [t('Support'), 'https://catchlight.app/support/?platform=' + PLATFORM.osName], [t('Website'), 'https://catchlight.app']]

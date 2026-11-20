@@ -1018,9 +1018,11 @@ function paintDock() {
     fitDockLabels(bar);
     if (seqShown !== (open ? 1 : 0) && !seqMoving(open)) morphSequence(open ? 1 : 0);
     // The chips rise from behind the toolbar and sink back (DailiesToolbar: opacity and a move from
-    // the bottom edge, 0.2 s ease-in-out); the old row stays until it has sunk.
+    // the bottom edge, 0.2 s ease-in-out); the old row stays until it has sunk. With Reduce Motion
+    // on they fade in place, with no slide (Mark, 2026-11-20, both apps).
     const drop = (open ? bar.querySelector('.chips').offsetHeight : leavingH) + 8 + bar.offsetHeight;
-    const below = [{ opacity: 0, transform: `translateY(${drop}px)` }], placed = [{ opacity: 1, transform: 'none' }];
+    const below = [still.matches ? { opacity: 0 } : { opacity: 0, transform: `translateY(${drop}px)` }];
+    const placed = [still.matches ? { opacity: 1 } : { opacity: 1, transform: 'none' }];
     if (open && !chipsShown) bar.querySelector('.chips').animate(below.concat(placed), MOTION.mode);
     if (!open && leaving) { bar.prepend(leaving); leaving.animate(placed.concat(below), MOTION.mode).finished.then(() => leaving.remove(), () => leaving.remove()); }
     chipsShown = open;
