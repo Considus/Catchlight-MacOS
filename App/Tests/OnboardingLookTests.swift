@@ -23,7 +23,9 @@ final class OnboardingLookTests: XCTestCase {
         const role = r => paint('color', root.getPropertyValue('--' + r));
         const mix = (r, pct) => paint('backgroundColor', `color-mix(in srgb, var(--${r}) ${pct}%, transparent)`);
         const R = {}; for (const r of ['ground', 'field', 'on-field', 'field-muted', 'text', 'muted', 'accent', 'accent-text', 'on-accent', 'card', 'line', 'outline', 'lit', 'icon-bg', 'icon-ring', 'icon-dot']) R[r] = role(r);
-        const step = async (name, prep = () => {}) => { prep(); show(name); await new Promise(f => setTimeout(f, 50)); return document.querySelector('.first-run'); };
+        // Shown and read in one go: on a Reduce Motion Mac the splash moves on to Welcome at once,
+        // so no wait may come between showing a step and reading it.
+        const step = (name, prep = () => {}) => { prep(); show(name); return document.querySelector('.first-run'); };
         const st = el => { if (!el) throw new Error('missing element in step ' + document.querySelector('.first-run').dataset.step + ': ' + new Error().stack.split('\\n')[1]); return getComputedStyle(el); };
         const box = el => el.getBoundingClientRect();
         """
