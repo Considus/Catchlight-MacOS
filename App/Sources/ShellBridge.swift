@@ -76,6 +76,15 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
     var vault: Vault?
     /// Where `setWritingTools` keeps the setting. Tests pass their own.
     var defaults: UserDefaults = .standard
+
+    /// Why the last unlock did not open the library: `"cancelled"` or `"unopenable"`. Goes into
+    /// the locked library so the page opens straight onto the failed state.
+    var lockFailure: String?
+    /// True for the one page load that follows an unlock; the page fades in rather than starts.
+    var justUnlocked = false
+    /// Set by the window: asks for the user and answers `nil` once the library is open, else
+    /// `"cancelled"` or `"unopenable"`.
+    var unlock: ((@escaping (String?) -> Void) -> Void)?
     /// The sync folder. Nil in tests that don't need one, and then the page offers none.
     var syncFolder: SyncFolder?
     /// Sync (M3). Nil in tests that don't need it, and then a `sync` request is answered as skipped.
@@ -176,7 +185,12 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
     func injectedLibrary() -> WKUserScript {
         var value: [String: Any] = ["account": false, "takes": [Any](), "scripts": [Any]()]
         if let vault {
-            if let library = vault.library {
+            if case .locked = vault.state {
+                // Locked: the library is closed, so nothing decrypted goes in and first run is
+                // never offered (a locked vault is not an empty one).
+                value = ["account": true, "locked": true, "takes": [Any](), "scripts": [Any]()]
+                if let lockFailure { value["lockFailure"] = lockFailure }
+            } else if let library = vault.library {
                 value["account"] = true
                 do {
                     let snapshot = try library.snapshot()
@@ -200,6 +214,10 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
         // Whether Scripts sync, with or without a library open yet: first run keeps this object
         // (Greptile on #55).
         value["syncScripts"] = sync?.holdsScripts ?? false
+        if justUnlocked {
+            value["unlocked"] = true
+            justUnlocked = false
+        }
         let json = (try? JSONSerialization.data(withJSONObject: value)).flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
         return WKUserScript(source: "window.catchlightLibrary = \(json);", injectionTime: .atDocumentStart, forMainFrameOnly: true, in: .page)
     }
@@ -464,6 +482,15 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
             defaults.set(level.rawValue, forKey: WritingToolsSetting.key)
             replyHandler(true, nil)
             if changed { writingToolsChanged() }
+        case "unlock":
+            guard let unlock else { return replyHandler(nil, "no lock in this build") }
+            unlock { failure in replyHandler(failure == nil ? NSNull() : nil, failure) }
+        case "setLockAfter":
+            let seconds = (body["seconds"] as? NSNumber)?.stringValue ?? (body["seconds"] as? String)
+            if let seconds, ["30", "60", "300", "1800", "3600"].contains(seconds) {
+                defaults.set(seconds, forKey: AppLock.lockAfterKey)
+            }
+            replyHandler(NSNull(), nil)
         case "ping":
             // A round trip: messages are handled in order, so everything sent before it is done.
             replyHandler(true, nil)
