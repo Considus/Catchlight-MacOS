@@ -407,6 +407,16 @@ body.first-running .app { visibility: hidden; }
 .fr-body .fr-basic p { font-size: 15px; }
 @media (max-width: 420px) { .fr-words, .fr-bank, .fr-slots { grid-template-columns: repeat(2, 1fr); } }
 
+/* ---------- lock screen (LockView on iOS) ---------- */
+/* The first run's column and brand mark on the ground, then the button at the bottom (DockPill). */
+.lock-screen { position: fixed; inset: 0; z-index: 60; background: var(--ground); color: var(--text); overflow-y: auto; display: flex; flex-direction: column; align-items: center; }
+body.locked .app { visibility: hidden; }
+.lock-screen .fr-body { animation: none; }
+.lock-screen .fr-body h2 { margin-bottom: 0; }   /* the message is 14 below, the body's own gap */
+.lock-message { box-sizing: border-box; padding: 0 32px; }
+.lock-dock { margin-top: auto; padding: 0 0 32px; display: flex; justify-content: center; }
+.lock-leaving { pointer-events: none; }
+
 /* ---------- Settings (SettingsView on iOS): a sheet of grouped cards over the window ---------- */
 .settings-sheet { position: fixed; inset: 0; z-index: 40; display: flex; justify-content: center; align-items: flex-end; background: rgba(0,0,0,0); transition: background .3s ease; }
 .settings-sheet[hidden] { display: none; }
