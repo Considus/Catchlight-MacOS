@@ -297,10 +297,10 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
    glyph when on (Done-only and Expired-only change the glyph, not the fill). The fade behind the
    toolbar rises to cover them. */
 .dock .chips { position: absolute; left: 0; right: 0; bottom: calc(100% + 8px); display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
-.dock .chip { min-height: 44px; padding: 0; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--text); }
-.dock .chip svg { width: 20px; height: 20px; stroke-width: 1.9; }
+.dock :is(.chip, .chip-leaving) { min-height: 44px; padding: 0; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--text); }
+.dock :is(.chip, .chip-leaving) svg { width: 20px; height: 20px; stroke-width: 1.9; }
 .dock .chip:hover { background: color-mix(in srgb, var(--text) 7%, var(--surface)); }
-.dock .chip.on, .dock .chip.on:hover { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.dock .chip.on, .dock .chip.on:hover, .dock .chip-leaving.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .dock[data-mode="filtering"]::before { top: -68px; }
 .dock-btn.is-open { color: var(--accent-text); }
 .dock-btn.filled { background: var(--card); }

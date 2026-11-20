@@ -31,15 +31,18 @@ final class MotionTests: XCTestCase {
         let harness = page()
         let r = try json(harness, recorder + """
             beginEdit(takes.find(t => !t.obie));
+            const during = getComputedStyle(document.querySelector('#eb-discard .icon svg')).transform;
             const plus = document.querySelector('#eb-discard .icon svg');
             const call = calls.find(c => c.el === plus);
-            const turns = call ? call.frames.map(f => f.transform ? parseFloat(f.transform.replace('rotate(', '')) : null) : [];
+            plus.getAnimations().forEach(a => a.finish());   // its resting angle, once the turn is done
+            const turns = call ? call.frames.map(f => f.rotate != null ? 45 + parseFloat(f.rotate) : null) : [];   // on top of the resting 45
             return { still: still.matches, found: !!call, duration: call?.duration ?? 0, opacity: call ? call.frames.map(f => f.opacity ?? null) : [],
-              first: turns[0] ?? null, last: turns[turns.length - 1] ?? null, peak: turns.length ? Math.max(...turns) : null, rest: getComputedStyle(plus).transform };
+              first: turns[0] ?? null, last: turns[turns.length - 1] ?? null, peak: turns.length ? Math.max(...turns) : null, rest: getComputedStyle(plus).transform, during };
             """)
         print("MotionTests: Reduce Motion is \(r["still"] as? Bool == true ? "on" : "off")")
         XCTAssertEqual(r["found"] as? Bool, true, "the plus animates as the bar appears: \(r)")
         XCTAssertTrue((r["rest"] as? String ?? "").hasPrefix("matrix(0.707"), "it rests turned 45 degrees: \(r)")
+        XCTAssertTrue((r["during"] as? String ?? "").hasPrefix("matrix(0.707"), "the turn leaves the resting transform alone: \(r)")
         if r["still"] as? Bool == true {
             XCTAssertEqual(r["opacity"] as? [Double], [0, 1], "Reduce Motion: no turn, a fade: \(r)")
             XCTAssertEqual(r["duration"] as? Double, 120)
@@ -93,11 +96,11 @@ final class MotionTests: XCTestCase {
             calls.length = 0;
             document.querySelector('#takes-dock [data-act="sequence"]').click();
             const sink = calls.find(c => c.el.classList?.contains('chips'));
-            const leaving = bar.querySelectorAll('.chips').length;
+            const leaving = bar.querySelectorAll('.chips').length, live = bar.querySelectorAll('.chip').length;
             sink?.el.getAnimations().forEach(a => a.finish());
             await new Promise(f => setTimeout(f, 20));
             return { drop, rise: rise ? [rise.frames, rise.duration, rise.easing] : null, sink: sink ? [sink.frames, sink.duration, sink.easing] : null,
-              leaving, gone: bar.querySelectorAll('.chips').length };
+              leaving, live, gone: bar.querySelectorAll('.chips').length };
             """)
         let drop = try XCTUnwrap(r["drop"] as? Double)
         let rise = try XCTUnwrap(r["rise"] as? [Any], "the chips animate in: \(r)")
@@ -110,6 +113,7 @@ final class MotionTests: XCTestCase {
         let down = try XCTUnwrap(sink[0] as? [[String: Any]])
         XCTAssertEqual(down.last?["opacity"] as? Double, 0); XCTAssertEqual(down.last?["transform"] as? String, "translateY(\(Int(drop))px)")
         XCTAssertEqual(r["leaving"] as? Int, 1, "the old row stays while it sinks")
+        XCTAssertEqual(r["live"] as? Int, 0, "as a picture: the filters are already closed")
         XCTAssertEqual(r["gone"] as? Int, 0, "and goes once it has")
     }
 }

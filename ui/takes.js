@@ -263,13 +263,14 @@ function beginEdit(t, isNew = false) {
 }
 
 // Cancel's plus turns into a cross as the bar appears (EditorKeyboardBar: the turn spring, or with
-// Reduce Motion the turned plus fades in). It rests at 45 degrees in the stylesheet.
+// Reduce Motion the turned plus fades in). It rests at 45 degrees in the stylesheet; the spring runs
+// on the separate rotate property, from -45 back to 0, so the resting transform is never touched.
 function turnCancel() {
   const plus = $('#eb-discard .icon svg');
   if (!plus) return;
   if (still.matches) { plus.animate([{ opacity: 0 }, { opacity: 1 }], MOTION.reduced); return; }
   const { frames, duration } = springFrames(0.35, 0.62);
-  plus.animate(frames.map(p => ({ transform: `rotate(${+(45 * p).toFixed(3)}deg)` })), { duration, easing: 'linear' });
+  plus.animate(frames.map(p => ({ rotate: `${+(45 * p - 45).toFixed(3)}deg` })), { duration, easing: 'linear' });
 }
 
 function paintEditor() {
@@ -907,7 +908,8 @@ function paintDock() {
   if (dock === 'resting' || dock === 'filtering') {
     const open = dock === 'filtering';
     const leaving = !open && chipsShown ? bar.querySelector('.chips') : null;   // kept to sink out
-    if (leaving) { leaving.inert = true; leaving.setAttribute('aria-hidden', 'true'); }
+    const leavingH = leaving?.offsetHeight ?? 0;   // measured while it is still in the page
+    if (leaving) { leaving.inert = true; leaving.setAttribute('aria-hidden', 'true'); leaving.querySelectorAll('.chip').forEach(c => c.classList.replace('chip', 'chip-leaving')); }   // a picture of the closed row, no longer chips
     const chip = (act, icon, label, on) => `<button class="dock-btn chip${on ? ' on' : ''}" type="button" data-act="${act}" aria-label="${esc(label)}" title="${esc(label)}" aria-pressed="${on}">${icon}</button>`;
     const chips = !open ? '' : '<div class="chips">'
       + chip('important', ICON_IMPORTANT, t('Important filter'), seq.important)
@@ -921,7 +923,7 @@ function paintDock() {
     if (seqShown !== (open ? 1 : 0) && !seqMoving(open)) morphSequence(open ? 1 : 0);
     // The chips rise from behind the toolbar and sink back (DailiesToolbar: opacity and a move from
     // the bottom edge, 0.2 s ease-in-out); the old row stays until it has sunk.
-    const row = bar.querySelector('.chips') || leaving, drop = row ? row.offsetHeight + 8 + bar.offsetHeight : 0;
+    const drop = (open ? bar.querySelector('.chips').offsetHeight : leavingH) + 8 + bar.offsetHeight;
     const below = [{ opacity: 0, transform: `translateY(${drop}px)` }], placed = [{ opacity: 1, transform: 'none' }];
     if (open && !chipsShown) bar.querySelector('.chips').animate(below.concat(placed), MOTION.mode);
     if (!open && leaving) { bar.prepend(leaving); leaving.animate(placed.concat(below), MOTION.mode).finished.then(() => leaving.remove(), () => leaving.remove()); }
