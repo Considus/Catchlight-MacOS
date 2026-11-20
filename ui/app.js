@@ -168,10 +168,20 @@ function refuseHeld(id, what = 'Take') {
     [[t('Review'), () => window.openConflicts?.()], [t('OK'), null, 'cancel']]);
   return true;
 }
-// The brand mark, as the iPhone's IntroBrandMark draws it: the app icon over the wordmark,
-// 72 pt and 44 pt high with 16 pt between, one image per scene (catchlight-icon and
-// catchlight-wordmark from Catchlight-iOS). First run and About share it.
-const brandMark = () => `<div class="fr-brand" aria-hidden="true"><span class="fr-icon"><img class="for-night" src="brand/icon-night.svg" alt=""><img class="for-daylight" src="brand/icon-daylight.svg" alt=""></span><span class="fr-wordmark"><img class="for-night" src="brand/wordmark-night.svg" alt=""><img class="for-daylight" src="brand/wordmark-daylight.svg" alt=""></span></div>`;
+// The brand mark, as the iPhone's IntroBrandMark draws it: the mark (CatchlightMark) over the
+// wordmark (CatchlightWordmark), 24 between, in the Scene's colours. On the ground the mark is the
+// 72 tile; on the colour field the ring and dot alone, sized so the ring fills the box. The
+// wordmark is the brand SVG's letters, 158 wide, with the i's dot drawn over them. First run and
+// About share it.
+let markId = 0;
+const brandMark = (bare = false) => {
+  const id = `fr-notch-${++markId}`;
+  // CatchlightMark.Art, on its 64 grid: the ring notched where the dot sits.
+  const mark = `<svg class="fr-mark" viewBox="${bare ? '13.25 14.25 37.5 37.5' : '0 0 64 64'}" aria-hidden="true">
+    <mask id="${id}"><rect x="0" y="0" width="64" height="64" fill="#fff"/><circle cx="43.6" cy="21.4" r="8.1" fill="#000"/></mask>
+    ${bare ? '' : '<rect class="tile" width="64" height="64" rx="12.44"/>'}<circle class="ring" cx="32" cy="33" r="15" mask="url(#${id})"/><circle class="dot" cx="43.6" cy="21.4" r="5.1"/></svg>`;
+  return `<div class="fr-brand" aria-hidden="true">${mark}<span class="fr-wordmark"><span class="fr-letters"></span><svg class="fr-dot" viewBox="0 0 2 2"><circle cx="1" cy="1" r="1"/></svg></span></div>`;
+};
 
 // Takes and Scripts are named by UUID, as Core names them (a Take's per-item key is derived
 // from its id, so the id must be the one Core and the iPhone expect).

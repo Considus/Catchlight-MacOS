@@ -331,49 +331,78 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 .first-run { position: fixed; inset: 0; z-index: 50; background: var(--ground); color: var(--text); overflow-y: auto; display: flex; justify-content: center; }
 .first-run[hidden] { display: none; }
 body.first-running .app { visibility: hidden; }
+/* Welcome and the closing step sit on the Scene's colour field, in its ink (StepInk, DockPill). */
+.first-run[data-step="welcome"], .first-run[data-step="complete"] { background: var(--field); --fr-ink: var(--on-field); --fr-ink-2: var(--field-muted); }
 .fr-column { width: min(440px, 100% - 32px); padding: 72px 0 40px; display: flex; flex-direction: column; align-items: center; text-align: center; }
-.fr-brand { display: flex; flex-direction: column; align-items: center; gap: 16px; margin-bottom: 40px; }
-.fr-icon img { width: 72px; height: 72px; display: block; }
-/* The real wordmark, as the iPhone draws it (catchlight-wordmark, 44 pt high). Icon and
-   wordmark each come in a Dark and a Light image; the scene shows one. */
-.fr-wordmark img { height: 44px; width: auto; display: block; }
-.fr-brand .for-daylight, :root[data-mode="light"] .fr-brand .for-night { display: none; }
-:root[data-mode="light"] .fr-brand .for-daylight { display: block; }
+/* IntroBrandMark: the mark over the wordmark, 24 between, drawn in the Scene's colours. */
+.fr-brand { display: flex; flex-direction: column; align-items: center; gap: 24px; margin-bottom: 40px; }
+.fr-mark { width: 72px; height: 72px; display: block; }
+.fr-mark .tile { fill: var(--icon-bg); stroke: none; }
+.fr-mark .ring { fill: none; stroke: var(--icon-ring); stroke-width: 7.5; }
+.fr-mark .dot { fill: var(--icon-dot); stroke: none; }
+/* CatchlightWordmark: the letters in the text colour (the field's ink on the field), the i's dot
+   lit (the icon's dot on the field), at the SVG's own geometry (viewBox 0 -734 5171 927.55, dot
+   at 3350, -644, radius 90). */
+.fr-wordmark { position: relative; display: block; width: 158px; aspect-ratio: 5171 / 927.55; }
+.fr-letters { position: absolute; inset: 0; background: var(--fr-ink, var(--text)); -webkit-mask: url(brand/wordmark-letters.svg) center / 100% 100% no-repeat; mask: url(brand/wordmark-letters.svg) center / 100% 100% no-repeat; }
+.fr-dot { position: absolute; left: calc(3260 / 5171 * 100%); top: calc(0 / 927.55 * 100%); width: calc(180 / 5171 * 100%); aspect-ratio: 1; display: block; fill: var(--lit); stroke: none; }
+.first-run[data-step="welcome"] .fr-dot, .first-run[data-step="complete"] .fr-dot { fill: var(--icon-dot); }
 .fr-body { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 14px; animation: fr-in .18s ease-in-out; }
 @keyframes fr-in { from { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .fr-body { animation: none; } }
-.fr-body h2 { margin: 0 0 4px; font-size: 28px; line-height: 1.15; }
-.fr-body p { margin: 0; font-size: 16px; font-weight: 400; color: var(--muted); line-height: 1.45; }
-.fr-body p b { color: var(--text); font-weight: 500; }
-.fr-body .fr-strong { color: var(--text); }
-.fr-tagline { margin-top: 8px !important; font-size: 22px !important; line-height: 1.2 !important; color: var(--text) !important; }
-.fr-foot { margin-top: 48px !important; font-size: 12px !important; padding: 6px 14px; border-radius: 10px; border: 1px solid var(--line); }
+/* stepHeading: Archivo at 560 and 120 width, 28, tight leading, centred. */
+.fr-body h2 { margin: 0 0 4px; font-size: 28px; line-height: 1.1; text-align: center; color: var(--fr-ink, var(--text)); }
+.fr-body p { margin: 0; font-size: 16px; font-weight: 300; color: var(--fr-ink-2, var(--muted)); line-height: 1.45; }
+.fr-body p b { color: var(--fr-ink, var(--text)); font-weight: 600; }
+.fr-body .fr-strong { color: var(--fr-ink, var(--text)); }
+/* The opening line is a heading in the muted colour (OnboardingView splash). */
+.fr-tagline { margin-top: 8px !important; font-size: 28px !important; font-weight: 500 !important; line-height: 1.1 !important; color: var(--muted) !important; }
+/* The footer: a quiet outlined plate in the toolbar's slot. */
+.fr-foot { margin-top: 48px !important; min-height: 44px; display: inline-flex; align-items: center; padding: 0 16px; border-radius: 14px; border: 1px solid var(--outline); font: 500 15px var(--sys) !important; color: var(--muted) !important; }
+/* DockPill: 44 high, corner 14, 15 medium. Main: the accent with its label; on the field, the
+   field's ink with the field colour. Second: clear with a 1 outline edge. A link: the accent's
+   text colour, underlined in the field's ink on the field. */
 .fr-actions { margin-top: 18px; display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; align-items: center; }
-.fr-pill { min-height: 44px; padding: 0 22px; border-radius: 14px; border: 1.5px solid color-mix(in srgb, var(--accent-text) 55%, transparent); color: var(--accent-text); font: 400 15px var(--sys); }
-.fr-pill.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
-.fr-pill.link { border-color: transparent; text-decoration: underline; text-underline-offset: 3px; }
-.fr-pill:disabled { opacity: .5; cursor: default; }
-.fr-card { width: 100%; text-align: left; padding: 16px 18px; border-radius: 14px; border: .75px solid var(--line); background: var(--card); display: flex; flex-direction: column; gap: 6px; color: var(--text); }
+.fr-pill { min-height: 44px; padding: 0 20px; border-radius: 14px; border: 1px solid var(--outline); background: none; color: var(--text); font: 500 15px var(--sys); }
+.fr-pill.primary { background: var(--accent); border-color: transparent; color: var(--on-accent); }
+.fr-pill.primary:disabled { background: var(--line); color: var(--muted); cursor: default; }
+.fr-pill.link { border-color: transparent; padding: 0 8px; color: var(--accent-text); }
+.first-run[data-step="welcome"] .fr-pill.primary, .first-run[data-step="complete"] .fr-pill.primary { background: var(--on-field); color: var(--field); }
+.first-run[data-step="welcome"] .fr-pill.link, .first-run[data-step="complete"] .fr-pill.link { color: var(--on-field); text-decoration: underline; text-underline-offset: 3px; }
+.fr-pill:disabled { cursor: default; }
+/* The storage cards: flatPanel, 16 in, title 17 semibold over the description 16 light. */
+.fr-card { width: 100%; text-align: left; padding: 16px; border-radius: 14px; border: 1px solid var(--line); background: var(--card); display: flex; flex-direction: column; gap: 8px; color: var(--text); }
 .fr-card:hover, .fr-card:focus-visible { border-color: var(--accent-text); }
-.fr-card span { font-size: 14px; font-weight: 400; color: var(--muted); line-height: 1.4; }
-.fr-folder { color: var(--text) !important; font-family: ui-monospace, Menlo, monospace !important; font-size: 14px !important; padding: 8px 14px; border-radius: 12px; background: var(--card); }
+.fr-card b { font: 600 17px var(--sys); }
+.fr-card span { font-size: 16px; font-weight: 300; color: var(--muted); line-height: 1.4; }
+.fr-folder { color: var(--text) !important; font-family: ui-monospace, Menlo, monospace !important; font-size: 14px !important; padding: 8px 14px; border-radius: 14px; background: var(--card); }
+/* The phrase's words (PhraseCell): flatTile, 3 across with 8 between, number 12 then the word 15
+   semibold. Restore's cells are flatField: the outline edge, 44 high. */
 .fr-words { list-style: none; margin: 8px 0; padding: 0; width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.fr-words li { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 12px; border-radius: 14px; background: var(--card); border: .75px solid var(--line); font-size: 16px; font-weight: 400; text-align: left; }
-.fr-words li span, .fr-slot span { font-size: 11px; color: var(--muted); min-width: 14px; }
+.fr-words li { display: flex; align-items: center; gap: 5px; min-height: 40px; padding: 10px 8px; border-radius: 14px; background: var(--card); border: 1px solid var(--line); font: 600 15px var(--sys); text-align: left; }
+.fr-words li span, .fr-slot span { font-size: 12px; font-weight: 400; color: var(--muted); min-width: 14px; }
+.fr-entry { row-gap: 10px; }
+.fr-entry li { min-height: 44px; border-color: var(--outline); font-weight: 400; }
 .fr-entry input { flex: 1; min-width: 0; border: 0; background: none; color: var(--text); font: 400 16px var(--sys); outline: none; }
 .fr-entry li:focus-within { border-color: var(--accent-text); }
-.fr-status { font-size: 14px !important; }
+.fr-body .fr-status { font-size: 14px; font-weight: 400; }
 .fr-status.error { color: var(--ruby) !important; }
-.fr-slots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; }
-.fr-slot { min-height: 44px; border-radius: 14px; border: 1.5px dashed var(--line); display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--text); font-size: 16px; font-weight: 400; }
-.fr-slot.wrong { border-color: var(--accent-text); border-style: solid; }
+/* Confirm: slots 3 across with 10 between, a 1.5 muted edge, the accent's text colour once
+   filled; tiles flat with a 1 line edge, a used one on the line colour with a muted label. */
+.fr-slots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; }
+.fr-slot { min-height: 40px; padding: 6px 8px; border-radius: 14px; border: 1.5px solid var(--muted); background: none; display: flex; align-items: center; justify-content: center; gap: 5px; color: var(--text); font: 600 15px var(--sys); }
+.fr-slot.filled { border-color: var(--accent-text); }
+.fr-slot.wrong { border-color: var(--accent-text); background: color-mix(in srgb, var(--accent-text) 18%, transparent); }
 .fr-bank { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; }
-.fr-tile { min-height: 44px; border-radius: 14px; background: var(--card); border: .75px solid var(--line); color: var(--text); font-size: 16px; font-weight: 400; }
-.fr-tile:disabled { opacity: .3; cursor: default; }
-.fr-error { width: 100%; padding: 10px 14px; border-radius: 14px; border: 1px solid var(--ruby); color: var(--ruby); font-size: 14px; }
+.fr-tile { min-height: 40px; border-radius: 14px; background: var(--card); border: 1px solid var(--line); color: var(--text); font: 400 15px var(--sys); }
+.fr-tile:disabled { background: var(--line); border-color: transparent; color: var(--muted); cursor: default; }
+/* The failure card: 13 in the accent's text colour on the accent at 12%, edged at 35%. */
+.fr-error { width: 100%; padding: 8px 14px; border-radius: 14px; border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent-text); font-size: 13px; }
 .fr-error[hidden] { display: none; }
+/* The basics (OnboardingPointRow): title 16 semibold over the text 15 light. */
 .fr-basic { width: 100%; text-align: left; }
-.fr-basic b { display: block; margin-bottom: 4px; font-weight: 500; }
+.fr-basic b { display: block; margin-bottom: 3px; font: 600 16px var(--sys); color: var(--text); }
+.fr-body .fr-basic p { font-size: 15px; }
 @media (max-width: 420px) { .fr-words, .fr-bank, .fr-slots { grid-template-columns: repeat(2, 1fr); } }
 
 /* ---------- Settings (SettingsView on iOS): a sheet of grouped cards over the window ---------- */
