@@ -42,7 +42,8 @@ final class OnboardingLookTests: XCTestCase {
               return { mark: mark ? [box(mark).width, box(mark).height] : null, tile: tile ? st(tile).fill : null, ring: ring ? st(ring).stroke : null, dot: dot ? st(dot).fill : null,
                 wordW: word ? box(word).width : 0, gap: word && mark ? box(word).top - box(mark).bottom : -1,
                 letters: word?.querySelector('.fr-letters') ? st(word.querySelector('.fr-letters')).backgroundColor : null,
-                idot: word?.querySelector('.fr-dot circle') ? st(word.querySelector('.fr-dot circle')).fill : null, imgs: layer.querySelectorAll('.fr-brand img').length };
+                idot: word?.querySelector('.fr-dot circle') ? st(word.querySelector('.fr-dot circle')).fill : null, imgs: layer.querySelectorAll('.fr-brand img').length,
+                strokes: [tile, dot, word?.querySelector('.fr-dot circle')].filter(Boolean).map(el => st(el).stroke) };
             };
             return { R, splash: await read('splash'), welcome: await read('welcome') };
             """)
@@ -57,6 +58,8 @@ final class OnboardingLookTests: XCTestCase {
         XCTAssertEqual(splash["letters"] as? String, R["text"])
         XCTAssertEqual(splash["idot"] as? String, R["lit"])
         XCTAssertEqual(splash["imgs"] as? Int, 0, "no old image files")
+        XCTAssertEqual(splash["strokes"] as? [String], ["none", "none", "none"], "the tile, the dot and the i's dot are fills alone, with no outline: \(splash)")
+        XCTAssertEqual(welcome["strokes"] as? [String], ["none", "none"], "\(welcome)")
         XCTAssertNil(welcome["tile"] as? String, "on the field the mark is the ring and dot alone")
         XCTAssertEqual(welcome["ring"] as? String, R["icon-ring"])
         XCTAssertEqual(welcome["letters"] as? String, R["on-field"])

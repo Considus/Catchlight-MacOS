@@ -337,15 +337,15 @@ body.first-running .app { visibility: hidden; }
 /* IntroBrandMark: the mark over the wordmark, 24 between, drawn in the Scene's colours. */
 .fr-brand { display: flex; flex-direction: column; align-items: center; gap: 24px; margin-bottom: 40px; }
 .fr-mark { width: 72px; height: 72px; display: block; }
-.fr-mark .tile { fill: var(--icon-bg); }
+.fr-mark .tile { fill: var(--icon-bg); stroke: none; }
 .fr-mark .ring { fill: none; stroke: var(--icon-ring); stroke-width: 7.5; }
-.fr-mark .dot { fill: var(--icon-dot); }
+.fr-mark .dot { fill: var(--icon-dot); stroke: none; }
 /* CatchlightWordmark: the letters in the text colour (the field's ink on the field), the i's dot
    lit (the icon's dot on the field), at the SVG's own geometry (viewBox 0 -734 5171 927.55, dot
    at 3350, -644, radius 90). */
 .fr-wordmark { position: relative; display: block; width: 158px; aspect-ratio: 5171 / 927.55; }
 .fr-letters { position: absolute; inset: 0; background: var(--fr-ink, var(--text)); -webkit-mask: url(brand/wordmark-letters.svg) center / 100% 100% no-repeat; mask: url(brand/wordmark-letters.svg) center / 100% 100% no-repeat; }
-.fr-dot { position: absolute; left: calc(3260 / 5171 * 100%); top: calc(0 / 927.55 * 100%); width: calc(180 / 5171 * 100%); aspect-ratio: 1; display: block; fill: var(--lit); }
+.fr-dot { position: absolute; left: calc(3260 / 5171 * 100%); top: calc(0 / 927.55 * 100%); width: calc(180 / 5171 * 100%); aspect-ratio: 1; display: block; fill: var(--lit); stroke: none; }
 .first-run[data-step="welcome"] .fr-dot, .first-run[data-step="complete"] .fr-dot { fill: var(--icon-dot); }
 .fr-body { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 14px; animation: fr-in .18s ease-in-out; }
 @keyframes fr-in { from { opacity: 0; } }
