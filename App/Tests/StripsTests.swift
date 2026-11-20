@@ -288,9 +288,9 @@ final class StripsTests: XCTestCase {
             return JSON.stringify([alertBox.open, alertBox.querySelector('h2, h1, .alert-title')?.textContent, alertBox.querySelector('p')?.textContent, [...alertBox.querySelectorAll('button')].map(b => b.textContent)]);
             """, in: self) as? String
         XCTAssertEqual(dialog, #"[true,"Export a readable copy?","The file is readable text and it does not contain a Privacy phrase. Use Start over and Import from a file to re-import your Takes. Delete the export once your Takes are back.",["Export anyway","Cancel"]]"#)
-        XCTAssertFalse(shell.sent.contains("exportFile"), "nothing leaves before the choice")
+        XCTAssertFalse(shell.sent.contains("exportLibrary"), "nothing leaves before the choice")
         _ = try harness.run("[...alertBox.querySelectorAll('button')].find(b => b.textContent === 'Export anyway').click(); await new Promise(r => setTimeout(r, 200)); return 0;", in: self)
-        XCTAssertTrue(shell.sent.contains("exportFile"), "\(shell.sent)")
+        XCTAssertTrue(shell.sent.contains("exportLibrary"), "\(shell.sent)")
     }
 
     func testCancelExportsNothing() throws {
@@ -370,5 +370,18 @@ final class StripsTests: XCTestCase {
             return JSON.stringify(out);
             """, in: self) as? String
         XCTAssertEqual(cut, "[]", "languages whose sentence is cut")
+    }
+
+    /// Cancel sends nothing to the shell's whole-library export either (the export since
+    /// owner, 2026-11-20: Takes and Scripts through the shell).
+    func testCancelSendsNoLibraryExport() throws {
+        let harness = page(takes: alerting, library: ", phraseMissing: true")
+        try settle(harness)
+        _ = try harness.run("""
+            document.querySelector('[data-strip="phrase"] [data-strip-act="export"]').click();
+            [...alertBox.querySelectorAll('button')].find(b => b.textContent === 'Cancel').click();
+            await new Promise(r => setTimeout(r, 200)); return 0;
+            """, in: self)
+        XCTAssertFalse(shell.sent.contains("exportLibrary"), "\(shell.sent)")
     }
 }

@@ -143,7 +143,7 @@ const ITEMS = {
   settings: { label: PLAT === 'linux' ? 'Preferences' : t('Settings…'), keys: { all: 'Mod+,' }, enabled: () => ready() && !focusRing && !reminderFor && !shotListOpen(), run: () => sheet.hidden ? openSettings() : closeSettings() },
   newTake: { label: t('New Take'), keys: { all: 'Mod+N' }, enabled: () => free() && !draft, run: newTake },
   newScript: { label: t('New Script'), keys: { all: 'Mod+Shift+N' }, enabled: free, run: () => newScript() },
-  exportTakes: { label: t('Export Takes…'), keys: { all: 'Mod+Shift+E' }, enabled: () => free() && takes.length > 0, run: () => exportTakes(takes) },
+  exportTakes: { label: t('Export Takes…'), keys: { all: 'Mod+Shift+E' }, enabled: () => free() && (takes.length > 0 || scripts.length > 0), run: () => exportLibrary() },
   importFile: { label: t('Import from a File…'), enabled: free, run: importFromFile },   // settings.js
   importNotes: { label: t('Import Notes'), enabled: () => free() && !!store.get('account', {})?.folder, run: importNotes },
   syncNow: { label: t('Sync Now'), enabled: () => free() && settings.syncMode === 'manual' && !!store.get('account', {})?.folder, run: () => window.catchlightBridge ? catchlightBridge.sync('manual') : ask(t('Sync Now'), t("The sync runs in Core, through the shell, which doesn't exist yet."), [[t('OK'), null, 'cancel']]) },

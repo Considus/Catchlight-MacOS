@@ -465,6 +465,24 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                     }
                 }
             }
+        case "exportLibrary":
+            // The whole library, written from the store by Core's exporter (Library.exportMarkdown).
+            // The page flushes its edits first, so the store holds what the user sees.
+            guard let name = body["name"] as? String else { return replyHandler(nil, "exportLibrary needs a name") }
+            guard let library = vault?.library, !libraryUnreadable else { return replyHandler(nil, "locked") }
+            let text: String
+            do { text = try library.exportMarkdown() } catch { return replyHandler(nil, error.localizedDescription) }
+            pickSaveURL(window, name) { url in
+                guard let url else { return replyHandler(["cancelled": true], nil) }
+                DispatchQueue.global(qos: .userInitiated).async {
+                    do {
+                        try Data(text.utf8).write(to: url, options: .atomic)
+                        DispatchQueue.main.async { replyHandler(["saved": true], nil) }
+                    } catch {
+                        DispatchQueue.main.async { replyHandler(nil, error.localizedDescription) }
+                    }
+                }
+            }
         case "notificationStatus", "enableNotifications":
             guard let notifications else { return replyHandler(nil, "no notifications in this build") }
             // The system answers off the main thread; the reply goes back on it.

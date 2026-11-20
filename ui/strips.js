@@ -88,7 +88,7 @@ let phraseMissing = !!window.catchlightLibrary?.phraseMissing;
 function phraseRestored() { phraseMissing = false; paintStrips(); }
 function exportReadable() {
   ask(t('Export a readable copy?'), t('The file is readable text and it does not contain a Privacy phrase. Use Start over and Import from a file to re-import your Takes. Delete the export once your Takes are back.'),
-    [[t('Export anyway'), () => exportTakes(takes)], [t('Cancel'), null, 'cancel']]);
+    [[t('Export anyway'), () => exportLibrary()], [t('Cancel'), null, 'cancel']]);
 }
 
 // A lasting condition goes into Notice History once when it begins, not at each launch; when it

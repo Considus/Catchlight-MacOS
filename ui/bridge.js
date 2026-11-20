@@ -255,6 +255,8 @@
       // Export Take(s): the Mac's save panel suggests `name` and writes `text`. Answers
       // { saved: true } or { cancelled: true }.
       exportFile: (name, text) => post('exportFile', { name, text }),
+      // The whole library, Takes and Scripts, written by the shell from what it stores (takes.js, exportLibrary).
+      exportLibrary: name => post('exportLibrary', { name }),
       // The Spotlight setting (settings.js sends it at load and on every change). The shell
       // indexes at `none` or `type` only: the text levels clamp to `type`.
       setSpotlight: level => post('setSpotlight', { level }),

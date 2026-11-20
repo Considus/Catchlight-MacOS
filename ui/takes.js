@@ -1173,6 +1173,22 @@ function exportMarkdown(list, now = new Date()) {
 // A shell hands this to its save panel or share sheet (`shell.exportFile`); a plain browser downloads it.
 const exportName = (now = new Date()) => `catchlight-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}.md`;
 const exportTake = t => exportTakes([t]);
+// Every Take and every Script, for Export Takes (Settings and the menu), Start over and the No
+// Privacy phrase strip. In the Mac app the shell writes it from the store with Core's exporter,
+// the iPhone's format, so Import from a file brings back each item with its marks and each Script
+// as a Script (owner, 2026-11-20). The page sends its last edit first. A plain browser has only
+// the page's Markdown, which carries the Takes.
+async function exportLibrary() {
+  const shell = window.catchlightBridge?.shell;
+  if (!shell?.exportLibrary) return exportTakes(takes);
+  try {
+    await window.catchlightBridge.flush();
+    await shell.exportLibrary(exportName());
+  } catch (e) {
+    console.error('Exporting the library failed', e);
+    ask(L10N.t('Export'), L10N.t("Your Takes couldn't be read, so nothing was exported. Don't start over until an export works."), [[L10N.t('OK'), null, 'cancel']]);
+  }
+}
 function exportTakes(list) {
   const now = new Date(), shell = window.catchlightBridge?.shell;
   // `exportFile` exists only in a shell (bridge.js defines `shell` only with a native handler).
