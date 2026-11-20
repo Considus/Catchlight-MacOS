@@ -260,6 +260,7 @@ function beginEdit(t, isNew = false) {
   editorCard.hidden = false;
   paintEditor();
   turnCancel();
+  if (!still.matches) editorCard.animate([{ opacity: 0 }, { opacity: 1 }], MOTION.fan);   // UIState.fanFade, none with Reduce Motion
   focusRow(rows.children.length - 1, Infinity);
 }
 
@@ -350,6 +351,11 @@ function endEdit() {
   $('#takes').inert = $('#pinned').inert = false;
   closeReminder();   // the picker belongs to the edit; it never outlives it
   draft = original = null;
+  if (!still.matches && !editorCard.hidden) {   // the card fades out over the Takes as they come back (fanFade)
+    const copy = leavingCopy(editorCard, 'leaving');
+    editorCard.after(copy);
+    copy.animate([{ opacity: 1 }, { opacity: 0 }], MOTION.fan).finished.then(() => copy.remove(), () => copy.remove());
+  }
   editorCard.hidden = true;
   rows.innerHTML = '';   // nothing of an edit outlives it, discarded or not
   sidebar.classList.remove('editing');
@@ -826,6 +832,11 @@ function matches(t) {
 // shape: 0.32 s ease-in-out cubic; turn: spring(response 0.35, damping 0.62); reduced: the
 // 0.12 s fade Reduce Motion gets instead; mode: the toolbar's 0.2 s change of mode.
 const MOTION = {
+  fan: { duration: 200, easing: 'ease-in-out' },       // UIState.fanFade: the edit card in and out
+  step: { duration: 180, easing: 'ease-in-out' },      // OnboardingView: step, failure card, wrong-guess flash
+  root: { duration: 400, easing: 'ease-in-out' },      // RootView: splash and onboarding to the app
+  get snappy15() { return springEasing(0.15, 0.85); },   // .snappy(duration: 0.15): FlatToggleStyle
+  get snappy20() { return springEasing(0.2, 0.85); },    // .snappy(duration: 0.2): the repeat options
   heading: { duration: 180, easing: 'ease-in-out' },   // DailiesView: the title crossfades on a mode change
   tick: { duration: 150, easing: 'ease-in-out' },      // ShotListView.toggle
   settle: { duration: 180, easing: 'ease-in-out' },    // ShotListView.endReorder
@@ -881,6 +892,59 @@ function springFrames(response, damping) {
     frames.push(i === steps ? 1 : 1 - Math.exp(-damping * w * t) * (Math.cos(wd * t) + damping * w / wd * Math.sin(wd * t)));
   }
   return { frames, duration: Math.round(duration * 1000) };
+}
+
+// SwiftUI's .snappy(duration: d) is spring(duration: d, bounce: 0.15): response d, damping 0.85.
+// As a CSS linear() easing, so a two-frame animation follows the spring.
+function springEasing(response, damping) {
+  const { frames, duration } = springFrames(response, damping);
+  return { duration, easing: `linear(${frames.map(p => +p.toFixed(4)).join(', ')})` };
+}
+
+// A copy of what is leaving, to fade over what replaces it: hidden from the screen reader, nothing
+// to press, and no id the page still uses (an id only the copy has, such as a mask's, stays so its
+// drawing holds). The page's own state is already the new one.
+function leavingCopy(el, cls) {
+  const copy = el.cloneNode(true);
+  for (const n of [copy, ...copy.querySelectorAll('[id]')]) if (n.id && document.getElementById(n.id)) n.removeAttribute('id');
+  copy.setAttribute('aria-hidden', 'true'); copy.inert = true; copy.hidden = false;
+  if (cls) copy.classList.add(cls);
+  return copy;
+}
+
+// A row opening or closing in place (the repeat options): its height, padding and margins with
+// the timing given, fading as it goes. With Reduce Motion it only fades, and nothing below moves.
+function foldRow(el, coming, timing) {
+  if (still.matches) {
+    if (!coming) Object.assign(el.style, { position: 'absolute', width: el.offsetWidth + 'px' });
+    el.animate(coming ? [{ opacity: 0 }, { opacity: 1 }] : [{ opacity: 1 }, { opacity: 0 }], MOTION.reduced).finished
+      .then(() => { if (!coming) el.remove(); }, () => { if (!coming) el.remove(); });
+    return;
+  }
+  const cs = getComputedStyle(el), keys = ['height', 'paddingTop', 'paddingBottom', 'marginTop', 'marginBottom', 'borderTopWidth', 'borderBottomWidth'];
+  const full = { opacity: 1 }, none = { opacity: 0 };
+  for (const k of keys) { full[k] = cs[k]; none[k] = '0px'; }
+  el.style.overflow = 'hidden';
+  el.animate(coming ? [none, full] : [full, none], timing).finished
+    .then(() => { el.style.overflow = ''; if (!coming) el.remove(); }, () => { if (!coming) el.remove(); });
+}
+
+// A switch's look just before it changed (the change has already flipped it, so it is read
+// flipped back), and its turn to the new look with FlatToggleStyle's snappy 0.15 (none with
+// Reduce Motion). The sheets repaint on every change, so the stylesheet's transition never runs.
+function switchLook(el) {
+  if (!el || el.type !== 'checkbox') return null;
+  el.checked = !el.checked;
+  const a = getComputedStyle(el), k = getComputedStyle(el, '::after');
+  const look = { on: el.checked, bg: a.backgroundColor, edge: a.borderTopColor, knob: k.backgroundColor, at: k.transform };
+  el.checked = !el.checked;
+  return look;
+}
+function turnSwitch(el, was) {
+  if (!el || !was || was.on === el.checked || still.matches) return;
+  const a = getComputedStyle(el), k = getComputedStyle(el, '::after'), spring = MOTION.snappy15;
+  el.animate([{ backgroundColor: was.bg, borderColor: was.edge }, { backgroundColor: a.backgroundColor, borderColor: a.borderTopColor }], spring);
+  el.animate([{ backgroundColor: was.knob, transform: was.at }, { backgroundColor: k.backgroundColor, transform: k.transform }], { ...spring, pseudoElement: '::after' });
 }
 
 // Sequence's icon (SequenceLines): three lines on the 24 grid, folded into a cross while the

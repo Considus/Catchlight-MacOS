@@ -275,6 +275,7 @@ rsheet.addEventListener('click', e => {
 rsheet.addEventListener('change', e => {
   const k = e.target.dataset.r, v = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
   if (!k) return;
+  const was = switchLook(e.target), before = repeatRows();
   if (k === 'quick') { rs.quick = v; rs.date = quickDate(v); rs.time = hhmm(rs.date); rs.view = new Date(rs.date.getFullYear(), rs.date.getMonth(), 1); }
   else if (k === 'time') { rs.time = v || rs.time; rs.quick = null; }
   else if (k === 'allDay') rs.allDay = v;
@@ -286,8 +287,24 @@ rsheet.addEventListener('change', e => {
   else if (k === 'name') { rs.place.name = storedPlaceName(v); return; }
   else return;
   paintReminder();
+  turnSwitch(rsheet.querySelector(`[data-r="${k}"]`), was);
+  foldRepeatRows(before);
   rsheet.querySelector(`[data-r="${k}"]`)?.focus();
 });
+
+// The Interval row and the day strip open and close with a snappy 0.2 spring (FocusRowView's
+// recurrence section). A closing one fades and folds as a copy where it was.
+function repeatRows() {
+  return { interval: rsheet.querySelector('[data-r="interval"]')?.closest('.srow') ?? null, days: rsheet.querySelector('.rdays') };
+}
+function foldRepeatRows(before) {
+  const after = repeatRows(), repeat = rsheet.querySelector('[data-r="repeat"]')?.closest('.srow');
+  let anchor = after.interval ?? repeat;
+  for (const k of ['interval', 'days']) {
+    if (after[k] && !before[k]) foldRow(after[k], true, MOTION.snappy20);
+    else if (!after[k] && before[k] && anchor) { const copy = leavingCopy(before[k]); anchor.after(copy); anchor = copy; foldRow(copy, false, MOTION.snappy20); }
+  }
+}
 // Place search belongs to the shell (MapKit's address and point-of-interest suggestions). Here,
 // Return takes what was typed as the place.
 rsheet.addEventListener('keydown', e => {
