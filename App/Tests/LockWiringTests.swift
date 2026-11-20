@@ -283,6 +283,61 @@ final class LockWiringTests: XCTestCase {
         XCTAssertEqual(runInPage(live, "return !!document.querySelector('.lock-held');") as? Bool, false)
     }
 
+    /// The page given the held edit is rebuilt before it saves it (its web process ends, as
+    /// `webViewWebContentProcessDidTerminate` handles): the edit is still held, so the next page
+    /// gets it and saves it (Claude and Greptile review on PR 131).
+    func testAHeldEditSurvivesThePageEndingBeforeItsSave() throws {
+        let live = controller()
+        lockWithARefusedEdit(live)
+        let hangSaves = """
+            const h = window.webkit.messageHandlers.catchlight, real = h.postMessage.bind(h);
+            h.postMessage = m => m.cmd === 'save' ? new Promise(() => {}) : real(m);
+            """
+        live.bridge.testScripts = [WKUserScript(source: hangSaves, injectionTime: .atDocumentStart, forMainFrameOnly: true, in: .page)]
+        unlock(live)
+        XCTAssertEqual(try savedTexts(), [savedText], "the save went through, so the test proves nothing")
+
+        live.bridge.testScripts = []
+        live.webViewWebContentProcessDidTerminate(live.webView)
+        pageIsLoaded(live)
+        pageBecomes(live, "catchlightLibrary.unlocked === true && document.body.innerText.includes('Typed, not saved')",
+                    "the typing is gone once the page that held it ended")
+        spin(until: { (try? self.savedTexts()) == ["Typed, not saved"] }, "the typing given back was not saved")
+        spin(until: { live.bridge.heldEdits.isEmpty }, "what was held is not wiped once saved")
+    }
+
+    /// Sync changes a Take the page didn't touch while a refused save is pending. The page's
+    /// list still has its old text, but only the Take typed into is held, so the newer synced
+    /// text stands after the unlock (Greptile on PR 131).
+    func testAHeldEditDoesNotWriteOldTextOverASyncedChange() throws {
+        let otherID = UUID()
+        let library = try XCTUnwrap(vault.library)
+        func page(_ id: UUID, _ text: String) -> [String: Any] {
+            ["id": id.uuidString, "at": "2026-07-01T09:00:00Z", "isNote": true, "blocks": [["k": "text", "text": text]]]
+        }
+        _ = try library.saveTakes([page(takeID, savedText), page(otherID, "Other, before sync")])
+        let live = controller()
+        XCTAssertEqual(runInPage(live, """
+            beginEdit(takes[0]);
+            rows.children[0].querySelector('.etext').textContent = 'Typed, not saved';
+            return takes.length;
+            """) as? Int, 2)
+        XCTAssertEqual(runInPage(live, refuseSaves + "return true;") as? Bool, true)
+        let before = try XCTUnwrap(library.store.take(id: otherID))
+        var synced = try TakeTranslation.core(from: page(otherID, "Other, changed on another device"), existing: before,
+                                              now: now.addingTimeInterval(60))
+        synced.modifiedAt = now.addingTimeInterval(60)
+        try library.store.upsert(synced)
+        secrets.refuse = true
+        relock(live)
+        XCTAssertTrue(isLocked)
+        unlock(live)
+
+        spin(until: { (try? self.savedTexts())?.contains("Typed, not saved") == true }, "the typing given back was not saved")
+        let saved = try savedTexts()
+        XCTAssertTrue(saved.contains("Other, changed on another device"), "the old text was written over the synced change: \(saved)")
+    }
+
     // MARK: Unlock
 
     func testUnlockReopensAndTheLockFadesAway() throws {
