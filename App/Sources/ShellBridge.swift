@@ -209,7 +209,18 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
             } else if let library = vault.library {
                 value["account"] = true
                 do {
-                    let snapshot = try library.snapshot()
+                    // Edits refused as the app locked: back to the page, which saves them again
+                    // against the versions it read before (`bases`), so a change sync made
+                    // meanwhile is found. They stay held until the page's save of them succeeds
+                    // (`heldSaved`), so a page that ends first gets them again. Anything that
+                    // won't open stays out rather than shows wrong, and is reported as lost.
+                    var back: (takes: [[String: Any]], scripts: [[String: Any]], bases: [UUID: Take?], saved: [UUID], lost: Int)?
+                    if !heldEdits.isEmpty, let keys = vault.keys {
+                        let opened = heldEdits.open(keys: keys, library: library)
+                        heldEdits.forget(opened.saved)
+                        back = opened
+                    }
+                    let snapshot = try library.snapshot(bases: back?.bases ?? [:])
                     value["takes"] = snapshot.takes
                     value["generation"] = snapshot.generation
                     value["scripts"] = snapshot.scripts
@@ -220,11 +231,7 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                     if !library.scripts.unreadable.isEmpty { value["unreadableScripts"] = library.scripts.unreadable.count }
                     // The key opened the library but no Privacy phrase is stored: the page says so.
                     if vault.secrets.phraseMissing { value["phraseMissing"] = true }
-                    // Edits refused as the app locked: back to the page, which saves them again,
-                    // then wiped here. Anything that won't open stays out rather than shows wrong.
-                    if !heldEdits.isEmpty, let keys = vault.keys {
-                        let back = heldEdits.open(keys: keys)
-                        heldEdits.wipe()
+                    if let back {
                         if !back.takes.isEmpty || !back.scripts.isEmpty {
                             value["heldEdits"] = ["takes": back.takes, "scripts": back.scripts]
                         }
@@ -542,6 +549,11 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
             replyHandler(NSNull(), nil)
         case "ping":
             // A round trip: messages are handled in order, so everything sent before it is done.
+            replyHandler(true, nil)
+        case "heldSaved":
+            // The page saved a list that had held edits in it, or showed that some were lost.
+            if let kind = body["kind"] as? String { heldEdits.saved(scripts: kind == "scripts") }
+            if body["lost"] as? Bool == true { heldEdits.lossReported() }
             replyHandler(true, nil)
         case "save", "changeKind", "reload", "validatePhrase", "createAccount", "replaceAccount", "revealPhrase", "eraseEverything":
             handleLibrary(cmd, body, replyHandler)

@@ -221,16 +221,16 @@ final class LockWiringTests: XCTestCase {
     }
 
     /// Owner, 2026-11-20: "Hold it, give it back". The typing comes back after the unlock and is
-    /// saved, and what was held is wiped.
+    /// saved, and what was held is wiped once saved.
     func testAnEditWhoseSaveFailsAtTheLockSurvivesTheUnlock() throws {
         let live = controller()
         lockWithARefusedEdit(live)
         unlock(live)
 
-        XCTAssertTrue(live.bridge.heldEdits.isEmpty, "what was held is wiped once given back")
         let shown = runInPage(live, "return document.body.innerText;") as? String ?? ""
         XCTAssertTrue(shown.contains("Typed, not saved"), "the typing is gone after the unlock (ISSUE-292)")
         spin(until: { (try? self.savedTexts()) == ["Typed, not saved"] }, "the typing given back was not saved again")
+        spin(until: { live.bridge.heldEdits.isEmpty }, "what was held is not wiped once saved")
     }
 
     /// While locked, nothing of the typing is readable: not on the lock screen, which says only
@@ -251,19 +251,19 @@ final class LockWiringTests: XCTestCase {
     }
 
     /// The save after the unlock is refused too: the typing stays on the page and the usual
-    /// refused-save message says so; nothing is held any more.
+    /// refused-save message says so. It stays held, as no save of it has succeeded.
     func testAHeldEditWhoseSaveIsRefusedAgainStaysOnThePage() throws {
         let live = controller()
         lockWithARefusedEdit(live)
         live.bridge.testScripts = [WKUserScript(source: refuseSaves, injectionTime: .atDocumentStart, forMainFrameOnly: true, in: .page)]
         unlock(live)
 
-        XCTAssertTrue(live.bridge.heldEdits.isEmpty)
         pageBecomes(live, "alertBox.open && alertBox.querySelector('h2').textContent === \"That change wasn't saved\"",
                     "the refused save is not reported")
         let shown = runInPage(live, "return document.body.innerText;") as? String ?? ""
         XCTAssertTrue(shown.contains("Typed, not saved"), "the typing left the page")
         XCTAssertEqual(try savedTexts(), [savedText])
+        XCTAssertEqual(live.bridge.heldEdits.count, 1, "held though no save of it succeeded")
     }
 
     /// Quitting while locked wipes what is held: it is kept in memory only.
@@ -300,7 +300,7 @@ final class LockWiringTests: XCTestCase {
         live.bridge.testScripts = []
         live.webViewWebContentProcessDidTerminate(live.webView)
         pageIsLoaded(live)
-        pageBecomes(live, "catchlightLibrary.unlocked === true && document.body.innerText.includes('Typed, not saved')",
+        pageBecomes(live, "!catchlightLibrary.locked && document.body.innerText.includes('Typed, not saved')",
                     "the typing is gone once the page that held it ended")
         spin(until: { (try? self.savedTexts()) == ["Typed, not saved"] }, "the typing given back was not saved")
         spin(until: { live.bridge.heldEdits.isEmpty }, "what was held is not wiped once saved")

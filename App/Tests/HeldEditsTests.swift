@@ -31,7 +31,7 @@ final class HeldEditsTests: XCTestCase {
         XCTAssertNil(try XCTUnwrap(held.sealedData.first).range(of: Data("Typed, not saved".utf8)), "held readable")
         XCTAssertTrue(HeldEdits.seal(takes: [unchanged], scripts: nil, library: library, keys: keys).isEmpty, "nothing changed, nothing held")
 
-        let back = held.open(keys: keys)
+        let back = held.open(keys: keys, library: library)
         XCTAssertEqual(back.lost, 0)
         XCTAssertEqual((back.takes.first?["blocks"] as? [[String: Any]])?.first?["text"] as? String, "Typed, not saved")
         held.wipe()
@@ -41,7 +41,7 @@ final class HeldEditsTests: XCTestCase {
     func testOneThatWontOpenIsCountedAsLost() throws {
         let (library, keys, edited) = try library()
         let held = HeldEdits.seal(takes: [edited], scripts: nil, library: library, keys: keys)
-        let back = held.open(keys: KeyHierarchy(masterKeyBytes: Data(repeating: 9, count: 32)))
+        let back = held.open(keys: KeyHierarchy(masterKeyBytes: Data(repeating: 9, count: 32)), library: library)
         XCTAssertEqual(back.lost, 1, "a held edit that won't open must be reported, not dropped")
         XCTAssertTrue(back.takes.isEmpty)
     }

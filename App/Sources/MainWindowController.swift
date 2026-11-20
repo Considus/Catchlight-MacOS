@@ -339,11 +339,12 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
             defer { finish() }
             guard !done, let self, let vault = self.bridge.vault, let library = vault.library, let keys = vault.keys,
                   case .success(let value) = result, let lists = value as? [String: Any] else { return }
-            let held = HeldEdits.seal(takes: lists["takes"] as? [[String: Any]], scripts: lists["scripts"] as? [[String: Any]],
+            let held = HeldEdits.seal(takes: lists["takes"] as? [[String: Any]], takesGeneration: lists["takesGeneration"] as? Int,
+                                      scripts: lists["scripts"] as? [[String: Any]], scriptsGeneration: lists["scriptsGeneration"] as? Int,
                                       library: library, keys: keys)
             guard !held.isEmpty else { return }
-            self.bridge.heldEdits.wipe()
-            self.bridge.heldEdits = held
+            // Any still held from an earlier lock and not yet saved stays, unless held again here.
+            self.bridge.heldEdits.merge(held)
         }
     }
 

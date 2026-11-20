@@ -96,20 +96,28 @@ final class Library {
 
     /// Every Take and Script in the page's shape, oldest first (as the store returns them), as a
     /// new snapshot.
-    func snapshot() throws -> (generation: Int, takes: [[String: Any]], scripts: [[String: Any]]) {
+    /// - Parameter bases: edits held across a lock (`HeldEdits`), each with the version the page
+    ///   had read before it (nil: new since). The snapshot records that version for it, so the
+    ///   page's save of the edit finds a change sync made meanwhile, as it would have before the lock.
+    func snapshot(bases: [UUID: Take?] = [:]) throws -> (generation: Int, takes: [[String: Any]], scripts: [[String: Any]]) {
         let all = try store.allTakes()
         let takes = try all.filter(PageList.takes.holds).map(TakeTranslation.page(from:))
         let scripts = all.filter(PageList.scripts.holds).map(ScriptTranslation.page(from:))
         Self.lastGeneration += 1
         generation = Self.lastGeneration
-        snapshots[generation] = Dictionary(uniqueKeysWithValues: all.map { ($0.id, $0) })
+        var known = Dictionary(uniqueKeysWithValues: all.map { ($0.id, $0) })
+        for (id, base) in bases { known[id] = base }
+        snapshots[generation] = known
         var forms: [UUID: (take: Take, page: NSDictionary)] = [:]
-        for (take, page) in zip(all.filter(PageList.takes.holds), takes) { forms[take.id] = (take, page as NSDictionary) }
-        for (take, page) in zip(all.filter(PageList.scripts.holds), scripts) { forms[take.id] = (take, page as NSDictionary) }
+        for (take, page) in zip(all.filter(PageList.takes.holds), takes) where bases[take.id] == nil { forms[take.id] = (take, page as NSDictionary) }
+        for (take, page) in zip(all.filter(PageList.scripts.holds), scripts) where bases[take.id] == nil { forms[take.id] = (take, page as NSDictionary) }
         shown[generation] = forms
         if snapshots.count > Self.snapshotsKept, let oldest = snapshots.keys.min() { snapshots[oldest] = nil; shown[oldest] = nil }
         return (generation, takes, scripts)
     }
+
+    /// The items as the page's snapshot `generation` held them, while it is still kept.
+    func snapshotBase(generation: Int) -> [UUID: Take]? { snapshots[generation] }
 
     /// The whole library, Takes and Scripts, as Core writes an export: the iPhone's Markdown with
     /// its data block, so Import from a file brings each item back with its marks (Important,
