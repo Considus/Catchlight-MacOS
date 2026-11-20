@@ -288,7 +288,7 @@ final class StripsTests: XCTestCase {
             const b = document.querySelector('[data-strip="phrase"] [data-strip-act="export"]'), s = getComputedStyle(b.closest('.strip'));
             return JSON.stringify([b.getAttribute('aria-label'), document.getElementById(b.getAttribute('aria-describedby'))?.textContent, s.paddingTop, s.paddingBottom]);
             """, in: self) as? String
-        XCTAssertEqual(a11y, #"["Export your Takes","Saves a readable copy. Not a Privacy phrase.","8px","8px"]"#)
+        XCTAssertEqual(a11y, #"["Export your Takes and Scripts","Saves a readable copy. Not a Privacy phrase.","8px","8px"]"#)
     }
 
     func testNoPhraseStripWhenThePhraseIsThere() throws {
@@ -417,7 +417,7 @@ final class StripsTests: XCTestCase {
             return alertBox.querySelector('p')?.textContent;
             """, in: self) as? String
         XCTAssertFalse(shell.sent.contains("exportLibrary"), "nothing exported: \(shell.sent)")
-        XCTAssertEqual(said, "Your Takes couldn't be read, so nothing was exported. Don't start over until an export works.")
+        XCTAssertEqual(said, "Your Takes and Scripts couldn't be read, so nothing was exported. Don't start over until an export works.")
         shell.failing = []
         _ = try harness.run("""
             if (alertBox.open) [...alertBox.querySelectorAll('button')].find(b => b.textContent === 'OK').click();

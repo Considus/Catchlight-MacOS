@@ -27249,115 +27249,115 @@
         }
       }
     },
-    "Export Takes…" : {
+    "Export Takes and Scripts…" : {
       "extractionState" : "manual",
       "localizations" : {
         "da" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Eksportér Takes…"
+            "value" : "Eksportér Takes og Scripts…"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Takes exportieren …"
+            "value" : "Takes und Scripts exportieren …"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Exportar Takes…"
+            "value" : "Exportar Takes y Scripts…"
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Vie Taket…"
+            "value" : "Vie Taket ja Scriptit…"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Exporter les Takes…"
+            "value" : "Exporter les Takes et Scripts…"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Esporta Take…"
+            "value" : "Esporta Take e Script…"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Takeを書き出す…"
+            "value" : "TakeとScriptを書き出す…"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Take 내보내기…"
+            "value" : "Take 및 Script 내보내기…"
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Eksporter Take-er …"
+            "value" : "Eksporter Take-er og Script-er …"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Takes exporteren…"
+            "value" : "Takes en Scripts exporteren…"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Eksportuj Takes…"
+            "value" : "Eksportuj Takes i Scripty…"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Exportar Takes…"
+            "value" : "Exportar Takes e Scripts…"
           }
         },
         "pt-PT" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Exportar Takes…"
+            "value" : "Exportar Takes e Scripts…"
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Exportera Takes…"
+            "value" : "Exportera Takes och Scripts…"
           }
         },
         "th" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "ส่งออก Take…"
+            "value" : "ส่งออก Take และ Script…"
           }
         },
         "tr" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Take'leri Dışa Aktar…"
+            "value" : "Take'leri ve Script'leri Dışa Aktar…"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "导出 Takes…"
+            "value" : "导出 Takes 和 Scripts…"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "匯出 Takes…"
+            "value" : "匯出 Takes 和 Scripts…"
           }
         }
       }
