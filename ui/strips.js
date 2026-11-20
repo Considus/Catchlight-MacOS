@@ -87,7 +87,7 @@ let phraseMissing = !!window.catchlightLibrary?.phraseMissing;
 // reload (first-run.js, adoptLibrary), so the phrase is there.
 function phraseRestored() { phraseMissing = false; paintStrips(); }
 function exportReadable() {
-  ask(t('Export a readable copy?'), t('The file is readable text and it does not contain a Privacy phrase. Use Start over and Import from a file to re-import your Takes. Delete the export once your Takes are back.'),
+  ask(t('Export a readable copy?'), t("The file is readable text and it doesn't contain a Privacy phrase. Use Start over and Import from a file to re-import your Takes and Scripts. Delete the export once they're back."),
     [[t('Export anyway'), () => exportLibrary()], [t('Cancel'), null, 'cancel']]);
 }
 
@@ -146,7 +146,7 @@ const libraryLocked = () => !!window.catchlightLibrary?.locked;
 function paintStrips() {
   if (!libraryLocked()) onset('phraseMissing', phraseMissing, t('No Privacy phrase on this device. Export now, then Settings > Start over.'));
   setStrip(phraseStrip, phraseMissing ? stripInner('phrase', t('No Privacy phrase on this device. Export now, then Settings > Start over.'),
-    `<button class="strip-act" type="button" data-strip-act="export" aria-label="${esc(t('Export your Takes'))}" aria-describedby="strip-export-hint">${t('Export now')}</button>`
+    `<button class="strip-act" type="button" data-strip-act="export" aria-label="${esc(t('Export your Takes and Scripts'))}" aria-describedby="strip-export-hint">${t('Export now')}</button>`
     + `<span class="sr-only" id="strip-export-hint">${t('Saves a readable copy. Not a Privacy phrase.')}</span>`) : null);
   const muted = stripNotifications === 'denied' && anyAlertingReminder();
   if (stripNotifications != null && !libraryLocked()) onset('remindersSilenced', muted, t('Enable Notifications'));

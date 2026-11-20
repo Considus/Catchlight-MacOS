@@ -147,12 +147,12 @@ function settingsPage() {
       ? link('notifications', 'bellOff', t('Notifications'), notif, true, '', t('Notifications disabled. Opens System Settings.'))
       : link('notifications', 'bell', t('Notifications'), notif, settings.notifications !== 'enabled'),
     link('cloud', 'cloud', t('Cloud Storage'), folder ? esc(folder.split('/').pop()) : t('Not configured')),
-    link('export', 'export', t('Export Takes'), '', false),
+    link('export', 'export', t('Export Takes and Scripts'), '', false),
     folder ? link('import-notes', 'import', t('Import notes'), '', false) : '',
     link('import-file', 'file', t('Import from a file'), '', false),
     link('about', 'info', t('About'), t('Catchlight %@', shell.version())),
     link('start-over', 'restart', t('Start over'), '', false),
-  ], t('Erases every Take here and creates a new Privacy phrase. Cloud copies become unreadable too. Export first, it is the only way back.'))}
+  ], t("Erases every Take and Script here and creates a new Privacy phrase. Cloud copies become unreadable too. Export first, it's the only way back."))}
   ${group(t('Support'), [
     link('report', 'bug', t('Report an issue'), '', false),
     link('notices', 'list', t('Notice History')),
@@ -341,7 +341,7 @@ sheet.addEventListener('click', async e => {
   else if (open && SUB[open]) {
     const go = () => { subStack.push(open); paintSettings(); if (open === 'second-device') sheet.querySelector('[data-word="0"]').focus(); };
     if (open !== 'second-device') go();
-    else ask(t('Add this device to your account?'), t("Enter your Privacy phrase to bring your Takes onto this device. Any Takes stored only on this device will be removed. To keep a copy first, cancel and use Export Takes (Markdown), or make sure they're already in your cloud folder."),
+    else ask(t('Add this device to your account?'), t("Enter your Privacy phrase to bring your Takes and Scripts onto this device. Any Takes or Scripts stored only on this device will be removed. To keep a copy first, cancel and use Export Takes and Scripts (Markdown), or make sure they're already in your cloud folder."),
       [[t('Cancel'), null, 'cancel'], [t('Continue'), go, 'danger']]);
   }
   else if (open === 'notifications' && settings.notifications !== 'enabled') {
@@ -429,14 +429,14 @@ sheet.addEventListener('keydown', e => {
   if (openCtx(v, r.left + 12, r.bottom)) ctx.querySelector('button')?.focus();
 });
 
-// Start over, as on iOS: Export Takes exports (every Take and Script, exportLibrary) and stops there; "Erase. Takes exported" goes on
+// Start over, as on iOS: Export Takes exports (every Take and Script, exportLibrary) and stops there; "Erase. Already exported" goes on
 // to the erase question; Cancel stops everything. After erasing there is nothing left to show,
 // so a last screen says so and offers no way back (ResetCompleteView). Touch ID belongs
 // to the shell.
 function startOver() {
-  ask(t('Export your Takes?'), t('Export Takes now. This is the only way to preserve them. This will make cloud copies unreadable.'), [
-    [t('Export Takes'), () => exportLibrary()],
-    [t('Erase. Takes exported'), () => ask(t('Erase everything on this device?'), t('This deletes every Take on this device and the Privacy phrase that unlocks them. Takes in your cloud folder will be unreadable. This cannot be undone.'),
+  ask(t('Export your Takes and Scripts?'), t("Export them now. It's the only way to keep them. Erasing makes cloud copies unreadable."), [
+    [t('Export Takes and Scripts'), () => exportLibrary()],
+    [t('Erase. Already exported'), () => ask(t('Erase everything on this device?'), t("This deletes every Take and Script on this device and the Privacy phrase that unlocks them. Takes and Scripts in your cloud folder will be unreadable. This can't be undone."),
       [[t('Cancel'), null, 'cancel'], [t('Erase everything'), eraseEverything, 'danger']]), 'danger'],
     [t('Cancel'), null, 'cancel'],
   ]);
@@ -456,7 +456,7 @@ async function eraseEverything() {
   closeSettings();
   const done = document.createElement('section');
   done.className = 'reset-done'; done.setAttribute('role', 'alert');
-  done.innerHTML = `<h1>${t('Catchlight has been reset')}</h1><p>${t('Quit Catchlight and open it again to set up a new Privacy phrase. If you exported your Takes, you can bring them back with Import from a file.')}</p>`;
+  done.innerHTML = `<h1>${t('Catchlight has been reset')}</h1><p>${t('Quit Catchlight and open it again to set up a new Privacy phrase. If you exported your Takes and Scripts, you can bring them back with Import from a file.')}</p>`;
   // Nothing behind it can be reached: no focus, no click, no shortcut that would write the
   // in-memory Takes or Scripts back into the storage just cleared.
   for (const el of document.body.children) el.inert = true;

@@ -1189,7 +1189,7 @@ async function exportLibrary() {
     await shell.exportLibrary(exportName());
   } catch (e) {
     console.error('Exporting the library failed', e);
-    ask(L10N.t('Export'), L10N.t("Your Takes couldn't be read, so nothing was exported. Don't start over until an export works."), [[L10N.t('OK'), null, 'cancel']]);
+    ask(L10N.t('Export'), L10N.t("Your Takes and Scripts couldn't be read, so nothing was exported. Don't start over until an export works."), [[L10N.t('OK'), null, 'cancel']]);
   }
 }
 function exportTakes(list) {

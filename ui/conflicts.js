@@ -91,9 +91,12 @@ const conflictsOf = list => ({ pairs: list.filter(c => !c.unverified), unverifie
 function paintConflicts() {
   const n = conflictList.length;
   // As the iPhone: once an unverified copy is in the mix, the accurate thing to say is only that
-  // a choice is waiting (2026-09-30). Pairs alone keep their wording, Scripts named as Scripts.
+  // a choice is waiting (2026-09-30). Takes and Scripts are named for what is waiting, in that
+  // sentence too (owner, 2026-11-20), so Script conflicts are never counted as Takes.
   const kinds = conflictKinds(conflictList);
-  const said = conflictList.some(c => c.unverified) ? t('%lld Takes need a decision.', n)
+  const said = conflictList.some(c => c.unverified)
+    ? kinds === 'both' ? t('%lld Takes and Scripts need a decision.', n)
+      : kinds === 'scripts' ? t('%lld Scripts need a decision.', n) : t('%lld Takes need a decision.', n)
     : kinds === 'both' ? t('%lld Takes and Scripts changed on another device.', n)
     : kinds === 'scripts' ? t('%lld Scripts changed on another device.', n) : t('%lld Takes changed on another device.', n);
   // strips.js: in and out as every strip, its leaving copy named for MotionMoreTests.

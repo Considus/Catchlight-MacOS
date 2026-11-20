@@ -186,6 +186,20 @@ final class StripsTests: XCTestCase {
         XCTAssertEqual(try strips(harness), #"[["conflict","1 Take needs a decision.Review"]]"#.replacingOccurrences(of: "1 Take needs a decision.", with: try harness.run("return t('%lld Takes need a decision.', 1);", in: self) as! String))
     }
 
+    /// Owner, 2026-11-20: with an unverified Take waiting, Script conflicts are named as Scripts,
+    /// never counted as Takes.
+    func testAMixOfTakesAndScriptsIsNamedForWhatIsWaiting() throws {
+        let take: [String: Any] = ["kind": "take", "blocks": [["k": "text", "text": "Mine"]]]
+        let script: [String: Any] = ["kind": "script", "blocks": ["# Winter series"]]
+        let harness = page(conflicts: [
+            ["id": UUID().uuidString, "unverified": true, "local": take, "cloud": take],
+            ["id": UUID().uuidString, "local": script, "remote": script],
+            ["id": UUID().uuidString, "local": script, "remote": script],
+        ])
+        _ = try harness.run(String(format: waitFor, "!conflictBanner.hidden") + " return 0;", in: self)
+        XCTAssertEqual(try strips(harness), #"[["conflict","3 Takes and Scripts need a decision.Review"]]"#)
+    }
+
     func testTheStripsComeInTheIPhonesOrder() throws {
         let take: [String: Any] = ["kind": "take", "blocks": [["k": "text", "text": "Mine"]]]
         let harness = page(takes: alerting, notifications: "denied", conflicts: [["id": UUID().uuidString, "local": take, "remote": take]])
