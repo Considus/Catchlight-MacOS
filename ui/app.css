@@ -434,6 +434,11 @@ body.first-running .app { visibility: hidden; }
 .srow.sub .srow-label { gap: 2px; }   /* the switch's sub-line, 2 under its title */
 .srow.noted { flex-direction: column; align-items: stretch; gap: 6px; padding-bottom: 12px; }   /* a picker's description, 6 under its line */
 .srow-line { display: flex; align-items: center; gap: 14px; min-height: 44px; }
+/* Settings rows are the iPhone's height (Mark 2026-11-20): its list puts 15 above and below each row's
+   content, so a 44 line makes a 74 row and a switch with a sub-line (52) an 82 row. The Reminder sheet
+   and the notice list keep their own. */
+#settings .srow:not(.tall) { min-height: 74px; padding-top: 15px; padding-bottom: 15px; }
+#settings .srow.sub { min-height: 82px; }
 .srow-note { font-size: 13px; color: var(--muted); }
 .srow-icon { flex: none; width: 22px; height: 22px; color: var(--accent-text); stroke-width: 1.5; }
 .srow-label { flex: 1; min-width: 0; display: flex; flex-direction: column; }
