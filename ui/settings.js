@@ -11,6 +11,7 @@ const settings = Object.assign({
   takeSpacing: 'standard', takePreview: 'some', takeSort: 'oldest', takeArrangement: 'date', creationStamp: 'off',
   scriptTextSize: 'standard', newScriptPage: 'region', spellcheck: 'on',
   spotlight: 'none', writingTools: 'off',   // both private until the user opts in
+  colourScene: DEFAULT_SCENE,
   reminderHours: '24', snooze: '60', followUp: true,
   lockAfter: '60', autoDelete: 'never', confirmDelete: true,
   notifications: 'ask', syncMode: 'automatic', notices: [],
@@ -98,7 +99,8 @@ function settingsPage() {
   return `<h2 class="page-heading">${t('Settings')}</h2>
   ${group(t('Appearance'), [
     pick('mode', 'mode', t('Mode'), [['auto', t('System')], ['daylight', t('Light')], ['night', t('Dark')]], () => scene),
-    `<div class="srow off">${icon('palette')}<span class="srow-label">${t('Scenes')}</span><span class="srow-value">${t('Coming soon')}</span></div>`,
+    // The colour Scene, straight under Mode: the names only, applied the moment one is chosen.
+    pick('colourScene', 'palette', t('Scene'), SCENES.map(s => [s.id, s.name]), () => settings.colourScene),
   ])}
   ${group(t('Dailies'), [
     pick('takeSpacing', 'spacing', t('View'), SPACING, () => settings.takeSpacing),
@@ -304,6 +306,7 @@ sheet.addEventListener('change', e => {
     settings[k] = v; saveSettings();
     if (k === 'spotlight') window.catchlightBridge?.shell.setSpotlight(v)?.catch(e => console.error('Telling the shell the Spotlight setting failed', e));
     if (k === 'writingTools') window.catchlightBridge?.shell.setWritingTools(v)?.catch(e => console.error('Telling the shell the Writing Tools setting failed', e));
+    if (k === 'colourScene') applyScene();
     if (k.startsWith('take') || k === 'creationStamp') renderTakes();
     if (k === 'scriptTextSize' || k === 'spellcheck') { applyScriptArea(); paginate(); }
   }
@@ -503,3 +506,6 @@ async function runImport(cmd) {
     : t('Import successful. %1$lld Takes and %2$lld Scripts added to your timeline.', r.takes, r.scripts), failed);
   catchlightBridge.sync?.('save').catch?.(e => console.error('Sync after an import failed', e));
 }
+
+// The saved colour Scene: app.js applied the mode before these settings loaded.
+applyScene();
