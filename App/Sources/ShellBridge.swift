@@ -209,6 +209,8 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                     value["held"] = (sync?.conflicts.heldIDs ?? []).map { $0.uuidString.lowercased() }.sorted()
                     // A damaged Script is kept on disk but can't be shown: the page says so.
                     if !library.scripts.unreadable.isEmpty { value["unreadableScripts"] = library.scripts.unreadable.count }
+                    // The key opened the library but no Privacy phrase is stored: the page says so.
+                    if vault.secrets.phraseMissing { value["phraseMissing"] = true }
                 } catch {
                     Self.log.fault("the library did not load: \(String(describing: error), privacy: .public)")
                     value = ["account": true, "takes": [Any](), "scripts": [Any](), "loadError": String(describing: error)]
@@ -408,7 +410,9 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
                                   "conflicts": sync.conflicts.count,
                                   "newConflicts": max(0, sync.conflicts.pending.count - before.pending),
                                   "newUnverified": max(0, sync.conflicts.unverified.count - before.unverified),
-                                  "quarantined": r.quarantined.count, "heldBack": r.heldBack.count], nil)
+                                  "quarantined": r.quarantined.count, "heldBack": r.heldBack.count,
+                                  // which Takes, so the page's strip counts each once however many passes report it (no content)
+                                  "quarantinedIDs": r.quarantined.map(\.uuidString)], nil)
                 }
             }
         case "importNotes", "importFile":

@@ -169,7 +169,7 @@
     syncing = post('sync', { trigger })
       .then(async r => {
         // The iPhone's words (Notice.message), so both apps say the same thing.
-        if (r?.error) notice(r.error, 'sync');
+        if (r?.error) { notice(r.error, 'sync'); window.stripSyncError?.(r.error); }   // strips.js
         if (r?.applied || r?.deleted) await window.catchlightBridge.refresh().catch(e => console.error('Refreshing the Takes failed', e));
         if (r?.conflicts) window.loadConflicts?.();
         if (r?.newConflicts) {
@@ -180,6 +180,7 @@
         }
         if (r?.newUnverified) notice(t("%lld Takes couldn't be verified and need a choice.", r.newUnverified), 'conflict');
         if (r?.quarantined) notice(t("%lld Takes couldn't be verified and were skipped.", r.quarantined), 'quarantine');
+        if (r?.quarantinedIDs?.length) window.stripQuarantined?.(r.quarantinedIDs);
         if (r?.heldBack) notice(t('%lld Takes not re-uploaded. This device was away too long to rule out deletion elsewhere. Edit a Take to sync it again.', r.heldBack), 'sync');
         return r;
       })

@@ -15,9 +15,10 @@
 // (`resolveUnverified`). Skipping drops it until the next sync finds it again.
 
 const conflictBanner = document.createElement('div');
-conflictBanner.className = 'conflict-banner';
+conflictBanner.className = 'strip strip-add conflict-banner';
+conflictBanner.dataset.strip = 'conflict';
 conflictBanner.hidden = true;
-$('#sidebar').insertBefore(conflictBanner, $('#pinned'));
+stripsBox.prepend(conflictBanner);   // strips.js: the first strip, as on the iPhone
 
 const conflictSheet = document.createElement('dialog');
 conflictSheet.className = 'conflicts';
@@ -89,38 +90,15 @@ const conflictsOf = list => ({ pairs: list.filter(c => !c.unverified), unverifie
 
 function paintConflicts() {
   const n = conflictList.length;
-  const was = !conflictBanner.hidden;
-  if (was && n === 0) bannerLeaves();
-  conflictBanner.hidden = n === 0;
+  // As the iPhone: once an unverified copy is in the mix, the accurate thing to say is only that
+  // a choice is waiting (2026-09-30). Pairs alone keep their wording, Scripts named as Scripts.
   const kinds = conflictKinds(conflictList);
-  const said = kinds === 'both' ? t('%lld Takes and Scripts changed on another device.', n)
+  const said = conflictList.some(c => c.unverified) ? t('%lld Takes need a decision.', n)
+    : kinds === 'both' ? t('%lld Takes and Scripts changed on another device.', n)
     : kinds === 'scripts' ? t('%lld Scripts changed on another device.', n) : t('%lld Takes changed on another device.', n);
-  conflictBanner.innerHTML = n ? `<span>${esc(said)}</span><button class="slink" type="button" data-cf="review">${t('Review')}</button>` : '';
-  if (!was && n) bannerFold(conflictBanner, true);
+  // strips.js: in and out as every strip, its leaving copy named for MotionMoreTests.
+  setStrip(conflictBanner, n ? stripInner('conflict', said, `<button class="strip-act" type="button" data-cf="review">${t('Review')}</button>`) : null, 'conflict-banner-leaving');
   if (conflictSheet.open) paintConflictSheet();
-}
-
-// The banner fades in and out over 0.2 s while the list below moves to make room (DailiesView's
-// top strips, easeInOut 0.2). Going, it is hidden at once and a copy of it folds away. With
-// Reduce Motion it only fades, and the list takes its new place at once.
-function bannerFold(el, coming) {
-  if (still.matches) {
-    if (!coming) { el.style.position = 'absolute'; el.style.width = el.offsetWidth + 'px'; }   // out of the flow: nothing below moves
-    el.animate(coming ? [{ opacity: 0 }, { opacity: 1 }] : [{ opacity: 1 }, { opacity: 0 }], MOTION.reduced).finished
-      .then(() => { if (!coming) el.remove(); }, () => { if (!coming) el.remove(); });
-    return;
-  }
-  const cs = getComputedStyle(el), full = { opacity: 1, height: cs.height, marginBottom: cs.marginBottom, paddingTop: cs.paddingTop, paddingBottom: cs.paddingBottom, borderTopWidth: cs.borderTopWidth, borderBottomWidth: cs.borderBottomWidth };
-  const none = { opacity: 0, height: '0px', marginBottom: '0px', paddingTop: '0px', paddingBottom: '0px', borderTopWidth: '0px', borderBottomWidth: '0px' };
-  el.style.overflow = 'hidden';
-  const run = el.animate(coming ? [none, full] : [full, none], MOTION.mode);
-  run.finished.then(() => { el.style.overflow = ''; if (!coming) el.remove(); }, () => { if (!coming) el.remove(); });
-}
-function bannerLeaves() {
-  const ghost = conflictBanner.cloneNode(true);
-  ghost.className = 'conflict-banner-leaving'; ghost.setAttribute('aria-hidden', 'true'); ghost.inert = true;
-  conflictBanner.before(ghost);
-  bannerFold(ghost, false);
 }
 
 function paintConflictSheet() {

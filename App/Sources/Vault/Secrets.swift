@@ -1,6 +1,8 @@
 import Foundation
 import CryptoKit
 import CatchlightAppleStorage
+import LocalAuthentication
+import Security
 
 /// Where the master key and the Privacy phrase live. The app uses the Keychain; tests and the
 /// Debug `-CLDebugAccount` launch use memory, because the data-protection keychain needs a signed,
@@ -16,9 +18,18 @@ protocol Secrets: AnyObject {
     /// `KeychainError.notFound`, without asking, when there is no key.
     func masterKey(reason: String) throws -> SymmetricKey
     func phrase(reason: String) -> [String]?
+    /// Whether this Mac holds the key but no Privacy phrase, so its Takes can't be recovered
+    /// anywhere else (the iPhone's `AppModel.phraseMissing`). Asked so that it can never prompt:
+    /// launch must not ask for the password a second time (owner, 2026-10-04).
+    var phraseMissing: Bool { get }
     /// The key alone, for the one case where a key without its phrase is worse than none.
     func deleteMasterKey()
     func deleteAll()
+}
+
+extension Secrets {
+    /// A stand-in that holds no account says nothing is missing.
+    var phraseMissing: Bool { false }
 }
 
 /// The shared Keychain code from Catchlight-AppleStorage, as the iPhone uses it: items never
@@ -29,6 +40,28 @@ final class KeychainSecrets: Secrets {
     func storeMasterKey(_ raw: Data) throws { try MasterKeyKeychain.store(raw) }
     func masterKey(reason: String) throws -> SymmetricKey { try MasterKeyKeychain.retrieve(reason: reason) }
     func phrase(reason: String) -> [String]? { MnemonicKeychain.retrieve(reason: reason) }
+    /// Asked only once the key has opened the library, so only the phrase is looked for. The
+    /// query may not show UI (`interactionNotAllowed`), so a phrase item, which carries user
+    /// presence, answers errSecInteractionNotAllowed, and only a missing one answers
+    /// errSecItemNotFound (measured on a Mac with a throwaway item, 2026-11-20: -25308 present,
+    /// -25300 missing). Anything else (a locked Mac, a build without the Keychain) counts as
+    /// there, so a doubt never shows the strip.
+    var phraseMissing: Bool {
+        let context = LAContext()
+        context.interactionNotAllowed = true
+        let config = MnemonicKeychain.configuration
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecUseDataProtectionKeychain as String: true,
+            kSecAttrService as String: config.service,
+            kSecAttrAccount as String: config.account,
+            kSecAttrAccessGroup as String: config.accessGroup,
+            kSecMatchLimit as String: kSecMatchLimitOne,
+            kSecReturnAttributes as String: true,
+            kSecUseAuthenticationContext as String: context,
+        ]
+        return SecItemCopyMatching(query as CFDictionary, nil) == errSecItemNotFound
+    }
     func deleteMasterKey() { MasterKeyKeychain.delete() }
     func deleteAll() {
         MasterKeyKeychain.delete()
@@ -48,6 +81,7 @@ final class MemorySecrets: Secrets {
         return SymmetricKey(data: raw)
     }
     func phrase(reason: String) -> [String]? { words }
+    var phraseMissing: Bool { raw != nil && words == nil }
     func deleteMasterKey() { raw = nil }
     func deleteAll() { words = nil; raw = nil }
 }

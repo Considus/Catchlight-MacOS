@@ -234,6 +234,7 @@ function renderTakes() {
     }
   }
   paintDock();
+  if (typeof paintStrips === 'function') paintStrips();   // strips.js: a reminder set or cleared changes the silenced strip
 }
 
 // ---------- in-place editing ----------

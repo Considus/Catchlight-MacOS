@@ -254,6 +254,7 @@ function adoptLibrary({ takes: t = [], scripts: s = [], generation, held = [] })
   window.loadConflicts?.();
   if (generation) lib.generation = generation;
   renderTakes(); renderScripts(); renderDoc(); $('#script-heading').textContent = '';
+  window.phraseRestored?.();   // strips.js: a restore succeeds only once its phrase is stored
 }
 
 // Whether this device had an account when the page loaded; a replay over one changes no data.
