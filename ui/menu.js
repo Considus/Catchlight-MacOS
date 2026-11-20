@@ -261,10 +261,15 @@ function menuCollisions() {
 
 // ---------- the bridge the shells call ----------
 const val = v => typeof v === 'function' ? v() : v;
+// While the library is locked the page holds no Takes, and nothing may create one: only the items
+// the OS supplies (Quit, Hide, Cut, Copy…) and the ones that touch no Take (Help, Report an Issue,
+// Copy Version and Device Info) are offered. The shell reloads the page once it has unlocked.
+const LOCKED_OFFERS = ['help', 'report', 'copyInfo'];
+const offered = id => !(window.catchlightLibrary?.locked && !LOCKED_OFFERS.includes(id)) && (!ITEMS[id].enabled || !!ITEMS[id].enabled());
 function itemModel(id) {
   const it = ITEMS[id];
   return { id, label: val(it.label), shortcut: keyOf(it), shortcutLabel: keyLabel(keyOf(it)), role: it.role || null,
-    enabled: it.role ? true : (it.enabled ? !!it.enabled() : true), checked: it.checked ? !!it.checked() : null };
+    enabled: it.role ? true : offered(id), checked: it.checked ? !!it.checked() : null };
 }
 function menuModel(entries = MENUS) {
   return entries.filter(m => m === SEP || typeof m === 'string' ? !(ITEMS[m]?.only) || ITEMS[m].only.includes(PLAT) : !m.only || m.only.includes(PLAT))
@@ -272,7 +277,7 @@ function menuModel(entries = MENUS) {
 }
 function runCommand(id) {
   const it = ITEMS[id];
-  if (!it || it.role || (it.enabled && !it.enabled())) return false;
+  if (!it || it.role || !offered(id)) return false;
   it.run();
   return true;
 }
@@ -289,7 +294,7 @@ if (!inShell) document.addEventListener('keydown', e => {
     if (it.role || it.inPlace || (it.only && !it.only.includes(PLAT))) continue;
     const k = keyOf(it);
     if (!k || !keyMatches(k, e)) continue;
-    if (it.enabled && !it.enabled()) return;
+    if (!offered(id)) return;
     e.preventDefault();
     it.run();
     return;
