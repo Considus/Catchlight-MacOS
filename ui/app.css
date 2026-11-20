@@ -675,10 +675,12 @@ body.with-menu-bar .app { height: calc(100vh - 26px); }
 .strip-text { flex: 1; min-width: 0; font: inherit; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
 .strip-act { flex: none; min-width: 44px; min-height: 44px; padding: 0 4px; font: 500 14px var(--sys); color: var(--lit); }
 .strip-ruby .strip-act { color: var(--ruby); }
-/* No Privacy phrase: 8 above and below, three lines, ruby at 16% in the dark, and its action in
-   the accent (DailiesView's missingPhraseBanner). */
+/* No Privacy phrase: 8 above and below, ruby at 16% in the dark, and its action in the accent
+   (DailiesView's missingPhraseBanner). Its sentence is never cut, the way the iPhone lifts its
+   line limit when the strip stacks: at the narrowest column three lines cut it in 17 languages,
+   English included (measured 2026-11-20). */
 .strip-phrase { padding-top: 8px; padding-bottom: 8px; }
-.strip-phrase .strip-text { -webkit-line-clamp: 3; }
+.strip-phrase .strip-text { display: block; -webkit-line-clamp: none; overflow: visible; }
 :root:not([data-mode="light"]) .strip-phrase { background: color-mix(in srgb, var(--ruby) 16%, transparent); }
 .strip-ruby.strip-phrase .strip-act { color: var(--lit); }
 /* The ×: a 44 hit area hanging into the band's trailing padding, so the glyph sits where the
