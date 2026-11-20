@@ -81,7 +81,11 @@ function setStrip(el, html, leavingClass) {
 // Export is the only way out today, and it is behind a question: the file is readable text,
 // and it is not a Privacy phrase.
 const phraseStrip = makeStrip('phrase', 'ruby strip-phrase');
-const phraseMissing = !!window.catchlightLibrary?.phraseMissing;
+let phraseMissing = !!window.catchlightLibrary?.phraseMissing;
+// A restore (first run, or Settings > Second device) succeeds only once its phrase is stored
+// (Vault.createAccount throws otherwise), and the page takes the account it opens without a
+// reload (first-run.js, adoptLibrary), so the phrase is there.
+function phraseRestored() { phraseMissing = false; paintStrips(); }
 function exportReadable() {
   ask(t('Export a readable copy?'), t('The file is readable text and it does not contain a Privacy phrase. Use Start over and Import from a file to re-import your Takes. Delete the export once your Takes are back.'),
     [[t('Export anyway'), () => exportTakes(takes)], [t('Cancel'), null, 'cancel']]);
@@ -136,13 +140,16 @@ function stripQuarantined(ids) {
   paintStrips();
 }
 
+// A locked page knows nothing of the account (no phrase state, no Takes): that is no reason to
+// think a lasting condition has ended, so its onsets are left as they were.
+const libraryLocked = () => !!window.catchlightLibrary?.locked;
 function paintStrips() {
-  onset('phraseMissing', phraseMissing, t('No Privacy phrase on this device. Export now, then Settings > Start over.'));
+  if (!libraryLocked()) onset('phraseMissing', phraseMissing, t('No Privacy phrase on this device. Export now, then Settings > Start over.'));
   setStrip(phraseStrip, phraseMissing ? stripInner('phrase', t('No Privacy phrase on this device. Export now, then Settings > Start over.'),
     `<button class="strip-act" type="button" data-strip-act="export" aria-label="${esc(t('Export your Takes'))}" aria-describedby="strip-export-hint">${t('Export now')}</button>`
     + `<span class="sr-only" id="strip-export-hint">${t('Saves a readable copy. Not a Privacy phrase.')}</span>`) : null);
   const muted = stripNotifications === 'denied' && anyAlertingReminder();
-  if (stripNotifications != null) onset('remindersSilenced', muted, t('Enable Notifications'));
+  if (stripNotifications != null && !libraryLocked()) onset('remindersSilenced', muted, t('Enable Notifications'));
   const silenced = muted && !store.get('remindersSilencedDismissed', false);
   const hint = 'strip-turn-on-hint';
   setStrip(silencedStrip, silenced ? stripInner('silenced', t('Enable Notifications'),

@@ -314,4 +314,37 @@ final class StripsTests: XCTestCase {
         let again = try harness.run("paintStrips(); dispatchEvent(new Event('focus')); for (let i = 0; i < 10; i++) await new Promise(r => setTimeout(r, 25)); renderTakes(); return settings.notices.filter(n => n.category === 'storage').length;", in: self) as? Int
         XCTAssertEqual(again, 2, "not again while it lasts")
     }
+
+    /// Settings > Second device stores a phrase and opens the account it unlocks without a
+    /// reload (adoptLibrary), so the warning must go with it (Greptile on #124).
+    func testARestoreTakesThePhraseStripAway() throws {
+        let harness = page(takes: alerting, library: ", phraseMissing: true")
+        try settle(harness)
+        let gone = try harness.run("""
+            const before = !!document.querySelector('[data-strip="phrase"]:not([hidden])');
+            adoptLibrary({ takes: [], scripts: [] });
+            document.getAnimations().forEach(a => a.finish());
+            return JSON.stringify([before, !!document.querySelector('[data-strip="phrase"]:not([hidden])')]);
+            """, in: self) as? String
+        XCTAssertEqual(gone, "[true,false]")
+    }
+
+    /// A locked page knows nothing about the account (no phrase state, no Takes), so it must not
+    /// read that as the conditions having ended, or every unlock records them again
+    /// (Greptile on #124).
+    func testALockedPageLeavesTheOnsetsAlone() throws {
+        shell = FakeShell()
+        shell.fixed["notificationStatus"] = "denied"
+        let harness = WebViewHarness(root: WebViewHarness.repoUI, ruleList: nil, privateStorage: true)
+        harness.webView.configuration.userContentController.addScriptMessageHandler(shell, contentWorld: .page, name: "catchlight")
+        let start = WKUserScript(source: """
+            localStorage.setItem('cl.onset.phraseMissing', 'true'); localStorage.setItem('cl.onset.remindersSilenced', 'true');
+            window.catchlightShell = Object.freeze({ language: 'en' });
+            window.catchlightLibrary = { account: true, locked: true, takes: [], scripts: [] };
+            """, injectionTime: .atDocumentStart, forMainFrameOnly: true)
+        harness.load("index.html", in: self, injecting: [start])
+        try settle(harness)
+        let kept = try harness.run("paintStrips(); return JSON.stringify([localStorage.getItem('cl.onset.phraseMissing'), localStorage.getItem('cl.onset.remindersSilenced')]);", in: self) as? String
+        XCTAssertEqual(kept, #"["true","true"]"#)
+    }
 }
