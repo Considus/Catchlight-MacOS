@@ -486,7 +486,7 @@ body.locked .app { visibility: hidden; }
 .slink.danger { color: var(--ruby); }
 .slink:disabled { opacity: .38; }
 .scard { width: 100%; text-align: left; background: var(--card); border-radius: 14px; padding: 14px 16px; }
-.scard h4 { margin: 0 0 6px; font: 500 15px var(--sys); text-transform: uppercase; }
+.scard h4 { margin: 0 0 6px; font: 500 15px var(--sys); }   /* sentence case, as written (Mark 2026-11-20) */
 .scard p { font-size: 14px; }
 .scard.links { padding: 0 16px; }
 .scard.links a { display: flex; justify-content: space-between; align-items: center; min-height: 44px; color: var(--text); text-decoration: none; font-size: 15px; }
@@ -677,7 +677,7 @@ body.with-menu-bar .app { height: calc(100vh - 26px); }
 .cf-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .cf-version { display: grid; gap: 6px; padding: 12px; text-align: left; border: 1px solid var(--line); border-radius: 14px; background: var(--card); color: var(--text); transition: transform .2s; }
 .cf-version.picked { border: 2px solid var(--accent-text); padding: 11px; transform: scale(1.02); }
-.cf-label { font: 500 11px var(--sys); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.cf-label { font: 500 11px var(--sys); color: var(--muted); }   /* as written, sentence case (Mark 2026-11-20) */
 .cf-when { font-size: 11px; color: var(--muted); }
 .cf-body { font-size: 15px; line-height: 1.4; white-space: pre-wrap; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
 .cf-note { margin: 0 0 10px; font-size: 15px; line-height: 1.4; }

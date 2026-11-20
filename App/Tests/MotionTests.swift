@@ -100,18 +100,20 @@ final class MotionTests: XCTestCase {
             sink?.el.getAnimations().forEach(a => a.finish());
             await new Promise(f => setTimeout(f, 20));
             return { drop, rise: rise ? [rise.frames, rise.duration, rise.easing] : null, sink: sink ? [sink.frames, sink.duration, sink.easing] : null,
-              leaving, live, gone: bar.querySelectorAll('.chips').length };
+              leaving, live, gone: bar.querySelectorAll('.chips').length, still: still.matches };
             """)
         let drop = try XCTUnwrap(r["drop"] as? Double)
         let rise = try XCTUnwrap(r["rise"] as? [Any], "the chips animate in: \(r)")
         XCTAssertEqual(rise[1] as? Double, 200); XCTAssertEqual(rise[2] as? String, "ease-in-out")
         let up = try XCTUnwrap(rise[0] as? [[String: Any]])
-        XCTAssertEqual(up.first?["opacity"] as? Double, 0); XCTAssertEqual(up.first?["transform"] as? String, "translateY(\(Int(drop))px)")
-        XCTAssertEqual(up.last?["opacity"] as? Double, 1); XCTAssertEqual(up.last?["transform"] as? String, "none")
+        // With Reduce Motion on they fade in place, with no slide (Mark, 2026-11-20, both apps).
+        let still = try XCTUnwrap(r["still"] as? Bool)
+        XCTAssertEqual(up.first?["opacity"] as? Double, 0); XCTAssertEqual(up.first?["transform"] as? String, still ? nil : "translateY(\(Int(drop))px)")
+        XCTAssertEqual(up.last?["opacity"] as? Double, 1); XCTAssertEqual(up.last?["transform"] as? String, still ? nil : "none")
         let sink = try XCTUnwrap(r["sink"] as? [Any], "the chips animate out: \(r)")
         XCTAssertEqual(sink[1] as? Double, 200)
         let down = try XCTUnwrap(sink[0] as? [[String: Any]])
-        XCTAssertEqual(down.last?["opacity"] as? Double, 0); XCTAssertEqual(down.last?["transform"] as? String, "translateY(\(Int(drop))px)")
+        XCTAssertEqual(down.last?["opacity"] as? Double, 0); XCTAssertEqual(down.last?["transform"] as? String, still ? nil : "translateY(\(Int(drop))px)")
         XCTAssertEqual(r["leaving"] as? Int, 1, "the old row stays while it sinks")
         XCTAssertEqual(r["live"] as? Int, 0, "as a picture: the filters are already closed")
         XCTAssertEqual(r["gone"] as? Int, 0, "and goes once it has")
