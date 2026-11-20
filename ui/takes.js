@@ -258,7 +258,18 @@ function beginEdit(t, isNew = false) {
   lastCaret = null;
   editorCard.hidden = false;
   paintEditor();
+  turnCancel();
   focusRow(rows.children.length - 1, Infinity);
+}
+
+// Cancel's plus turns into a cross as the bar appears (EditorKeyboardBar: the turn spring, or with
+// Reduce Motion the turned plus fades in). It rests at 45 degrees in the stylesheet.
+function turnCancel() {
+  const plus = $('#eb-discard .icon svg');
+  if (!plus) return;
+  if (still.matches) { plus.animate([{ opacity: 0 }, { opacity: 1 }], MOTION.reduced); return; }
+  const { frames, duration } = springFrames(0.35, 0.62);
+  plus.animate(frames.map(p => ({ transform: `rotate(${+(45 * p).toFixed(3)}deg)` })), { duration, easing: 'linear' });
 }
 
 function paintEditor() {
@@ -809,13 +820,69 @@ function matches(t) {
     && (!seq.remindersExpired || isOverdue(t)) && (!seq.important || !!t.isImportant);
 }
 
+// ---------- motion (CatchlightMotion on iOS) ----------
+// shape: 0.32 s ease-in-out cubic; turn: spring(response 0.35, damping 0.62); reduced: the
+// 0.12 s fade Reduce Motion gets instead; mode: the toolbar's 0.2 s change of mode.
+const MOTION = {
+  shape: { duration: 320, bezier: [0.65, 0, 0.35, 1] },
+  reduced: { duration: 120, easing: 'ease-in-out' },
+  mode: { duration: 200, easing: 'ease-in-out' },
+};
+// A cubic Bézier timing curve as a function of time (0 to 1), as CSS and SwiftUI evaluate it.
+function bezierEase([x1, y1, x2, y2]) {
+  const at = (a, b, t) => ((1 - 3 * b + 3 * a) * t + (3 * b - 6 * a)) * t * t + 3 * a * t;
+  return x => {
+    let lo = 0, hi = 1, t = x;
+    for (let i = 0; i < 30; i++) { const v = at(x1, x2, t); if (Math.abs(v - x) < 1e-6) break; if (v < x) lo = t; else hi = t; t = (lo + hi) / 2; }
+    return at(y1, y2, t);
+  };
+}
+// SwiftUI's spring(response:dampingFraction:) as keyframe progress values: a damped oscillator
+// from 0 to 1, sampled until it settles within a thousandth.
+function springFrames(response, damping) {
+  const w = 2 * Math.PI / response, wd = w * Math.sqrt(1 - damping * damping);
+  const duration = -Math.log(0.001) / (damping * w);
+  const steps = Math.round(duration * 60), frames = [];
+  for (let i = 0; i <= steps; i++) {
+    const t = duration * i / steps;
+    frames.push(i === steps ? 1 : 1 - Math.exp(-damping * w * t) * (Math.cos(wd * t) + damping * w / wd * Math.sin(wd * t)));
+  }
+  return { frames, duration: Math.round(duration * 1000) };
+}
+
+// Sequence's icon (SequenceLines): three lines on the 24 grid, folded into a cross while the
+// filters are open, each number moving on its own; a line shrunk to nothing is not drawn.
+const SEQ_LINES = { closed: [[5, 7, 19, 7], [5, 12, 19, 12], [5, 17, 14, 17]], open: [[6.5, 6.5, 17.5, 17.5], [12, 12, 12, 12], [6.5, 17.5, 17.5, 6.5]] };
+const seqPath = k => SEQ_LINES.closed.map((a, i) => a.map((v, j) => +(v + (SEQ_LINES.open[i][j] - v) * k).toFixed(2)))
+  .filter(v => !(k >= 1 && v[0] === v[2] && v[1] === v[3])).map(v => `M${v[0]} ${v[1]}L${v[2]} ${v[3]}`).join('');
+const seqIcon = k => `<svg viewBox="0 0 24 24"><path d="${seqPath(k)}"/></svg>`;
+let seqShown = 0, seqRun = null;
+function morphSequence(to) {
+  seqTarget = to;
+  const path = () => $('#takes-dock [data-act="sequence"] .icon path');
+  if (still.matches) {
+    seqShown = to; seqRun = null; path()?.setAttribute('d', seqPath(to));
+    path()?.parentElement.animate([{ opacity: 0 }, { opacity: 1 }], MOTION.reduced);
+    return;
+  }
+  const from = seqShown, ease = bezierEase(MOTION.shape.bezier), run = seqRun = {};
+  let start = null;
+  const frame = ts => {
+    if (seqRun !== run) return;
+    if (start === null) start = ts;
+    const k = Math.min(1, (ts - start) / MOTION.shape.duration);
+    seqShown = k >= 1 ? to : from + (to - from) * ease(k);
+    path()?.setAttribute('d', seqPath(seqShown));
+    if (k < 1) requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
+}
+
 const ICON = {
   // The iPhone's toolbar glyphs (ToolbarGlyph), on its 24 grid.
   add: '<svg viewBox="0 0 24 24"><path d="M12 6v12M6 12h12"/></svg>',
   storyboard: '<svg viewBox="0 0 24 24"><path d="M4.5 4.5h6v6h-6zM13.5 4.5h6v6h-6zM4.5 13.5h6v6h-6zM13.5 13.5h6v6h-6z"/></svg>',
-  sequence: '<svg viewBox="0 0 24 24"><path d="M5 7h14M5 12h14M5 17h9"/></svg>',
   // SequenceIcon open: the three lines turned to a cross (its middle line shrinks to the centre).
-  sequenceOpen: '<svg viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M6.5 17.5l11-11"/></svg>',
   lines: '<svg viewBox="0 0 24 24"><path d="M6 8h12M6 12h12M6 16h8"/></svg>',   // ToolbarGlyph.note
   search: '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M16 16l4 4"/></svg>',
   cancel: '<svg viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg>',
@@ -823,6 +890,9 @@ const ICON = {
   expired: '<svg viewBox="0 0 24 24"><circle cx="11" cy="12" r="7"/><path d="M11 8.5V12l2.4 1.6M20 7v5M20 15.2v.3"/></svg>',
 };
 
+let chipsShown = false;
+const seqMoving = open => seqRun !== null && !still.matches && seqShown !== (open ? 1 : 0) && seqTarget === (open ? 1 : 0);
+let seqTarget = 0;
 function paintDock() {
   const bar = $('#takes-dock');
   announceDock();   // a11y.js
@@ -836,6 +906,8 @@ function paintDock() {
   // Mark 2026-11-19: "iPhone way"); Sequence again, a click on empty space or Escape closes them.
   if (dock === 'resting' || dock === 'filtering') {
     const open = dock === 'filtering';
+    const leaving = !open && chipsShown ? bar.querySelector('.chips') : null;   // kept to sink out
+    if (leaving) { leaving.inert = true; leaving.setAttribute('aria-hidden', 'true'); }
     const chip = (act, icon, label, on) => `<button class="dock-btn chip${on ? ' on' : ''}" type="button" data-act="${act}" aria-label="${esc(label)}" title="${esc(label)}" aria-pressed="${on}">${icon}</button>`;
     const chips = !open ? '' : '<div class="chips">'
       + chip('important', ICON_IMPORTANT, t('Important filter'), seq.important)
@@ -844,8 +916,16 @@ function paintDock() {
       + chip('reminders', seq.remindersExpired ? ICON.expired : GLYPH_CLOCK, seq.remindersExpired ? t('Reminders filter, expired only') : t('Reminders filter'), seq.reminders)
       + '</div>';
     bar.innerHTML = chips + col('add', ICON.add, t('Add Take'), t('Add'), ' primary') + col('storyboard', ICON.storyboard, t('Storyboard'), t('Storyboard'))
-      + col('sequence', open ? ICON.sequenceOpen : ICON.sequence, t('Sequence'), t('Sequence'), `${open ? ' is-open' : ''}" aria-expanded="${open}`) + col('search', ICON.search, t('Search'), t('Search'));
+      + col('sequence', seqIcon(seqShown), t('Sequence'), t('Sequence'), `${open ? ' is-open' : ''}" aria-expanded="${open}`) + col('search', ICON.search, t('Search'), t('Search'));
     fitDockLabels(bar);
+    if (seqShown !== (open ? 1 : 0) && !seqMoving(open)) morphSequence(open ? 1 : 0);
+    // The chips rise from behind the toolbar and sink back (DailiesToolbar: opacity and a move from
+    // the bottom edge, 0.2 s ease-in-out); the old row stays until it has sunk.
+    const row = bar.querySelector('.chips') || leaving, drop = row ? row.offsetHeight + 8 + bar.offsetHeight : 0;
+    const below = [{ opacity: 0, transform: `translateY(${drop}px)` }], placed = [{ opacity: 1, transform: 'none' }];
+    if (open && !chipsShown) bar.querySelector('.chips').animate(below.concat(placed), MOTION.mode);
+    if (!open && leaving) { bar.prepend(leaving); leaving.animate(placed.concat(below), MOTION.mode).finished.then(() => leaving.remove(), () => leaving.remove()); }
+    chipsShown = open;
   } else if (!bar.querySelector('#take-search')) {
     // Built once per search, so typing never loses the caret to a repaint.
     // The iPhone's search row: the flat field with its glyph inside, then a plain Cancel.
