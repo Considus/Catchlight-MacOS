@@ -180,7 +180,11 @@ function takeCard(t) {
     const checks = t.blocks.filter(b => b.k === 'check');
     meta += `<div class="meta">${esc(L10N.t('%1$lld of %2$lld completed', checks.filter(b => b.done).length, checks.length))}</div>`;
   }
-  if (t.reminder) meta += reminderMeta(t.reminder);   // reminders.js
+  // An overdue Take's state word, as the iPhone's TakeStateWordStrip: sideways in the strip left
+  // of the Iris, or at the start of the time line when it doesn't fit there (fitStateWords).
+  const word = isOverdue(t) ? L10N.t('Overdue') : null;
+  if (t.reminder) meta += reminderMeta(t.reminder, word);   // reminders.js
+  if (word) meta += `<span class="state-word" aria-hidden="true">${esc(word.toLocaleUpperCase(L10N.lang))}</span>`;
   if (settings.creationStamp === 'always') meta += `<div class="stamp">${esc(createdLabel(t.at))}</div>`;   // Settings → Creation date
   // Read-only while it waits for a conflict choice (app.js, held): says why, and where to choose.
   if (held) meta += `<div class="held-note">${heldNote(t.id)}</div>`;
@@ -234,7 +238,35 @@ function renderTakes() {
     }
   }
   paintDock();
+  fitStateWords();
   if (typeof paintStrips === 'function') paintStrips();   // strips.js: a reminder set or cleared changes the silenced strip
+}
+
+// The state word goes in the strip only when it fits at 80% of its size or more, along the card's
+// height less 8 at each end and across the strip left of the Iris; otherwise it starts the time
+// line at full size (TakeStateWordStrip.scale, owner 2026-11-12). Judged again when the column
+// changes width, which changes the cards' heights.
+const STATE_WORD = { endGap: 8, minimumScale: 0.8 };
+function fitStateWords() {
+  for (const card of document.querySelectorAll('.card.overdue')) {
+    const word = card.querySelector('.state-word'), iris = card.querySelector('.iris-wrap');
+    if (!word) continue;
+    card.classList.remove('word-on-line');
+    word.style.removeProperty('--word-scale');
+    const length = word.offsetWidth, thickness = word.offsetHeight;
+    const strip = iris && iris.offsetParent ? iris.offsetLeft : 0;
+    const scale = length && thickness && strip
+      ? Math.min(1, (card.clientHeight - 2 * STATE_WORD.endGap) / length, strip / thickness) : 0;
+    if (scale >= STATE_WORD.minimumScale) word.style.setProperty('--word-scale', String(scale));
+    else card.classList.add('word-on-line');
+  }
+}
+if (typeof ResizeObserver === 'function') {
+  let width = 0;
+  new ResizeObserver(([entry]) => {
+    if (Math.abs(entry.contentRect.width - width) < 0.5) return;
+    width = entry.contentRect.width; fitStateWords();
+  }).observe($('#takes'));
 }
 
 // ---------- in-place editing ----------

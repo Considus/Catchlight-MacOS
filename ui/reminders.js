@@ -88,7 +88,9 @@ function reminderLine(r) {
 }
 const ICON_BELL_SLASH = '<svg viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 9.5-4.9M18 11v5l1.5 2h-15M10 20.5h4M4 4l16 16"/></svg>';
 const ICON_PIN = '<svg viewBox="0 0 24 24"><path d="M12 21s-6-5.6-6-11a6 6 0 0 1 12 0c0 5.4-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/></svg>';
-const reminderMeta = r => `<div class="meta">${isPlaceR(r) ? ICON_PIN : ICON_CLOCK}${r.notify === false ? ICON_BELL_SLASH : ICON_BELL}${esc(reminderLine(r))}</div>`;
+// `word`, for an overdue reminder: the state word, shown at the start of the line only when it
+// doesn't fit in the card's strip (takes.js, fitStateWords), as the iPhone's reminderText.
+const reminderMeta = (r, word) => `<div class="meta">${isPlaceR(r) ? ICON_PIN : ICON_CLOCK}${r.notify === false ? ICON_BELL_SLASH : ICON_BELL}${word ? `<span class="state-inline">${esc(word)}</span>` : ''}<span class="when">${esc(reminderLine(r))}</span></div>`;
 
 // Marking a repeating reminder done moves it to the following occurrence; the series goes on.
 // A monthly or annual series that lands on a clamped day remembers its own day.
