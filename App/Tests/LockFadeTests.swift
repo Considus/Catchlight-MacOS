@@ -92,7 +92,12 @@ final class LockFadeTests: XCTestCase {
 
     /// The page isn't painted on screen here, so no animation runs on its own (as the other look
     /// tests do): the fade is ended by hand 150 ms after it starts, and the shell must wait for that.
+    /// The page's timer can run late on a slow runner: on CI it ran past the shell's 1 s timeout
+    /// ("relock page step timed out" in this test's log), the shell took the hung-page path and the
+    /// reload faded in again. These tests are about a fade that ends, so the timeout is out of the
+    /// way here; the tests of a hung or busy page set their own.
     private func endTheFadeAfter150ms(_ live: MainWindowController) {
+        live.fadeTimeout = 30
         _ = runInPage(live, """
             const start = window.catchlightLockFade;
             window.catchlightLockFade = () => {
@@ -102,6 +107,13 @@ final class LockFadeTests: XCTestCase {
             };
             return true;
             """)
+    }
+
+    /// Waits for the reloaded page's lock screen. The old page has a `#lock` too (the fade's layer)
+    /// until the reload replaces it, so only a page opened on the locked library counts.
+    private func waitForTheReloadedLockScreen(_ live: MainWindowController, file: StaticString = #filePath, line: UInt = #line) {
+        spin(until: { self.runInPage(live, "return window.catchlightLibrary?.locked === true && !!document.querySelector('#lock');") as? Bool == true },
+             "the page does not show the lock screen", file: file, line: line)
     }
 
     /// The lock layer's animation in the page, as the page reports it.
@@ -141,7 +153,7 @@ final class LockFadeTests: XCTestCase {
         endTheFadeAfter150ms(live)
 
         relock(live)
-        spin(until: { self.runInPage(live, "return !!document.querySelector('#lock');") as? Bool == true }, "the page does not show the lock screen")
+        waitForTheReloadedLockScreen(live)
 
         XCTAssertEqual(runInPage(live, "return window.oldDocument === undefined;") as? Bool, true, "the old page was not reloaded")
         XCTAssertEqual(runInPage(live, "return document.body.innerText.includes('\(words)');") as? Bool, false)
@@ -153,7 +165,7 @@ final class LockFadeTests: XCTestCase {
         let live = controller()
         endTheFadeAfter150ms(live)
         relock(live)
-        spin(until: { self.runInPage(live, "return !!document.querySelector('#lock');") as? Bool == true }, "the page does not show the lock screen")
+        waitForTheReloadedLockScreen(live)
         XCTAssertNil(runInPage(live, lockAnimation) as? String, "the lock screen faded in a second time")
         XCTAssertFalse(live.bridge.justLocked, "the flag was not spent by the load")
     }
@@ -244,7 +256,7 @@ final class LockFadeTests: XCTestCase {
         }
         live.relock { second = true }
         spin(until: { first && second }, "the relocks did not finish")
-        spin(until: { self.runInPage(live, "return !!document.querySelector('#lock');") as? Bool == true }, "the page does not show the lock screen")
+        waitForTheReloadedLockScreen(live)
         RunLoop.current.run(until: Date().addingTimeInterval(1.5))   // a second reload would show by now
 
         XCTAssertEqual(loads, 1, "the page reloaded more than once")
