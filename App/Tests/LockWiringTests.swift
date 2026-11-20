@@ -12,15 +12,24 @@ import XCTest
 /// notification while locked opens once unlocked.
 final class LockWiringTests: XCTestCase {
     /// Secrets in memory that can be told to refuse, as a cancelled Touch ID or password prompt does.
+    /// The window asks off the main thread, so what the prompt shares with the test is behind a lock.
+    /// `gate`, when set, holds the prompt open until the test signals it.
     private final class RefusingSecrets: Secrets {
         private let memory = MemorySecrets()
-        var refuse = false
-        private(set) var asked = 0
+        private let guarded = NSLock()
+        private var refusing = false, count = 0
+        var refuse: Bool {
+            get { guarded.withLock { refusing } }
+            set { guarded.withLock { refusing = newValue } }
+        }
+        var asked: Int { guarded.withLock { count } }
+        var gate: DispatchSemaphore?
         var hasAccount: Bool { memory.hasAccount }
         func storePhrase(_ words: [String]) throws { try memory.storePhrase(words) }
         func storeMasterKey(_ raw: Data) throws { try memory.storeMasterKey(raw) }
         func masterKey(reason: String) throws -> SymmetricKey {
-            asked += 1
+            guarded.withLock { count += 1 }
+            gate?.wait()
             if refuse { throw KeychainError.retrieveFailed(errSecUserCanceled) }
             return try memory.masterKey(reason: reason)
         }
@@ -250,5 +259,84 @@ final class LockWiringTests: XCTestCase {
         _ = runInPage(live, "document.querySelector('#lock .lock-button').click(); return true;")
         pageBecomes(live, "document.activeElement?.closest?.('[data-take]')?.dataset.take?.toLowerCase() === '\(takeID.uuidString.lowercased())'",
                     "the Take opened while locked did not open after the unlock")
+    }
+
+    // MARK: The login prompt
+
+    /// The Mac's login prompt makes the app inactive while it is up. Going away then is not time
+    /// away: coming back after it, however long it took, leaves the library open.
+    func testTheLoginPromptTakingTheAppAwayDoesNotRelock() throws {
+        defaults.set("60", forKey: AppLock.lockAfterKey)
+        let live = controller()
+        secrets.refuse = true
+        relock(live)
+        secrets.refuse = false
+        let gate = DispatchSemaphore(value: 0)
+        secrets.gate = gate
+        let askedBefore = secrets.asked
+
+        _ = runInPage(live, "document.querySelector('#lock .lock-button').click(); return true;")
+        spin(until: { self.secrets.asked == askedBefore + 1 }, "the prompt did not come up")
+        post(NSApplication.didResignActiveNotification)
+        now += 61
+        gate.signal()
+        pageBecomes(live, "catchlightLibrary.unlocked === true && !document.querySelector('#lock')", "the unlock did not finish")
+        // A relock now would ask again on return: refusing keeps it locked, so it shows.
+        secrets.gate = nil
+        secrets.refuse = true
+        post(NSApplication.didBecomeActiveNotification)
+        RunLoop.current.run(until: Date().addingTimeInterval(1))
+
+        XCTAssertNotNil(vault.library, "coming back from the login prompt relocked the library")
+        XCTAssertEqual(secrets.asked, askedBefore + 1, "coming back from the login prompt asked again")
+        XCTAssertEqual(runInPage(live, "return !document.querySelector('#lock');") as? Bool, true)
+    }
+
+    /// Time away noted before an unlock is spent by it: the next return doesn't relock at once.
+    func testAnUnlockForgetsTheTimeAway() throws {
+        defaults.set("60", forKey: AppLock.lockAfterKey)
+        let live = controller()
+        secrets.refuse = true
+        relock(live)
+        secrets.refuse = false
+        post(NSApplication.didResignActiveNotification)
+        now += 61
+
+        var answer: String?? = .none
+        live.unlock { answer = .some($0) }
+        spin(until: { answer != nil }, "the unlock did not answer")
+        XCTAssertEqual(answer, .some(nil))
+        // A relock waits for the page to save first, so the page must have loaded for one to show.
+        pageBecomes(live, "catchlightLibrary.unlocked === true && !document.querySelector('#lock')", "the unlock did not reload the page")
+        // A relock now would ask again on return: refusing keeps it locked, so it shows.
+        secrets.refuse = true
+        let askedAfter = secrets.asked
+        post(NSApplication.didBecomeActiveNotification)
+        RunLoop.current.run(until: Date().addingTimeInterval(1))
+
+        XCTAssertNotNil(vault.library, "the return after an unlock relocked the library")
+        XCTAssertEqual(secrets.asked, askedAfter, "the return after an unlock asked again")
+    }
+
+    /// While the shell asks on its own, the lock screen says so, as the iPhone's does.
+    func testTheUnlockAskedOnReturnShowsAuthenticating() throws {
+        let live = controller()
+        secrets.refuse = true
+        relock(live)
+        secrets.refuse = false
+        let gate = DispatchSemaphore(value: 0)
+        secrets.gate = gate
+        let askedBefore = secrets.asked
+        defer { gate.signal() }
+
+        post(NSApplication.didBecomeActiveNotification)
+        spin(until: { self.secrets.asked == askedBefore + 1 }, "the unlock was not asked for on return")
+        pageBecomes(live, """
+            document.querySelector('#lock .lock-message')?.textContent === 'Authenticating…'
+              && document.querySelector('#lock .lock-button')?.textContent === 'Unlocking…'
+              && document.querySelector('#lock .lock-button')?.disabled === true
+            """, "the lock screen does not show Authenticating while the shell asks")
+        gate.signal()
+        pageBecomes(live, "catchlightLibrary.unlocked === true && !document.querySelector('#lock')", "the unlock did not finish")
     }
 }

@@ -2,6 +2,7 @@ import AppKit
 import WebKit
 import CatchlightAppleStorage
 import CatchlightCore
+import CryptoKit
 import UserNotifications
 import os
 
@@ -208,7 +209,9 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
         DistributedNotificationCenter.default().addObserver(self, selector: #selector(screenDidLock(_:)), name: Self.screenLockedNotification, object: nil)
     }
 
+    /// The login prompt makes the app inactive while it is up: that is not time away.
     @objc private func appWentAway(_ notification: Notification) {
+        guard unlockReplies.isEmpty else { return }
         lock?.noteWentAway()
     }
 
@@ -226,10 +229,12 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
     }
 
     /// The iPhone asks on return whenever the library is locked, unless a failure is showing
-    /// (then Try Again asks) or an unlock is already running. A failure reloads the page so it
-    /// opens on Try Again; a success has reloaded it already.
+    /// (then Try Again asks) or an unlock is already running. The lock screen shows it is asking,
+    /// as the iPhone's does (a page still loading is told once it has, in `didFinish`). A failure
+    /// reloads the page so it opens on Try Again; a success has reloaded it already.
     private func unlockOnReturn() {
         guard case .locked = bridge.vault?.state, bridge.lockFailure == nil, unlockReplies.isEmpty else { return }
+        showUnlocking()
         unlock { [weak self] failure in
             if failure != nil { self?.reloadPage() }
         }
@@ -250,34 +255,37 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
         }
     }
 
-    /// The lock screen's Unlock and Try Again, and the ask on return: opens the library with
-    /// `Vault.start()` and answers nil, else `"cancelled"` (the prompt was cancelled or refused)
-    /// or `"unopenable"`. The prompt blocks, so it runs off the main thread, as the iPhone's runs
-    /// off the main actor. A second ask while one runs waits for the same answer.
+    /// The lock screen's Unlock and Try Again, and the ask on return: opens the library and
+    /// answers nil, else `"cancelled"` (the prompt was cancelled or refused) or `"unopenable"`.
+    /// Only the prompt (`Vault.readKey`, which blocks) runs off the main thread, as the iPhone's
+    /// runs off the main actor; the library opens on main, where the vault is only ever changed.
+    /// A second ask while one runs waits for the same answer.
     func unlock(_ reply: @escaping (String?) -> Void) {
         guard let vault = bridge.vault, case .locked = vault.state else { return reply(nil) }
         unlockReplies.append(reply)
         guard unlockReplies.count == 1 else { return }
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            let outcome = Result { try vault.start() }
-            DispatchQueue.main.async { self?.finishUnlock(outcome) }
+            let key = Result { try vault.readKey() }
+            DispatchQueue.main.async { self?.finishUnlock(vault, key) }
         }
     }
 
-    private func finishUnlock(_ outcome: Result<Vault.State, Error>) {
+    private func finishUnlock(_ vault: Vault, _ key: Result<SymmetricKey, Error>) {
         let failure: String?
-        switch outcome {
-        case .success(.open):
+        do {
+            try vault.open(with: key.get())
             failure = nil
-        case .success:
+        } catch KeychainError.notFound {
+            // The key went while locked; the vault stays locked rather than offer first run.
             Self.log.error("start failed: no account")
             failure = "unopenable"
-        case .failure(let error):
+        } catch {
             Self.log.error("start failed: \(String(describing: error), privacy: .public)")
             failure = error is KeychainError ? "cancelled" : "unopenable"
         }
         bridge.lockFailure = failure
         if failure == nil {
+            lock?.forgetWentAway()
             bridge.justUnlocked = true
             reloadPage()
             mirrorLibrary(inBackground: true)
@@ -289,6 +297,11 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
         let replies = unlockReplies
         unlockReplies = []
         replies.forEach { $0(failure) }
+    }
+
+    /// Puts the lock screen into its unlocking state (`catchlightLockUnlocking`, ui/lock.js).
+    private func showUnlocking() {
+        webView.evaluateJavaScript("window.catchlightLockUnlocking?.()")
     }
 
     /// Loads the page again on the library as it is now (locked or open): the scripts are
@@ -433,6 +446,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WKNaviga
         if window?.styleMask.contains(.fullScreen) == true { markFullScreen(true) }
         // Only the app's own page: the error page and a failed load have no catchlightOpenTake.
         if webView.url?.absoluteString == Self.startURL.absoluteString { takeOpener.pageDidLoad() }
+        // A lock screen loaded while the shell is asking shows that it is.
+        if !unlockReplies.isEmpty { showUnlocking() }
         #if DEBUG
         DebugLaunch.pageDidLoad(webView)
         #endif

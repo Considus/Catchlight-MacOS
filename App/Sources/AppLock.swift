@@ -32,6 +32,9 @@ final class AppLock {
 
     func noteWentAway() { wentAwayAt = now() }
 
+    /// An unlock spends the time away, so the next return can't relock at once.
+    func forgetWentAway() { wentAwayAt = nil }
+
     /// True when the app was away for at least the setting. Always clears the timestamp, and is
     /// false when there is none (a cold launch).
     func shouldLockOnReturn() -> Bool {

@@ -56,6 +56,13 @@ async function attemptUnlock() {
   catch (e) { setLock('failed', String(e?.message ?? e) === 'unopenable' ? 'unopenable' : 'cancelled'); }
 }
 
+// The shell asks for the user on its own as the app comes back (RootView's auto-unlock), and the
+// lock screen shows it, as LockView does: Authenticating…, Unlocking… disabled. A failure showing
+// stays: the shell only asks on its own when none is.
+window.catchlightLockUnlocking = () => {
+  if (lock.layer && lock.phase === 'locked') setLock('unlocking');
+};
+
 const lockLibrary = window.catchlightLibrary;
 if (lockLibrary?.locked) {
   const appRoot = document.getElementById('app');

@@ -62,6 +62,10 @@ final class Vault {
 
     // MARK: Launch
 
+    /// macOS puts the reason inside its own sentence ("Catchlight is trying to unlock your Takes."),
+    /// so it starts lower case.
+    static let unlockReason = String(localized: "unlock your Takes", comment: "macOS puts it inside its own sentence: Catchlight is trying to unlock your Takes.")
+
     /// No account, or the library opened. Asks for the user once, when there is an account.
     ///
     /// It asks for the key straight away rather than checking that it exists first: on a Mac
@@ -70,16 +74,26 @@ final class Vault {
     /// missing item answers not-found without a prompt, and only that means no account; a
     /// cancelled prompt is an error, never "no account", so it can't lead to a new phrase.
     @discardableResult
-    /// macOS puts `reason` inside its own sentence ("Catchlight is trying to unlock your Takes."),
-    /// so it starts lower case.
-    func start(reason: String = String(localized: "unlock your Takes", comment: "macOS puts it inside its own sentence: Catchlight is trying to unlock your Takes.")) throws -> State {
+    func start(reason: String = Vault.unlockReason) throws -> State {
         state = .locked
         let key: SymmetricKey
-        do { key = try secrets.masterKey(reason: reason) }
+        do { key = try readKey(reason: reason) }
         catch KeychainError.notFound { state = .noAccount; return state }
+        try open(with: key)
+        return state
+    }
+
+    /// The master key, asking for the user. Changes nothing here, so the lock screen runs it off
+    /// the main thread while the prompt blocks. Throws `KeychainError.notFound` when there is no key.
+    func readKey(reason: String = Vault.unlockReason) throws -> SymmetricKey {
+        try secrets.masterKey(reason: reason)
+    }
+
+    /// Opens the library with the key `readKey` gave. On the main thread, like every other change
+    /// to the vault. Throws, and leaves the state as it was, when the library doesn't open.
+    func open(with key: SymmetricKey) throws {
         state = .open(try openLibrary(keys: KeyHierarchy(masterKey: key)))
         openKey = key.withUnsafeBytes { Data($0) }
-        return state
     }
 
     /// Closes the open library and forgets the master key in memory; `start()` reopens it.
