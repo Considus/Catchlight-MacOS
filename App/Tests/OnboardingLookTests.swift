@@ -153,7 +153,7 @@ final class OnboardingLookTests: XCTestCase {
             const slots = [...confirm.querySelectorAll('.fr-slot')], tiles = [...confirm.querySelectorAll('.fr-tile')];
             const s0 = st(slots[0]), s1 = st(slots[1]), used = st(tiles[0]), free = st(tiles[1]);
             out.slots = { filledEdge: s0.borderTopWidth + ' ' + s0.borderTopColor + ' ' + s0.borderTopStyle, emptyEdge: s1.borderTopWidth + ' ' + s1.borderTopColor + ' ' + s1.borderTopStyle,
-              emptyFill: s1.backgroundColor, radius: s1.borderTopLeftRadius, h: box(slots[1]).height, gap: box(slots[1]).left - box(slots[0]).right, value: [s0.fontSize, s0.fontWeight] };
+              emptyFill: s1.backgroundColor, dpr: devicePixelRatio, radius: s1.borderTopLeftRadius, h: box(slots[1]).height, gap: box(slots[1]).left - box(slots[0]).right, value: [s0.fontSize, s0.fontWeight] };
             out.tiles = { free: [free.backgroundColor, free.borderTopWidth + ' ' + free.borderTopColor, free.fontSize, free.fontWeight, free.color], used: [used.backgroundColor, used.borderTopColor, used.color, used.opacity], h: box(tiles[1]).height };
             const err = confirm.querySelector('.fr-error'); err.hidden = false; const es = st(err);
             out.error = { size: es.fontSize, colour: es.color, fill: es.backgroundColor, edge: es.borderTopWidth + ' ' + es.borderTopColor, mixFill: mix('accent', 12), mixEdge: mix('accent', 35) };
@@ -172,7 +172,11 @@ final class OnboardingLookTests: XCTestCase {
         XCTAssertEqual(chip["fill"] as? String, R["card"]); XCTAssertEqual(chip["edge"] as? String, "1px \(R["line"]!)"); XCTAssertEqual(chip["radius"] as? String, "14px")
         XCTAssertGreaterThanOrEqual(chip["h"] as! Double, 40); XCTAssertEqual(chip["num"] as? [String], ["12px", R["muted"]!]); XCTAssertEqual(chip["word"] as? [String], ["15px", "600", R["text"]!])
         let slots = try XCTUnwrap(r["slots"] as? [String: Any])
-        XCTAssertEqual(slots["emptyEdge"] as? String, "1.5px \(R["muted"]!) solid"); XCTAssertEqual(slots["filledEdge"] as? String, "1.5px \(R["accent-text"]!) solid")
+        // 1.5 as the iPhone draws it; WebKit snaps a border down to whole device pixels, so a 1x
+        // screen (the CI Mac) shows 1.
+        let dpr = try XCTUnwrap(slots["dpr"] as? Double), snapped = (1.5 * dpr).rounded(.down) / dpr
+        let edge = snapped == 1.5 ? "1.5px" : "\(Int(snapped))px"
+        XCTAssertEqual(slots["emptyEdge"] as? String, "\(edge) \(R["muted"]!) solid", "at \(dpr)x"); XCTAssertEqual(slots["filledEdge"] as? String, "\(edge) \(R["accent-text"]!) solid", "at \(dpr)x")
         XCTAssertEqual(slots["emptyFill"] as? String, "rgba(0, 0, 0, 0)"); XCTAssertEqual(slots["radius"] as? String, "14px")
         XCTAssertGreaterThanOrEqual(slots["h"] as! Double, 40); XCTAssertEqual(slots["gap"] as! Double, 10, accuracy: 0.6); XCTAssertEqual(slots["value"] as? [String], ["15px", "600"])
         let tiles = try XCTUnwrap(r["tiles"] as? [String: Any])
