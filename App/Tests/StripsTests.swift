@@ -304,7 +304,7 @@ final class StripsTests: XCTestCase {
             document.querySelector('[data-strip="phrase"] [data-strip-act="export"]').click();
             return JSON.stringify([alertBox.open, alertBox.querySelector('h2, h1, .alert-title')?.textContent, alertBox.querySelector('p')?.textContent, [...alertBox.querySelectorAll('button')].map(b => b.textContent)]);
             """, in: self) as? String
-        XCTAssertEqual(dialog, #"[true,"Export a readable copy?","The file is readable text and it does not contain a Privacy phrase. Use Start over and Import from a file to re-import your Takes. Delete the export once your Takes are back.",["Export anyway","Cancel"]]"#)
+        XCTAssertEqual(dialog, #"[true,"Export a readable copy?","The file is readable text and it doesn't contain a Privacy phrase. Use Start over and Import from a file to re-import your Takes and Scripts. Delete the export once they're back.",["Export anyway","Cancel"]]"#)
         XCTAssertFalse(shell.sent.contains("exportLibrary"), "nothing leaves before the choice")
         _ = try harness.run("[...alertBox.querySelectorAll('button')].find(b => b.textContent === 'Export anyway').click(); await new Promise(r => setTimeout(r, 200)); return 0;", in: self)
         XCTAssertTrue(shell.sent.contains("exportLibrary"), "\(shell.sent)")
