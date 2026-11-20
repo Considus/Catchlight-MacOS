@@ -190,7 +190,7 @@ final class MotionRestTests: XCTestCase {
             await finish();
             const copy = document.querySelector('.fr-leaving'), out = calls.find(c => c.el === copy);
             const res = { hidden: layer.hidden, running: document.body.classList.contains('first-running'), out: out ? [opacities(out), out.options.duration, out.options.easing] : null,
-              copyHidden: copy?.getAttribute('aria-hidden'), events: copy && getComputedStyle(copy).pointerEvents, first: document.querySelector('.first-run') === layer };
+              notch: [...(copy?.querySelectorAll('[mask]') ?? [])].map(n => !!document.getElementById(n.getAttribute('mask').slice(5, -1))), copyHidden: copy?.getAttribute('aria-hidden'), events: copy && getComputedStyle(copy).pointerEvents, first: document.querySelector('.first-run') === layer };
             finishAll(); await new Promise(f => setTimeout(f, 20));
             res.gone = !document.querySelector('.fr-leaving');
             return res;
@@ -199,6 +199,8 @@ final class MotionRestTests: XCTestCase {
         let out = try XCTUnwrap(r["out"] as? [Any], "a copy fades over the app: \(r)")
         XCTAssertEqual(out[0] as? [Double], [1, 0]); XCTAssertEqual(out[1] as? Double, 400); XCTAssertEqual(out[2] as? String, "ease-in-out")
         XCTAssertEqual(r["copyHidden"] as? String, "true"); XCTAssertEqual(r["events"] as? String, "none")
+        let notch = try XCTUnwrap(r["notch"] as? [Bool])
+        XCTAssertFalse(notch.isEmpty); XCTAssertEqual(Set(notch), [true], "the fading ring keeps its notch: its mask is still there: \(r)")
         XCTAssertEqual(r["first"] as? Bool, true, "the real layer is still the one the page finds")
         XCTAssertEqual(r["gone"] as? Bool, true)
     }

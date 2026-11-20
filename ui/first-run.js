@@ -294,8 +294,12 @@ async function finish() {
   }
   fr.secondDevice = false; fr.opened = null;
   // The first run fades away over the app (RootView, easeInOut 0.4).
+  // The copy takes the screen's own content rather than a clone, so the mark's mask id goes with it
+  // and the fading ring keeps its notch.
   if (!layer.hidden) {
-    const copy = leavingCopy(layer, 'fr-leaving');
+    const copy = leavingCopy(layer.cloneNode(false), 'fr-leaving');
+    copy.append(...layer.childNodes);
+    copy.querySelectorAll('[tabindex]').forEach(n => n.removeAttribute('tabindex'));
     Object.assign(copy.style, { pointerEvents: 'none' });
     layer.after(copy);
     copy.animate([{ opacity: 1 }, { opacity: 0 }], MOTION.root).finished.then(() => copy.remove(), () => copy.remove());
