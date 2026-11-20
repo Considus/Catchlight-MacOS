@@ -191,7 +191,8 @@ function takeCard(t) {
 const reorderHandle = t => !t.obie && !isHeld(t.id) && canReorder() ? `<button class="thandle" type="button" aria-label="${esc(L10N.t('Move %@', t.blocks.find(b => b.text.trim())?.text.slice(0, 40) || L10N.t('Take')))}" title="${esc(L10N.t('Drag to move, or ⌥↑ ⌥↓'))}"></button>` : '';
 
 function renderTakes() {
-  $('#dailies-heading').textContent = storyboard ? t('Storyboard') : { resting: t('Dailies'), filtering: t('Sequence'), searching: t('Search') }[dock];
+  const title = storyboard ? t('Storyboard') : { resting: t('Dailies'), filtering: t('Sequence'), searching: t('Search') }[dock];
+  if ($('#dailies-heading').textContent !== title) crossfadeText($('#dailies-heading'), title);
   paintDailiesDate();
   $('#show-all').hidden = storyboard || (dock === 'resting' && !filterMonth);   // iOS offers it only away from resting
   $('#sb-close').hidden = !storyboard;
@@ -825,10 +826,41 @@ function matches(t) {
 // shape: 0.32 s ease-in-out cubic; turn: spring(response 0.35, damping 0.62); reduced: the
 // 0.12 s fade Reduce Motion gets instead; mode: the toolbar's 0.2 s change of mode.
 const MOTION = {
+  heading: { duration: 180, easing: 'ease-in-out' },   // DailiesView: the title crossfades on a mode change
+  tick: { duration: 150, easing: 'ease-in-out' },      // ShotListView.toggle
+  settle: { duration: 180, easing: 'ease-in-out' },    // ShotListView.endReorder
   shape: { duration: 320, bezier: [0.65, 0, 0.35, 1] },
   reduced: { duration: 120, easing: 'ease-in-out' },
   mode: { duration: 200, easing: 'ease-in-out' },
 };
+// The old text fades out over the new as it fades in (DailiesView's `.id(headingTitle)` with
+// easeInOut 0.18). The fading copy is a picture: no id, hidden from the screen reader.
+function crossfadeText(el, text) {
+  const ghost = el.isConnected && el.offsetParent && el.textContent ? el.cloneNode(true) : null;
+  el.textContent = text;
+  if (!ghost) return;
+  ghost.removeAttribute('id'); ghost.removeAttribute('tabindex'); ghost.setAttribute('aria-hidden', 'true'); ghost.inert = true;
+  ghost.classList.add('text-leaving');
+  Object.assign(ghost.style, { position: 'absolute', margin: '0', left: el.offsetLeft + 'px', top: el.offsetTop + 'px', width: el.offsetWidth + 'px', pointerEvents: 'none' });
+  el.after(ghost);
+  ghost.animate([{ opacity: 1 }, { opacity: 0 }], MOTION.heading).finished.then(() => ghost.remove(), () => ghost.remove());
+  el.animate([{ opacity: 0 }, { opacity: 1 }], MOTION.heading);
+}
+
+// Opening a Take from outside (Spotlight, a notification) pulses it in the accent once it is in
+// view, as UIKitTimeline.attemptReveal does: 0.35 s after the scroll, 0.4 s up to 18%, held until
+// 1 s, then 0.4 s back. Render-only.
+function revealFlash(card) {
+  card.querySelector(':scope > .reveal-flash')?.remove();
+  const flash = document.createElement('div');
+  flash.className = 'reveal-flash'; flash.setAttribute('aria-hidden', 'true');
+  flash.style.inset = `-${getComputedStyle(card).borderTopWidth}`;   // over the card's edge too
+  card.append(flash);
+  const e = 'ease-in-out';
+  flash.animate([{ opacity: 0, easing: e }, { opacity: 0.18, offset: 0.4 / 1.4, easing: e }, { opacity: 0.18, offset: 1 / 1.4, easing: e }, { opacity: 0 }],
+    { duration: 1400, delay: 350, fill: 'both' }).finished.then(() => flash.remove(), () => flash.remove());
+}
+
 // A cubic Bézier timing curve as a function of time (0 to 1), as CSS and SwiftUI evaluate it.
 function bezierEase([x1, y1, x2, y2]) {
   const at = (a, b, t) => ((1 - 3 * b + 3 * a) * t + (3 * b - 6 * a)) * t * t + 3 * a * t;
@@ -962,6 +994,7 @@ window.catchlightOpenTake = id => {
   if (!card) return 'missing';
   card.scrollIntoView({ block: 'center' });
   card.focus();
+  revealFlash(card);
   return 'opened';
 };
 
