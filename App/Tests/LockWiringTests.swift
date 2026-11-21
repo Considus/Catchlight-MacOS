@@ -189,7 +189,7 @@ final class LockWiringTests: XCTestCase {
         XCTAssertEqual(try savedTexts(), ["Typed, not saved"], "the open edit was not saved before the lock")
     }
 
-    // MARK: An edit whose save fails at the lock (ISSUE-292)
+    // MARK: An edit whose save fails at the lock
 
     /// Every save the page sends is refused, as the shell answers when the disk is full. The library
     /// keeps its file open, so folder permissions can't force this: the refusal is made where the
@@ -228,7 +228,7 @@ final class LockWiringTests: XCTestCase {
         unlock(live)
 
         let shown = runInPage(live, "return document.body.innerText;") as? String ?? ""
-        XCTAssertTrue(shown.contains("Typed, not saved"), "the typing is gone after the unlock (ISSUE-292)")
+        XCTAssertTrue(shown.contains("Typed, not saved"), "the typing is gone after the unlock")
         spin(until: { (try? self.savedTexts()) == ["Typed, not saved"] }, "the typing given back was not saved again")
         spin(until: { live.bridge.heldEdits.isEmpty }, "what was held is not wiped once saved")
     }
