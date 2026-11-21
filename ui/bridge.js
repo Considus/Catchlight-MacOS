@@ -47,8 +47,8 @@
   // save names the snapshot its list came from (`generation`), and the shell diffs against that
   // snapshot, so a Take sync added since is never read as one the page deleted (Library.swift).
   const library = window.catchlightLibrary;
-  // Edits whose save failed as the app locked, handed back by the unlock (ShellBridge, HeldEdits,
-  // ISSUE-292): each goes back over its stored version, or in as new, and is saved again once
+  // Edits whose save failed as the app locked, handed back by the unlock (ShellBridge,
+  // HeldEdits): each goes back over its stored version, or in as new, and is saved again once
   // the page is up. If that save is refused too, the page keeps them and says so, as any refused save.
   const heldBack = library && typeof library.heldEdits === 'object' && library.heldEdits ? library.heldEdits : null;
   // A refused edit that couldn't be held, or opened again: say a save failed, with the usual words,

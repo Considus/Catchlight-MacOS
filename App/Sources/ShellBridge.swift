@@ -86,7 +86,7 @@ final class ShellBridge: NSObject, WKScriptMessageHandlerWithReply {
     /// what the user sees, so the page draws it without fading it in again.
     var justLocked = false
     /// Edits whose save failed as the app locked, sealed and held in memory until the next unlock
-    /// hands them back to the page (HeldEdits, ISSUE-292).
+    /// hands them back to the page (HeldEdits).
     var heldEdits = HeldEdits()
     /// Scripts the tests add to every page load, after the shell's own (a reload rebuilds the page's
     /// scripts, so one added to the web view directly is gone after a relock or an unlock). Empty

@@ -2,7 +2,7 @@ import Foundation
 import CatchlightCore
 
 /// Edits whose save failed as the app locked, kept across the lock (owner, 2026-11-20: "Hold it,
-/// give it back", ISSUE-292). Each changed Take or Script is sealed by Core's `TakeCrypto` under
+/// give it back"). Each changed Take or Script is sealed by Core's `TakeCrypto` under
 /// its own item key, as the store seals it, and held in memory only: nothing is written to disk,
 /// and nothing is readable once the lock drops the master key. With it is sealed the version the
 /// page last read (its base), so the save after the unlock tells a change sync made since from
